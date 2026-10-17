@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Heiran: Debug current build",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/${config:heiran.buildDir}/heiran.exe",
+      "args": [
+        "${config:heiran.sessionPath}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "integratedTerminal",
+      "preLaunchTask": "Heiran: Build",
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${config:heiran.qtPrefixPath}/bin;${workspaceFolder}/${config:heiran.buildDir}/vcpkg_installed/x64-windows/bin;${env:PATH}"
+        },
+        {
+          "name": "HEIRAN_IMAGE_DECODER",
+          "value": "${config:heiran.imageDecoder}"
+        },
+        {
+          "name": "HEIRAN_PROFILE_PAN",
+          "value": "${config:heiran.profilePan}"
+        },
+        {
+          "name": "HEIRAN_PROFILE_LOAD",
+          "value": "${config:heiran.profileLoad}"
+        },
+        {
+          "name": "HEIRAN_TRACE_DECODER",
+          "value": "${config:heiran.traceDecoder}"
+        }
+      ]
+    }
+  ]
+}

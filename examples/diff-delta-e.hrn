@@ -1,0 +1,14 @@
+// 2 枚の画像と、その色差 (CIEDE2000) を並べる見本。3 つ目のセルが、色差を出す。
+{
+  format_version: 1,
+  viewer: { layout: { rows: 1, cols: 3 } },
+  images: [
+    { name: "A", path: "images/a/*.png" },
+    { name: "B", path: "images/b/*.png" },
+  ],
+  cells: [
+    { image: 0 },
+    { image: 1 },
+    { diff: { base: 0, target: 1, mode: "delta-e", view: "grayscale", threshold: 2.3 } },
+  ],
+}

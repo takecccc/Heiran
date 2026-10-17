@@ -1,0 +1,14 @@
+{
+  "heiran.qtPrefixPath": "C:/Qt/6.11.1/msvc2022_64",
+  "heiran.vcpkgRoot": "${workspaceFolder}/.tools/vcpkg",
+  "heiran.buildDir": "build",
+  "heiran.buildConfig": "Release",
+  "heiran.sessionPath": "${workspaceFolder}/examples/sample.hrn",
+  "heiran.imageDecoder": "auto",
+  "heiran.profilePan": "0",
+  "heiran.profileLoad": "1",
+  "heiran.traceDecoder": "1",
+  "cmake.configureOnOpen": false,
+  "cmake.generator": "Ninja",
+  "cmake.buildDirectory": "${workspaceFolder}/build"
+}

@@ -1,0 +1,3 @@
+// The first icon resource in the executable is what Explorer, the task bar and
+// the Qt window frame pick up. Keep it first so no other resource takes over.
+IDI_HEIRAN_ICON ICON "heiran.ico"

@@ -1,0 +1,15 @@
+Common image formats
+====================
+
+This file is installed when the "Common image formats" option is picked during
+installation. It records what the installer registered.
+
+Registered extensions:
+
+  .png  .jpg  .jpeg  .bmp  .gif  .webp  .tif  .tiff
+
+Windows does not let an installer take over an extension that already has a
+default application. Heiran is added to the "Open with" list and to
+Settings > Apps > Default apps, where it can be made the default.
+
+To undo this, run the Heiran uninstaller.

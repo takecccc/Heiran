@@ -1,0 +1,609 @@
+#include "heiran/ui/DiffRenderer.hpp"
+
+#include "heiran/domain/ColorDifference.hpp"
+#include "heiran/domain/Ssim.hpp"
+#include "heiran/infra/ParallelRows.hpp"
+
+#include <QCoreApplication>
+#include <QRect>
+#include <QVector>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <mutex>
+#include <vector>
+
+namespace heiran::ui {
+
+namespace {
+
+using heiran::domain::DiffMode;
+using heiran::domain::DiffViewMode;
+
+// 1 つの軸を変える重み。縮めるなら、元の区間と先の区間の重なり (面積) で平均する。
+// 広げるなら、画素の中心どうしの線形補間。
+struct AxisTap {
+  int first = 0;
+  QVector<float> weights;
+};
+
+QVector<AxisTap> axisTaps(int from, int to) {
+  QVector<AxisTap> taps(to);
+  const double scale = static_cast<double>(from) / to;
+  if (to < from) {
+    for (int index = 0; index < to; ++index) {
+      const double begin = index * scale;
+      const double end = begin + scale;
+      const int first = static_cast<int>(std::floor(begin));
+      const int last = std::min(from - 1, static_cast<int>(std::ceil(end)) - 1);
+      AxisTap tap;
+      tap.first = first;
+      double total = 0.0;
+      for (int source = first; source <= last; ++source) {
+        const double overlap =
+            std::min(end, source + 1.0) - std::max(begin, static_cast<double>(source));
+        tap.weights.push_back(static_cast<float>(overlap));
+        total += overlap;
+      }
+      for (float &weight : tap.weights) {
+        weight = static_cast<float>(weight / total);
+      }
+      taps[index] = tap;
+    }
+  } else {
+    for (int index = 0; index < to; ++index) {
+      const double position = (index + 0.5) * scale - 0.5;
+      const int low = std::clamp(static_cast<int>(std::floor(position)), 0, from - 1);
+      const int high = std::min(low + 1, from - 1);
+      const float fraction =
+          static_cast<float>(std::clamp(position - std::floor(position), 0.0, 1.0));
+      AxisTap tap;
+      tap.first = low;
+      if (high == low || position < 0.0) {
+        tap.weights = {1.0F};
+      } else {
+        tap.weights = {1.0F - fraction, fraction};
+      }
+      taps[index] = tap;
+    }
+  }
+  return taps;
+}
+
+}  // namespace
+
+QVector<float> resizeLumaPlane(const QVector<float> &plane, QSize from, QSize to) {
+  if (from == to || from.isEmpty() || to.isEmpty() ||
+      plane.size() != static_cast<qsizetype>(from.width()) * from.height()) {
+    return plane;
+  }
+  // 水平: 行ごとに幅を変える。
+  const QVector<AxisTap> horizontal = axisTaps(from.width(), to.width());
+  QVector<float> wide(static_cast<qsizetype>(to.width()) * from.height());
+  heiran::infra::forEachRowBand(from.height(), [&](int firstRow, int lastRow) {
+    for (int y = firstRow; y < lastRow; ++y) {
+      const float *source = plane.constData() + static_cast<qsizetype>(y) * from.width();
+      float *target = wide.data() + static_cast<qsizetype>(y) * to.width();
+      for (int x = 0; x < to.width(); ++x) {
+        const AxisTap &tap = horizontal.at(x);
+        float sum = 0.0F;
+        for (int index = 0; index < tap.weights.size(); ++index) {
+          sum += source[tap.first + index] * tap.weights.at(index);
+        }
+        target[x] = sum;
+      }
+    }
+  });
+  // 垂直: 列を保ったまま、行を変える。
+  const QVector<AxisTap> vertical = axisTaps(from.height(), to.height());
+  QVector<float> result(static_cast<qsizetype>(to.width()) * to.height());
+  heiran::infra::forEachRowBand(to.height(), [&](int firstRow, int lastRow) {
+    for (int y = firstRow; y < lastRow; ++y) {
+      const AxisTap &tap = vertical.at(y);
+      float *target = result.data() + static_cast<qsizetype>(y) * to.width();
+      for (int x = 0; x < to.width(); ++x) {
+        float sum = 0.0F;
+        for (int index = 0; index < tap.weights.size(); ++index) {
+          sum += wide.at(static_cast<qsizetype>(tap.first + index) * to.width() + x) *
+                 tap.weights.at(index);
+        }
+        target[x] = sum;
+      }
+    }
+  });
+  return result;
+}
+
+// 2 枚を、境目で切って、つなぎ合わせる。基準は、左 / 上の側。大きさの合わせ方は、差分と同じ
+// (重なる部分だけ、または、一方を拡大縮小)。表示用の 8bit の画像から作る。
+DiffOutput renderWipe(const QImage &baseImage, const QImage &targetImage, const QSize &size,
+                      const heiran::domain::DiffSettings &settings) {
+  DiffOutput output;
+  const bool overlapOnly = settings.sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
+  const auto fitTo = [&](const QImage &image) {
+    QImage converted = image.format() == QImage::Format_RGBA8888
+                           ? image
+                           : image.convertToFormat(QImage::Format_RGBA8888);
+    if (converted.size() == size) {
+      return converted;
+    }
+    return overlapOnly ? converted.copy(QRect(QPoint(0, 0), size))
+                       : converted.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+  };
+  const QImage first = fitTo(baseImage);
+  const QImage second = fitTo(targetImage);
+  if (first.isNull() || second.isNull() || first.size() != size || second.size() != size) {
+    output.error =
+        QCoreApplication::translate("DiffRenderer", "Base or target image is not available.");
+    return output;
+  }
+
+  const bool leftRight = settings.wipeOrientation == heiran::domain::WipeOrientation::LeftRight;
+  const int extent = leftRight ? size.width() : size.height();
+  const int split =
+      std::clamp(static_cast<int>(std::lround(settings.wipePosition * extent)), 0, extent);
+
+  QImage result(size, QImage::Format_RGBA8888);
+  for (int y = 0; y < size.height(); ++y) {
+    uchar *destination = result.scanLine(y);
+    const uchar *firstRow = first.constScanLine(y);
+    const uchar *secondRow = second.constScanLine(y);
+    if (leftRight) {
+      const qsizetype leftBytes = static_cast<qsizetype>(split) * 4;
+      std::memcpy(destination, firstRow, static_cast<size_t>(leftBytes));
+      std::memcpy(destination + leftBytes, secondRow + leftBytes,
+                  static_cast<size_t>(static_cast<qsizetype>(size.width()) * 4 - leftBytes));
+    } else {
+      std::memcpy(destination, y < split ? firstRow : secondRow,
+                  static_cast<size_t>(static_cast<qsizetype>(size.width()) * 4));
+    }
+  }
+
+  output.ok = true;
+  output.image = std::move(result);
+  output.metrics.wipe = true;
+  output.metrics.pixelCount = static_cast<std::int64_t>(size.width()) * size.height();
+  output.metrics.psnrIsInfinite = true;
+  return output;
+}
+
+namespace {
+
+// 大きさが違うときは、設定に従って、1 つの大きさへ合わせる。
+QSize comparisonSize(const QImage &base, const QImage &target,
+                     heiran::domain::DiffSizeMatch sizeMatch) {
+  QSize size = base.size();
+  if (base.size() == target.size()) {
+    return size;
+  }
+  switch (sizeMatch) {
+    case heiran::domain::DiffSizeMatch::ToBase:
+      return base.size();
+    case heiran::domain::DiffSizeMatch::ToTarget:
+      return target.size();
+    case heiran::domain::DiffSizeMatch::ToLarger:
+      return static_cast<qint64>(base.width()) * base.height() >=
+                     static_cast<qint64>(target.width()) * target.height()
+                 ? base.size()
+                 : target.size();
+    case heiran::domain::DiffSizeMatch::Overlap:
+      // 左上をそろえて、重なる部分だけを比べる。
+      return QSize(std::min(base.width(), target.width()),
+                   std::min(base.height(), target.height()));
+  }
+  return size;
+}
+
+// 行を帯に分けて、帯ごとの部分の結果を作り、足し合わせる (並列)。
+template <typename Partial, typename Fill> Partial reduceRows(int height, const Fill &fill) {
+  Partial total;
+  std::mutex mutex;
+  heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
+    Partial partial;
+    fill(firstRow, lastRow, &partial);
+    const std::lock_guard<std::mutex> lock(mutex);
+    total.merge(partial);
+  });
+  return total;
+}
+
+// 指標を、差の場から求める。閾値が変わっても、場は作り直さず、これだけを求め直す。
+heiran::domain::DiffMetrics metricsOf(const DiffField &field, double threshold) {
+  const int width = field.size.width();
+  const int height = field.size.height();
+  const float *values = field.values.data();
+  heiran::domain::DiffMetrics metrics;
+  switch (field.kind) {
+    case DiffFieldKind::Luma: {
+      const auto partial = reduceRows<heiran::domain::DiffMetricsPartial>(
+          height, [&](int firstRow, int lastRow, heiran::domain::DiffMetricsPartial *part) {
+            part->add(values + static_cast<size_t>(firstRow) * width,
+                      static_cast<size_t>(lastRow - firstRow) * width, threshold);
+          });
+      return partial.finish();
+    }
+    case DiffFieldKind::DeltaE: {
+      const auto partial = reduceRows<heiran::domain::ColorDifferencePartial>(
+          height, [&](int firstRow, int lastRow, heiran::domain::ColorDifferencePartial *part) {
+            part->add(values + static_cast<size_t>(firstRow) * width,
+                      static_cast<size_t>(lastRow - firstRow) * width, threshold);
+          });
+      const auto colorMetrics = partial.finish();
+      metrics.colorDifference = true;
+      metrics.pixelCount = colorMetrics.pixelCount;
+      metrics.maxAbsDiff = colorMetrics.maxDeltaE;
+      metrics.meanAbsDiff = colorMetrics.meanDeltaE;
+      metrics.exceededPixelCount = colorMetrics.exceededPixelCount;
+      metrics.psnrIsInfinite = true;
+      return metrics;
+    }
+    case DiffFieldKind::Ssim: {
+      // 場は、1 - SSIM。窓がすべて画像の中に入る内側だけを数える (SSIM の定義)。
+      const bool hasInterior =
+          width >= heiran::domain::kSsimWindow && height >= heiran::domain::kSsimWindow;
+      const int firstRow = hasInterior ? heiran::domain::kSsimRadius : 0;
+      const int lastRow = hasInterior ? height - heiran::domain::kSsimRadius : height;
+      const int firstColumn = hasInterior ? heiran::domain::kSsimRadius : 0;
+      const int lastColumn = hasInterior ? width - heiran::domain::kSsimRadius : width;
+      struct Partial {
+        double sum = 0.0;
+        double maxDissimilarity = -1.0;
+        std::int64_t below = 0;
+        std::int64_t count = 0;
+        void merge(const Partial &other) {
+          sum += other.sum;
+          maxDissimilarity = std::max(maxDissimilarity, other.maxDissimilarity);
+          below += other.below;
+          count += other.count;
+        }
+      };
+      const double ssimThreshold = threshold;
+      const auto partial =
+          reduceRows<Partial>(lastRow - firstRow, [&](int firstBand, int lastBand, Partial *part) {
+            for (int row = firstRow + firstBand; row < firstRow + lastBand; ++row) {
+              const float *line = values + static_cast<size_t>(row) * width;
+              for (int column = firstColumn; column < lastColumn; ++column) {
+                const double dissimilarity = line[column];
+                part->sum += dissimilarity;
+                part->maxDissimilarity = std::max(part->maxDissimilarity, dissimilarity);
+                part->below += (1.0 - dissimilarity) < ssimThreshold ? 1 : 0;
+              }
+              part->count += lastColumn - firstColumn;
+            }
+          });
+      metrics.ssim = true;
+      metrics.pixelCount = partial.count;
+      metrics.exceededPixelCount = partial.below;
+      if (partial.count > 0) {
+        metrics.ssimMean = 1.0 - partial.sum / static_cast<double>(partial.count);
+        metrics.ssimMin = 1.0 - partial.maxDissimilarity;
+        metrics.meanAbsDiff = partial.sum / static_cast<double>(partial.count);
+        metrics.maxAbsDiff = partial.maxDissimilarity;
+      }
+      metrics.psnrIsInfinite = true;
+      return metrics;
+    }
+  }
+  return metrics;
+}
+
+// 画素の色を決める (見せ方と、計算の種類は、型で決めて、画素ごとの分岐をなくす)。
+enum class Shade { AbsoluteLike, Signed, Binary };
+
+inline void put(uchar *pixel, int red, int green, int blue) {
+  pixel[0] = static_cast<uchar>(red);
+  pixel[1] = static_cast<uchar>(green);
+  pixel[2] = static_cast<uchar>(blue);
+  pixel[3] = 255;
+}
+
+inline int blendHalf(int under, int over) {
+  return (under + over) / 2;
+}
+
+template <Shade kShade, DiffViewMode kView>
+void shadeRows(const float *values, int width, int firstRow, int lastRow, float scale,
+               float threshold, const uchar *underlay, qsizetype underlayStride, uchar *output,
+               qsizetype outputStride) {
+  for (int y = firstRow; y < lastRow; ++y) {
+    const float *line = values + static_cast<size_t>(y) * width;
+    uchar *outputRow = output + static_cast<qsizetype>(y) * outputStride;
+    const uchar *underlayRow =
+        underlay != nullptr ? underlay + static_cast<qsizetype>(y) * underlayStride : nullptr;
+    for (int x = 0; x < width; ++x) {
+      const float signedDiff = line[x];
+      const float absDiff = std::abs(signedDiff);
+      uchar *pixel = outputRow + static_cast<qsizetype>(x) * 4;
+      const uchar *under =
+          kView == DiffViewMode::Overlay ? underlayRow + static_cast<qsizetype>(x) * 4 : nullptr;
+      if constexpr (kShade == Shade::AbsoluteLike) {
+        const int value = std::clamp(static_cast<int>(absDiff * scale + 0.5F), 0, 255);
+        if constexpr (kView == DiffViewMode::Overlay) {
+          put(pixel, blendHalf(under[0], value), blendHalf(under[1], value),
+              blendHalf(under[2], value));
+        } else {
+          put(pixel, value, value, value);
+        }
+      } else if constexpr (kShade == Shade::Signed) {
+        const int magnitude = std::clamp(static_cast<int>(absDiff * scale + 0.5F), 0, 255);
+        const int red = signedDiff >= 0.0F ? magnitude : 0;
+        const int blue = signedDiff >= 0.0F ? 0 : magnitude;
+        if constexpr (kView == DiffViewMode::Overlay) {
+          put(pixel, blendHalf(under[0], red), blendHalf(under[1], 0), blendHalf(under[2], blue));
+        } else if constexpr (kView == DiffViewMode::SignedColor) {
+          put(pixel, red, 0, blue);
+        } else {
+          put(pixel, magnitude, magnitude, magnitude);
+        }
+      } else {
+        const bool exceeded = absDiff > threshold;
+        if constexpr (kView == DiffViewMode::Overlay) {
+          if (exceeded) {
+            put(pixel, blendHalf(under[0], 255), blendHalf(under[1], 196), blendHalf(under[2], 0));
+          } else {
+            put(pixel, under[0], under[1], under[2]);
+          }
+        } else if constexpr (kView == DiffViewMode::SignedColor) {
+          if (exceeded) {
+            signedDiff >= 0.0F ? put(pixel, 255, 0, 0) : put(pixel, 0, 0, 255);
+          } else {
+            put(pixel, 0, 0, 0);
+          }
+        } else {
+          exceeded ? put(pixel, 255, 255, 255) : put(pixel, 0, 0, 0);
+        }
+      }
+    }
+  }
+}
+
+template <Shade kShade>
+void shadeRowsFor(DiffViewMode view, const float *values, int width, int firstRow, int lastRow,
+                  float scale, float threshold, const uchar *underlay, qsizetype underlayStride,
+                  uchar *output, qsizetype outputStride) {
+  switch (view) {
+    case DiffViewMode::Overlay:
+      shadeRows<kShade, DiffViewMode::Overlay>(values, width, firstRow, lastRow, scale, threshold,
+                                               underlay, underlayStride, output, outputStride);
+      break;
+    case DiffViewMode::SignedColor:
+      shadeRows<kShade, DiffViewMode::SignedColor>(values, width, firstRow, lastRow, scale,
+                                                   threshold, underlay, underlayStride, output,
+                                                   outputStride);
+      break;
+    case DiffViewMode::Grayscale:
+      shadeRows<kShade, DiffViewMode::Grayscale>(values, width, firstRow, lastRow, scale, threshold,
+                                                 underlay, underlayStride, output, outputStride);
+      break;
+  }
+}
+
+}  // namespace
+
+DiffFieldKind diffFieldKindOf(DiffMode mode) {
+  switch (mode) {
+    case DiffMode::DeltaE:
+      return DiffFieldKind::DeltaE;
+    case DiffMode::Ssim:
+      return DiffFieldKind::Ssim;
+    default:
+      return DiffFieldKind::Luma;
+  }
+}
+
+bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings &settings) {
+  return settings.mode != DiffMode::Wipe && field.kind == diffFieldKindOf(settings.mode) &&
+         field.sizeMatch == settings.sizeMatch;
+}
+
+DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
+                              const heiran::domain::DiffSettings &settings, QString *error) {
+  const auto fail = [&](const QString &message) -> DiffFieldPtr {
+    if (error != nullptr) {
+      *error = message;
+    }
+    return nullptr;
+  };
+  if (base.image.isNull() || target.image.isNull()) {
+    return fail(
+        QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
+  }
+  const QSize size = comparisonSize(base.image, target.image, settings.sizeMatch);
+  const int width = size.width();
+  const int height = size.height();
+  // 合わせない (重なる部分だけ) ときは、左上から `size` だけ取る。合わせるときは、元の大きさ全体を
+  // 取って、あとで `size` へ変える。
+  const bool overlapOnly = settings.sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
+  const QSize baseRegion = overlapOnly ? size : base.image.size();
+  const QSize targetRegion = overlapOnly ? size : target.image.size();
+
+  auto field = std::make_shared<DiffField>();
+  field->kind = diffFieldKindOf(settings.mode);
+  field->size = size;
+  field->sizeMatch = settings.sizeMatch;
+  field->values.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
+  const size_t pixelCount = field->values.size();
+
+  if (field->kind == DiffFieldKind::DeltaE) {
+    // 色差は、RGB の 3 つの平面から。Lab は線形光で測るため、値の空間は線形へ固定する。
+    const auto planesOf = [&](const DiffInput &input, const QSize &region,
+                              QVector<float>(&planes)[3]) {
+      AnalysisSampler sampler = input.sampler;
+      sampler.valueSpace = AnalysisValueSpace::Linear;
+      if (!sampler.buildRgbPlanes(QRect(input.origin, region), planes)) {
+        return false;
+      }
+      for (auto &plane : planes) {
+        plane = resizeLumaPlane(plane, region, size);
+      }
+      return true;
+    };
+    QVector<float> basePlanes[3];
+    QVector<float> targetPlanes[3];
+    if (!planesOf(base, baseRegion, basePlanes) || !planesOf(target, targetRegion, targetPlanes) ||
+        static_cast<size_t>(basePlanes[0].size()) != pixelCount ||
+        static_cast<size_t>(targetPlanes[0].size()) != pixelCount) {
+      return fail(
+          QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
+    }
+    // 2 枚の元の色空間が違っても、Lab へは基準の色空間の行列で写す
+    // (比べる側の原色の違いは、値の違いとして出る)。
+    const heiran::domain::Matrix3 matrix = base.sampler.rgbToXyz.value_or(
+        heiran::domain::rgbToXyzMatrix(heiran::domain::ColorPrimaries::SRgb));
+    heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
+      const size_t offset = static_cast<size_t>(firstRow) * static_cast<size_t>(width);
+      heiran::domain::deltaE2000Plane(
+          matrix, basePlanes[0].constData() + offset, basePlanes[1].constData() + offset,
+          basePlanes[2].constData() + offset, targetPlanes[0].constData() + offset,
+          targetPlanes[1].constData() + offset, targetPlanes[2].constData() + offset,
+          static_cast<size_t>(lastRow - firstRow) * static_cast<size_t>(width),
+          field->values.data() + offset);
+    });
+    return field;
+  }
+
+  // 輝度は画素ごとに取らず、走査の前にまとめて作る。画素ごとに取ると、型と
+  // 色モデルの判定を毎回通り、解析用バッファを持たない画像では QImage の
+  // 画素取得まで通る。差分そのものより判定の方が重くなる。
+  QVector<float> baseLuma = base.sampler.buildLumaPlane(QRect(base.origin, baseRegion));
+  QVector<float> targetLuma = target.sampler.buildLumaPlane(QRect(target.origin, targetRegion));
+  if (baseLuma.isEmpty() || targetLuma.isEmpty()) {
+    return fail(
+        QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
+  }
+  baseLuma = resizeLumaPlane(baseLuma, baseRegion, size);
+  targetLuma = resizeLumaPlane(targetLuma, targetRegion, size);
+  if (static_cast<size_t>(baseLuma.size()) != pixelCount ||
+      static_cast<size_t>(targetLuma.size()) != pixelCount) {
+    return fail(
+        QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
+  }
+
+  if (field->kind == DiffFieldKind::Ssim) {
+    // 構造的類似度。行を帯に分けて並列に求め、見せる値 (1 - SSIM) へ直す。値の幅は、8bit の輝度の
+    // 255。
+    heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
+      heiran::domain::computeSsimRows(baseLuma.constData(), targetLuma.constData(), width, height,
+                                      firstRow, lastRow, 255.0, field->values.data());
+      float *begin = field->values.data() + static_cast<size_t>(firstRow) * width;
+      float *end = field->values.data() + static_cast<size_t>(lastRow) * width;
+      for (float *value = begin; value != end; ++value) {
+        *value = 1.0F - *value;
+      }
+    });
+    return field;
+  }
+
+  // 輝度の差 (比べる側 - 基準)。帯ごとに、並列に求める。
+  const float *baseData = baseLuma.constData();
+  const float *targetData = targetLuma.constData();
+  float *out = field->values.data();
+  heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
+    const size_t begin = static_cast<size_t>(firstRow) * width;
+    const size_t end = static_cast<size_t>(lastRow) * width;
+    for (size_t index = begin; index < end; ++index) {
+      out[index] = targetData[index] - baseData[index];
+    }
+  });
+  return field;
+}
+
+DiffOutput renderDiffFromField(const DiffField &field, const DiffInput &base,
+                               const heiran::domain::DiffSettings &settings) {
+  DiffOutput output;
+  const QSize size = field.size;
+  const int width = size.width();
+  const int height = size.height();
+  if (size.isEmpty() || field.values.size() != static_cast<size_t>(width) * height) {
+    output.error =
+        QCoreApplication::translate("DiffRenderer", "Base or target image is not available.");
+    return output;
+  }
+  const DiffMode diffMode = settings.mode;
+  const DiffViewMode viewMode = settings.view;
+
+  output.metrics = metricsOf(field, settings.threshold);
+  const bool colorDifference = field.kind == DiffFieldKind::DeltaE;
+
+  // 自動の範囲合わせを切ったときの尺度。輝度は 0-255 のまま、色差は ΔE 10 を最も明るい階調にする。
+  constexpr double kDeltaEFullScale = 10.0;
+  const double rangeScale =
+      settings.autoRange && output.metrics.maxAbsDiff > 0.0
+          ? 255.0 / output.metrics.maxAbsDiff
+          : (colorDifference ? 255.0 / kDeltaEFullScale
+                             : (field.kind == DiffFieldKind::Ssim ? 255.0 : 1.0));
+  const float scale = static_cast<float>(rangeScale * settings.gain);
+
+  // 画素は、すべて書くため、塗りつぶさない。RGBA8888 で作る (表示の側が、そのまま使える形)。
+  QImage diffImage(size, QImage::Format_RGBA8888);
+
+  // 重ね合わせのときだけ、基準の画像の色が要る。走査しやすい形 (RGBA8888) へ 1 度だけ変換する。
+  QImage underlay;
+  if (viewMode == DiffViewMode::Overlay) {
+    const bool overlapOnly = settings.sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
+    underlay = base.image;
+    if (underlay.size() != size) {
+      underlay = overlapOnly
+                     ? underlay.copy(QRect(QPoint(0, 0), size))
+                     : underlay.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    }
+    if (underlay.format() != QImage::Format_RGBA8888) {
+      underlay = underlay.convertToFormat(QImage::Format_RGBA8888);
+    }
+  }
+
+  // 行の先頭は並列に入る前に確定させる。非 const の scanLine() は内部で
+  // detach を通るため、複数のスレッドから呼ぶと安全でない。
+  uchar *outputBits = diffImage.bits();
+  const qsizetype outputStride = diffImage.bytesPerLine();
+  const uchar *underlayBits = underlay.isNull() ? nullptr : underlay.constBits();
+  const qsizetype underlayStride = underlay.isNull() ? 0 : underlay.bytesPerLine();
+  const float *values = field.values.data();
+  const float threshold = static_cast<float>(settings.threshold);
+
+  heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
+    switch (diffMode) {
+      case DiffMode::Signed:
+        shadeRowsFor<Shade::Signed>(viewMode, values, width, firstRow, lastRow, scale, threshold,
+                                    underlayBits, underlayStride, outputBits, outputStride);
+        break;
+      case DiffMode::Binary:
+        shadeRowsFor<Shade::Binary>(viewMode, values, width, firstRow, lastRow, scale, threshold,
+                                    underlayBits, underlayStride, outputBits, outputStride);
+        break;
+      default:
+        shadeRowsFor<Shade::AbsoluteLike>(viewMode, values, width, firstRow, lastRow, scale,
+                                          threshold, underlayBits, underlayStride, outputBits,
+                                          outputStride);
+        break;
+    }
+  });
+
+  output.ok = true;
+  output.image = std::move(diffImage);
+  return output;
+}
+
+DiffOutput renderDiff(const DiffInput &base, const DiffInput &target,
+                      const heiran::domain::DiffSettings &settings) {
+  if (base.image.isNull() || target.image.isNull()) {
+    DiffOutput output;
+    output.error =
+        QCoreApplication::translate("DiffRenderer", "Base or target image is not available.");
+    return output;
+  }
+  if (settings.mode == DiffMode::Wipe) {
+    return renderWipe(base.image, target.image,
+                      comparisonSize(base.image, target.image, settings.sizeMatch), settings);
+  }
+  QString error;
+  const DiffFieldPtr field = computeDiffField(base, target, settings, &error);
+  if (field == nullptr) {
+    DiffOutput output;
+    output.error = error;
+    return output;
+  }
+  return renderDiffFromField(*field, base, settings);
+}
+
+}  // namespace heiran::ui

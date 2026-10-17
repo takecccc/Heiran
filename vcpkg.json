@@ -1,0 +1,20 @@
+{
+  "name": "heiran",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "lcms",
+    "libspng",
+    "libwebp",
+    "zstd",
+    "libjxl",
+    "openexr",
+    "tiff",
+    {
+      "name": "libavif",
+      "default-features": false,
+      "features": [
+        "dav1d"
+      ]
+    }
+  ]
+}

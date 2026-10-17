@@ -1,0 +1,14 @@
+// 2 枚の画像と、その構造的類似度 (SSIM) を並べる見本。3 つ目のセルが、1 - SSIM (似ていないほど明るい) を出す。
+{
+  format_version: 1,
+  viewer: { layout: { rows: 1, cols: 3 } },
+  images: [
+    { name: "A", path: "images/a/*.png" },
+    { name: "B", path: "images/b/*.png" },
+  ],
+  cells: [
+    { image: 0 },
+    { image: 1 },
+    { diff: { base: 0, target: 1, mode: "ssim", view: "grayscale", threshold: 0.9 } },
+  ],
+}

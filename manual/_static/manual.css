@@ -1,0 +1,8 @@
+/* メニューの項目とキーを、本文から見分けやすくする。 */
+kbd {
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--color-background-border);
+  border-radius: 4px;
+  background: var(--color-background-secondary);
+  font-size: 0.9em;
+}

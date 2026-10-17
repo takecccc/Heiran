@@ -1,0 +1,38 @@
+# Build outputs
+build/
+build-*/
+vcpkg_installed/
+
+# IDE / local tooling
+.vs/
+.serena/
+.tools/
+
+# Local developer settings
+scripts/local.settings.ps1
+
+# Local session files (ローカル環境の絶対パスを含む .hrn)
+*.local.hrn
+
+# 個人の画像と、実行のログ (リポジトリへ入れない)
+examples/*.local.*
+*.log
+
+# Icon layout comparison sheet (tools/generate_app_icon.py --preview)
+resources/icon-preview.png
+
+# Generated verification fixtures (tools/generate_precision_fixtures.py)
+examples/precision/
+examples/pngvariants/
+
+# Benchmark-only third party sources (fetched, not vendored)
+third_party/
+
+# Python helper environment
+.venv/
+__pycache__/
+
+.cache/
+
+# Generated samples (tools/generate_multiframe_samples.py)
+examples/multiframe/

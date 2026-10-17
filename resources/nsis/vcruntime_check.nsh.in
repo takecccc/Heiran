@@ -1,0 +1,18 @@
+; Visual C++ ランタイム (x64) の確認。配布物は、ランタイムを持たない (vc_redist.x64.exe は約 19 MB で、圧縮しても縮まない)。
+; ランタイムは、新しいほど古いビルドと互換のため、Heiran のビルドに使ったツールセットの版 (14.@HEIRAN_VCRUNTIME_MINOR@) 以上を求める。
+; 足りないときは、Microsoft の配布ページを開くかを尋ねる。開かなくても、インストールは続ける (サイレントのときは、何も尋ねない)。
+IfSilent heiran_vcrt_done
+SetRegView 64
+ReadRegDWORD $R0 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Installed"
+ReadRegDWORD $R1 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Major"
+ReadRegDWORD $R2 HKLM "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64" "Minor"
+SetRegView lastused
+IntCmp $R0 1 0 heiran_vcrt_missing heiran_vcrt_check_major
+heiran_vcrt_check_major:
+IntCmp $R1 14 0 heiran_vcrt_missing heiran_vcrt_check_minor
+heiran_vcrt_check_minor:
+IntCmp $R2 @HEIRAN_VCRUNTIME_MINOR@ heiran_vcrt_done heiran_vcrt_missing heiran_vcrt_done
+heiran_vcrt_missing:
+MessageBox MB_YESNO|MB_ICONINFORMATION "Heiran needs the Microsoft Visual C++ Runtime (x64), version 14.@HEIRAN_VCRUNTIME_MINOR@ or later, but it is not installed on this computer, or it is older.$\r$\n$\r$\nOpen the Microsoft download page now? Install the runtime before starting Heiran." IDNO heiran_vcrt_done
+ExecShell "open" "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+heiran_vcrt_done:

@@ -1,0 +1,15 @@
+// 2 枚の画像を、境目で切って、つなぎ合わせる見本 (ワイプ)。3 つ目のセルが、左が A、右が B のワイプになる。
+// 境目の線は、ドラッグで動かせる。
+{
+  format_version: 1,
+  viewer: { layout: { rows: 1, cols: 3 } },
+  images: [
+    { name: "A", path: "images/a/*.png" },
+    { name: "B", path: "images/b/*.png" },
+  ],
+  cells: [
+    { image: 0 },
+    { image: 1 },
+    { diff: { base: 0, target: 1, mode: "wipe", wipe_direction: "left-right", wipe_position: 0.4 } },
+  ],
+}

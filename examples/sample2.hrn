@@ -1,0 +1,97 @@
+{
+  format_version: 1,
+  defaults: {
+    scale: 1.0,
+    sync: true,
+    label_visible: true,
+    honor_exif_orientation: true,
+  },
+  viewer: {
+    layout: {
+      rows: 2,
+      cols: 2,
+      order: "row-major",
+    },
+    page_sort: "natural",
+  },
+  images: [
+    {
+      name: "Image A",
+      label: "Image A",
+      path: "images/a/*.png",
+      scale: 1.000000,
+      page_offset: 0,
+      label_visible: true,
+      honor_exif_orientation: true,
+    },
+    {
+      name: "Image B",
+      label: "Image B",
+      path: "images/b/*.png",
+      scale: 0.750000,
+      page_offset: 0,
+      label_visible: true,
+      honor_exif_orientation: true,
+    },
+    {
+      name: "Image C",
+      label: "Image C",
+      path: "images/c/*.png",
+      scale: 1.000000,
+      page_offset: 0,
+      label_visible: true,
+      honor_exif_orientation: true,
+    },
+    {
+      name: "Image D",
+      label: "Image D",
+      path: "images/d/*.png",
+      scale: 1.000000,
+      page_offset: 0,
+      label_visible: true,
+      honor_exif_orientation: false,
+    }
+  ],
+  cells: [
+    {
+      image: 0,
+      sync: true,
+      scale: 1.000000,
+      gamma: 1.000000,
+      rotation: 0,
+      flip_x: false,
+      flip_y: false,
+      ch: "color",
+    },
+    {
+      image: 1,
+      sync: true,
+      scale: 0.750000,
+      gamma: 1.000000,
+      rotation: 0,
+      flip_x: false,
+      flip_y: false,
+      ch: "color",
+    },
+    {
+      image: 2,
+      sync: true,
+      scale: 1.000000,
+      gamma: 1.000000,
+      rotation: 0,
+      flip_x: false,
+      flip_y: false,
+      ch: "color",
+    },
+    {
+      image: 3,
+      sync: true,
+      scale: 1.000000,
+      gamma: 1.000000,
+      rotation: 0,
+      flip_x: false,
+      flip_y: false,
+      ch: "color",
+    }
+  ]
+}

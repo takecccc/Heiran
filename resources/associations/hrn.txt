@@ -1,0 +1,15 @@
+Heiran session files
+====================
+
+This file is installed when the ".hrn (Heiran session)" option is picked during
+installation. It records what the installer registered.
+
+Registered extension:
+
+  .hrn
+
+No other application uses this extension, so double clicking a .hrn file opens
+Heiran straight away.
+
+To undo this, run the Heiran uninstaller, or remove the association from
+Settings > Apps > Default apps.
