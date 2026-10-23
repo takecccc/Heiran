@@ -41,6 +41,9 @@ C++20 / Qt6 Widgets / CMake、Windows + MSVC + Ninja 前提。
 
 # ビルド & テスト
 
+`README.md` は利用者向け (機能、動作環境、入手方法)、[DEVELOPMENT.md](./DEVELOPMENT.md) は開発者向け (ビルドと配布物の作り方) に分けている。
+手順を変えたら、DEVELOPMENT.md も合わせて直す。
+
 初回のみ `scripts/local.settings.ps1` を作成する。未作成だと configure が失敗する。
 
 ```powershell
@@ -492,8 +495,6 @@ py tools/generate_app_icon.py --preview
 
 - unstaged の変更内容をコミットメッセージに含めないこと。
 - リポジトリの安全性判定により通常の git コマンドが失敗する場合は、`git -c safe.directory=<repo_path> ...` を用いて差分確認してよい。
-- 一括整形コミットは `.git-blame-ignore-revs` に登録する。
-  `git config blame.ignoreRevsFile .git-blame-ignore-revs` を一度実行すると `git blame` から除外される。
 - コミットメッセージは日本語で作成すること。
 - 概要は1行で記載し、1行空けてから詳細を記載すること。
 - 概要には `feat:` / `fix:` / `refactor:` / `perf:` / `docs:` の prefix を付けること。

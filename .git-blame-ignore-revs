@@ -1,6 +1,0 @@
-# clang-format による一括整形コミット。
-# git blame から除外するには次を一度実行する。
-#   git config blame.ignoreRevsFile .git-blame-ignore-revs
-
-# refactor: clang-formatで全ソースを一括整形
-5e179d5aead71634a64a36a76713e3307479ba65
