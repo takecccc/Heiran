@@ -1,6 +1,8 @@
 param(
   [string]$BuildDir,
   [string]$QtPrefixPath,
+  # Overrides BuildConfig from local.settings.ps1 (for example Release for a release build).
+  [string]$BuildConfig,
   [switch]$Clean,
   [switch]$Asan
 )
@@ -16,6 +18,9 @@ if ($BuildDir) {
 }
 if ($QtPrefixPath) {
   $config.QtPrefixPath = $QtPrefixPath
+}
+if ($BuildConfig) {
+  $config.BuildConfig = $BuildConfig
 }
 
 if (-not $config.QtPrefixPath) {

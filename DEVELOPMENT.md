@@ -109,6 +109,26 @@ uv run python tools/generate_example_images.py
 `build/Heiran-<version>-win64.exe` (NSIS インストーラ) と `build/Heiran-<version>-win64.zip` ができます。
 詳細は [AGENTS.md](./AGENTS.md) の「配布物の作成」にあります。
 
+## リリース
+
+配布物は、リポジトリへ入れず、GitHub の Releases に添付する。手順は `scripts/release.ps1` が二段に分けて行う。
+前提は、`main` にいること、作業ツリーがきれいなこと、`uv` と `makensis` があること、公開には `gh` (GitHub CLI) へログイン済みなこと。
+
+1. **版を上げる。** `./scripts/release.ps1 -Version 1.0.0` を実行する。`CMakeLists.txt` と `vcpkg.json` の版が違えば、
+   書き換えて止まる。差分を確かめてコミットし、もう一度実行する。
+2. **準備 (同じコマンド)。** Release 構成で `build-release/` へ作り直し、テストを通し、`-Fast` なしでパッケージを作る。
+   続けて、ZIP を一時フォルダへ展開し (PATH から Qt を外して)、`heiran.exe` が起動し続けるかを確かめる。
+   成果物は `build-release/release/` に出る (インストーラ、ZIP、`SHA256SUMS.txt`、`release-notes.md`)。
+   - 依存を更新した後など、確実に作り直したいときは `-CleanBuildDir` (vcpkg の依存も作り直すため遅い)。
+   - `-SkipTests`、`-SkipSmokeTest` もある (どちらも、公開前には外さない)。
+3. **手で確かめる。** `release-notes.md` を書き直す。インストーラは、きれいな環境 (VM など) で実行し、
+   関連付け、アンインストール、VC++ ランタイムの案内を確かめる (レジストリへの書き込みは、スクリプトでは確かめない)。
+4. **公開する。** `./scripts/release.ps1 -Version 1.0.0 -Publish`。準備のときの commit と HEAD が同じかを確かめ、
+   `main` と、タグ `v1.0.0` を push し、**下書き (draft)** のリリースを作る。GitHub の画面で内容を確かめて、公開する。
+
+コード署名はしていないため、SmartScreen の警告が出ることがある。リリースノートの雛形 (`resources/release/release-notes.template.md`)
+に、その案内を入れてある。
+
 ## ライセンスの表記
 
 依存ライブラリのライセンスは `THIRD_PARTY_NOTICES.txt` にまとめます。依存を足す、外す、版を上げたときは、
