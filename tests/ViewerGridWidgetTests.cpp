@@ -159,10 +159,11 @@ void dragWith(QWidget *canvas, const QPoint &from, const QPoint &to,
 }
 
 // QTest にホイールの補助関数が無いため、イベントを直接送る。
-void wheelAt(QWidget *canvas, const QPoint &position, int angleDelta) {
+void wheelAt(QWidget *canvas, const QPoint &position, int angleDelta,
+             Qt::KeyboardModifiers modifiers = Qt::NoModifier,
+             Qt::ScrollPhase phase = Qt::NoScrollPhase) {
   QWheelEvent wheelEvent(QPointF(position), canvas->mapToGlobal(position), QPoint(),
-                         QPoint(0, angleDelta), Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase,
-                         false);
+                         QPoint(0, angleDelta), Qt::NoButton, modifiers, phase, false);
   QApplication::sendEvent(canvas, &wheelEvent);
 }
 
@@ -206,6 +207,94 @@ class ViewerGridWidgetTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void changesPagesWithAltWheelAndKeepsNormalWheelZoom() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    heiran::ui::ViewerGridWidget grid;
+    grid.resize(600, 400);
+    grid.setSession(makeSession({fixture.makeImageSet("pages", Qt::red, 5)}, 1, 1, {0}));
+    grid.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&grid));
+    QVERIFY(waitForCellImages(&grid));
+    auto *canvas = cellCanvas(grid.findChildren<heiran::ui::ImageViewWidget *>().first());
+    const QPoint position(5, 5);
+    const double scale = grid.globalViewState().baseScale;
+    wheelAt(canvas, position, -120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 1);
+    wheelAt(canvas, position, -240, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 3);
+    wheelAt(canvas, position, 120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 2);
+    wheelAt(canvas, position, 1200, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 0);
+    wheelAt(canvas, position, -1200, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 4);
+    QCOMPARE(grid.globalViewState().baseScale, scale);
+    QVERIFY(waitForCellImages(&grid));
+    wheelAt(canvas, position, 120);
+    QCOMPARE(grid.currentPage(), 4);
+    QVERIFY(grid.globalViewState().baseScale > scale);
+  }
+
+  void accumulatesSmallAltWheelInputsAndClearsUnfinishedGestures() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    heiran::ui::ViewerGridWidget grid;
+    grid.resize(600, 400);
+    grid.setSession(makeSession({fixture.makeImageSet("pages", Qt::red, 5)}, 1, 1, {0}));
+    grid.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&grid));
+    QVERIFY(waitForCellImages(&grid));
+    auto *canvas = cellCanvas(grid.findChildren<heiran::ui::ImageViewWidget *>().first());
+    const QPoint position(5, 5);
+    for (int index = 0; index < 3; ++index) {
+      wheelAt(canvas, position, -30, Qt::AltModifier);
+      QCOMPARE(grid.currentPage(), 0);
+    }
+    wheelAt(canvas, position, -30, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 1);
+    wheelAt(canvas, position, -90, Qt::AltModifier);
+    wheelAt(canvas, position, 120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 0);
+    wheelAt(canvas, position, -90, Qt::AltModifier);
+    wheelAt(canvas, position, 0);
+    wheelAt(canvas, position, -30, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 0);
+    QEvent leave(QEvent::Leave);
+    QApplication::sendEvent(canvas, &leave);
+    wheelAt(canvas, position, -90, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 0);
+    wheelAt(canvas, position, 0, Qt::AltModifier, Qt::ScrollEnd);
+    wheelAt(canvas, position, -30, Qt::AltModifier, Qt::ScrollBegin);
+    QCOMPARE(grid.currentPage(), 0);
+    wheelAt(canvas, position, -90, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 1);
+  }
+
+  void changesPagesFromEmptyAndFailedCells() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    auto broken = fixture.makeImageSet("broken", Qt::blue, 3);
+    QVERIFY(QFile::remove(broken.resolvedPaths.at(0)));
+    heiran::ui::ViewerGridWidget grid;
+    grid.resize(600, 400);
+    grid.setSession(
+        makeSession({fixture.makeImageSet("pages", Qt::red, 3), broken}, 1, 3, {0, 1, -1}));
+    grid.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&grid));
+    QVERIFY(waitForCellImages(&grid));
+    const auto cells = grid.findChildren<heiran::ui::ImageViewWidget *>();
+    QCOMPARE(cells.at(1)->cellStatus(), heiran::ui::CellStatus::Failed);
+    QCOMPARE(cells.at(2)->cellStatus(), heiran::ui::CellStatus::Empty);
+    wheelAt(cellCanvas(cells.at(2)), QPoint(5, 5), -120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 1);
+    wheelAt(cellCanvas(cells.at(2)), QPoint(5, 5), 120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 0);
+    QVERIFY(waitForCellImages(&grid));
+    wheelAt(cellCanvas(cells.at(1)), QPoint(5, 5), -120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 1);
+  }
+
   void reportsPageCountFromTheLongestImageSet() {
     SessionFixture fixture;
     QVERIFY(fixture.isValid());

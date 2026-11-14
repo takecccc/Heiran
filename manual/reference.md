@@ -12,6 +12,8 @@
   - 画像を開く / `.hrn` を開く
 * - <kbd>→</kbd> <kbd>PageDown</kbd> <kbd>Space</kbd> / <kbd>←</kbd> <kbd>PageUp</kbd> <kbd>Backspace</kbd>
   - 次のページ / 前のページ
+* - <kbd>Alt</kbd> + ホイール下 / 上
+  - 次のページ / 前のページ (セルの描画面上)
 * - <kbd>Home</kbd> / <kbd>End</kbd>
   - 最初のページ / 最後のページ
 * - <kbd>F</kbd> / <kbd>1</kbd> / <kbd>0</kbd>

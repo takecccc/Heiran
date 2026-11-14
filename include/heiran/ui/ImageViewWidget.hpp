@@ -105,6 +105,7 @@ Q_SIGNALS:
   void cellResized();
   void panRequested(int cellIndex, double deltaImageX, double deltaImageY);
   void zoomRequested(int cellIndex, double zoomFactor, double anchorImageX, double anchorImageY);
+  void pageScrollRequested(int pageOffset);
   // ダブルクリック。フィットと等倍の切り替えを求める。固定点はホイールと同じ座標系。
   void actualSizeToggleRequested(int cellIndex, double anchorImageX, double anchorImageY);
   void hoverInfoRequested(int cellIndex, const QPointF &imagePosition, bool active);

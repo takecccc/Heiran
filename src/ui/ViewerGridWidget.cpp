@@ -1183,6 +1183,11 @@ void ViewerGridWidget::rebuildGrid() {
                    double anchorImageY) {
               handleZoomRequest(requestedCellIndex, zoomFactor, anchorImageX, anchorImageY);
             });
+    connect(view, &ImageViewWidget::pageScrollRequested, this, [this](int offset) {
+      const qint64 target = qint64(globalState_.currentPage) + offset;
+      setCurrentPage(
+          static_cast<int>(std::clamp(target, qint64(0), qint64(std::max(0, pageCount() - 1)))));
+    });
     connect(view, &ImageViewWidget::actualSizeToggleRequested, this,
             [this](int requestedCellIndex, double anchorImageX, double anchorImageY) {
               handleActualSizeToggleRequest(requestedCellIndex, anchorImageX, anchorImageY);

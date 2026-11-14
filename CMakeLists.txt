@@ -212,6 +212,7 @@ add_library(heiran_core
   src/ui/HistogramWindow.cpp
   src/ui/ImageSetManagerDialog.cpp
   src/ui/ImageViewWidget.cpp
+  src/ui/PageWheelController.cpp
   src/ui/LoupeWidget.cpp
   src/ui/MainWindow.cpp
   src/ui/PixelInfoWidget.cpp
@@ -329,6 +330,7 @@ target_sources(heiran_core
     include/heiran/ui/ScopeBuilder.hpp
     include/heiran/ui/ScopeWindows.hpp
     include/heiran/ui/SessionLayoutController.hpp
+    include/heiran/ui/PageWheelController.hpp
     include/heiran/ui/SessionMutationController.hpp
     include/heiran/ui/ThumbnailCache.hpp
     include/heiran/ui/ThumbnailLoader.hpp

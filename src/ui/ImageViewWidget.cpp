@@ -16,6 +16,7 @@
 #include "heiran/ui/DisplayLink.hpp"
 #include "heiran/ui/DisplayTransform.hpp"
 #include "heiran/ui/GpuImageRenderer.hpp"
+#include "heiran/ui/PageWheelController.hpp"
 #include "heiran/ui/ProfileAccumulator.hpp"
 
 #include <QClipboard>
@@ -857,12 +858,21 @@ protected:
   }
 
   void wheelEvent(QWheelEvent *event) override {
-    if (!owner_->hasImage() || event->angleDelta().y() == 0) {
+    if (!rect().contains(event->position().toPoint())) {
+      pageWheelController_.reset();
       QWidget::wheelEvent(event);
       return;
     }
 
-    if (!rect().contains(event->position().toPoint())) {
+    if (const auto pages = pageWheelController_.consume(*event)) {
+      if (*pages != 0) {
+        Q_EMIT owner_->pageScrollRequested(*pages);
+      }
+      event->accept();
+      return;
+    }
+
+    if (!owner_->hasImage() || event->angleDelta().y() == 0) {
       QWidget::wheelEvent(event);
       return;
     }
@@ -878,6 +888,7 @@ protected:
   }
 
   void leaveEvent(QEvent *event) override {
+    pageWheelController_.reset();
     Q_EMIT owner_->hoverInfoRequested(owner_->cellIndex_, QPointF(), false);
     QWidget::leaveEvent(event);
   }
@@ -937,6 +948,7 @@ protected:
 private:
   ImageViewWidget *owner_;
   GpuImageRenderer renderer_;
+  PageWheelController pageWheelController_;
   // renderer_ へ載せた画像の世代。owner_ 側の世代と違えばテクスチャを作り直す。
   quint64 uploadedImageGeneration_ = 0;
   QElapsedTimer presentTimer_;
