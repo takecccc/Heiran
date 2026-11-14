@@ -7,9 +7,16 @@
 #include <QCoreApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QEnterEvent>
+#include <QFormLayout>
+#include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
+#include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScopeGuard>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSpinBox>
 #include <QStackedWidget>
@@ -121,6 +128,80 @@ private Q_SLOTS:
     QTest::addColumn<bool>("accept");
     QTest::newRow("accept") << true;
     QTest::newRow("cancel") << false;
+  }
+
+  void explainsHoveredLabelsFocusedEditorsAndDisabledSettings() {
+    QTimer::singleShot(0, []() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog != nullptr);
+      const auto closeDialog = qScopeGuard([dialog]() { dialog->reject(); });
+      auto *categories = dialog->findChild<QListWidget *>("settingsCategories");
+      auto *title = dialog->findChild<QLabel *>("settingsHelpTitle");
+      auto *description = dialog->findChild<QPlainTextEdit *>("settingsHelpDescription");
+      auto *information = dialog->findChild<QWidget *>("settingsInformation");
+      QVERIFY(categories && title && description && information);
+      const int height = information->height();
+      const auto hover = [dialog](QWidget *widget) {
+        const QPoint position = widget->rect().center();
+        QEnterEvent enter(position, widget->mapTo(dialog, position), widget->mapToGlobal(position));
+        QApplication::sendEvent(widget, &enter);
+      };
+      auto *language = dialog->findChild<QComboBox *>("language");
+      hover(language);
+      QCOMPARE(title->text(), QString("Language"));
+      QCOMPARE(description->toPlainText(), language->toolTip());
+      QVERIFY(dialog->findChild<QLabel *>("languageRestartNote")->isVisible());
+      const QString languageDescription = description->toPlainText();
+      QEvent leave(QEvent::Leave);
+      QApplication::sendEvent(language, &leave);
+      QCOMPARE(description->toPlainText(), languageDescription);
+      categories->setCurrentRow(1);
+      auto *magnify = dialog->findChild<QComboBox *>("magnifyFilter");
+      magnify->setFocus(Qt::TabFocusReason);
+      QCoreApplication::processEvents();
+      QCOMPARE(title->text(), QString("Magnify filter"));
+      QCOMPARE(description->toPlainText(), magnify->toolTip());
+      auto *form = qobject_cast<QFormLayout *>(magnify->parentWidget()->layout());
+      QVERIFY(form != nullptr);
+      auto *label = qobject_cast<QWidget *>(form->labelForField(magnify));
+      QVERIFY(label != nullptr);
+      hover(dialog->findChild<QComboBox *>("minifyFilter"));
+      QCOMPARE(title->text(), QString("Minify filter"));
+      hover(label);
+      QCOMPARE(title->text(), QString("Magnify filter"));
+      QCOMPARE(description->toPlainText(), magnify->toolTip());
+      dialog->resize(620, 400);
+      auto *animation = dialog->findChild<QComboBox *>("animationSync");
+      animation->setFocus(Qt::TabFocusReason);
+      QFont largerFont = description->font();
+      largerFont.setPointSize(largerFont.pointSize() + 8);
+      description->setFont(largerFont);
+      QCoreApplication::processEvents();
+      QCOMPARE(title->text(), QString("Animation sync"));
+      QVERIFY(description->verticalScrollBar()->maximum() > 0);
+      QCOMPARE(information->height(), height);
+      categories->setCurrentRow(3);
+      auto *cache = dialog->findChild<QSpinBox *>("decodeCacheBudget");
+      auto *editor = cache->findChild<QLineEdit *>();
+      QVERIFY(editor != nullptr);
+      editor->setFocus(Qt::TabFocusReason);
+      QCoreApplication::processEvents();
+      QCOMPARE(title->text(), QString("Decode cache budget"));
+      QVERIFY(description->toPlainText().contains("HEIRAN_DECODE_CACHE_BUDGET_MB"));
+      QVERIFY(dialog->findChild<QLabel *>("animationStreamingNote")->isVisible());
+      categories->setCurrentRow(2);
+      QVERIFY(dialog->findChild<QLabel *>("displayProfileFileNote")->isVisible());
+      auto *intent = dialog->findChild<QComboBox *>("renderingIntent");
+      hover(intent);
+      QCOMPARE(title->text(), QString("Rendering intent"));
+      QCOMPARE(description->toPlainText(), intent->toolTip());
+      if (!intent->isEnabled()) {
+        QVERIFY(dialog->findChild<QLabel *>("renderingIntentUnavailableNote")->isVisible());
+      }
+      QCOMPARE(information->height(), height);
+      dialog->reject();
+    });
+    QVERIFY(!heiran::ui::showSettingsDialog(nullptr, AppSettings{}).has_value());
   }
 
   void keepsEditsAcrossSettingsPages() {

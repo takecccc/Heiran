@@ -222,6 +222,7 @@ add_library(heiran_core
   src/ui/ProfileAccumulator.cpp
   src/ui/SessionIssueDialog.cpp
   src/ui/SettingsDialog.cpp
+  src/ui/SettingsHelpController.cpp
   src/ui/TransientMessageWidget.cpp
   src/ui/WelcomeWidget.cpp
   src/ui/ScopeBuilder.cpp
@@ -325,6 +326,7 @@ target_sources(heiran_core
     include/heiran/ui/ProfileAccumulator.hpp
     include/heiran/ui/SessionIssueDialog.hpp
     include/heiran/ui/SettingsDialog.hpp
+    include/heiran/ui/SettingsHelpController.hpp
     include/heiran/ui/TransientMessageWidget.hpp
     include/heiran/ui/WelcomeWidget.hpp
     include/heiran/ui/ScopeBuilder.hpp

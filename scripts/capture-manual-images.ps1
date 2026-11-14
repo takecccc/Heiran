@@ -65,7 +65,7 @@ try {
     @("diff-ssim", @("--size", "1300x640", "--hrn", "DRIVE_SSIM_SESSION", "--action", "Fit", "--hover-cell", "2")),
     @("wipe", @("--size", "1300x640", "--hrn", "DRIVE_WIPE_SESSION", "--action", "Fit", "--hover-cell", "2")),
     @("wipe-settings", @("--size", "1300x640", "--hrn", "DRIVE_WIPE_SESSION", "--action", "Fit", "--hover-cell", "2", "--diff-popup")),
-    @("settings", @("--dialog", "Settings...", "--dialog-category", "Display and playback", $a)),
+    @("settings", @("--dialog", "Settings...", "--dialog-category", "Display and playback", "--dialog-focus", "magnifyFilter", $a)),
     @("transparency-background-menu", @("--context-cell", "0", "--menu", "Transparency background", $a)),
     @("histogram", @("--size", "1100x640", "--analysis", "Histogram", $a, $b)),
     @("waveform", @("--size", "1100x640", "--analysis", "Waveform", $a, $b)),

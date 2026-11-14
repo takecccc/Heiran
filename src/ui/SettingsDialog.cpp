@@ -1,4 +1,5 @@
 #include "heiran/ui/SettingsDialog.hpp"
+#include "heiran/ui/SettingsHelpController.hpp"
 
 #include <QCheckBox>
 #include <QColorDialog>
@@ -14,6 +15,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPixmap>
+#include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
@@ -26,6 +28,14 @@
 namespace heiran::ui {
 
 namespace {
+
+QLabel *addSettingsNote(QFormLayout *form, const QString &text, const char *name) {
+  auto *note = new QLabel(text, form->parentWidget());
+  note->setWordWrap(true);
+  note->setObjectName(name);
+  form->addRow(note);
+  return note;
+}
 
 void addSettingsPage(QStackedWidget *pages, QGroupBox *group) {
   if (auto *form = qobject_cast<QFormLayout *>(group->layout())) {
@@ -102,7 +112,9 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   auto *pages = new QStackedWidget(&dialog);
   pages->setObjectName("settingsPages");
   content->addWidget(categories);
-  content->addWidget(pages, 1);
+  auto *rightSide = new QVBoxLayout;
+  rightSide->addWidget(pages, 1);
+  content->addLayout(rightSide, 1);
   layout->addLayout(content, 1);
   auto *generalGroup = new QGroupBox(categoryTitles.at(0), &dialog);
   auto *generalForm = new QFormLayout(generalGroup);
@@ -201,9 +213,12 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   languageCombo->setToolTip(
       QCoreApplication::translate("SettingsDialog", "Takes effect the next time Heiran starts."));
   generalForm->addRow(QCoreApplication::translate("SettingsDialog", "Language"), languageCombo);
+  auto *languageNote =
+      addSettingsNote(generalForm, languageCombo->toolTip(), "languageRestartNote");
   generalForm->addRow(QCoreApplication::translate("SettingsDialog", "Color theme"), themeCombo);
 
   auto *magnifyCombo = new QComboBox(displayGroup);
+  magnifyCombo->setObjectName("magnifyFilter");
   magnifyCombo->addItem(QCoreApplication::translate("SettingsDialog", "Nearest"),
                         static_cast<int>(MagnifyFilter::Nearest));
   magnifyCombo->addItem(QCoreApplication::translate("SettingsDialog", "Smooth"),
@@ -215,6 +230,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                       magnifyCombo);
 
   auto *animationSyncCombo = new QComboBox(displayGroup);
+  animationSyncCombo->setObjectName("animationSync");
   animationSyncCombo->addItem(QCoreApplication::translate("SettingsDialog", "Auto"),
                               static_cast<int>(AnimationSyncMode::Auto));
   animationSyncCombo->addItem(QCoreApplication::translate("SettingsDialog", "Locked"),
@@ -233,6 +249,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                       animationSyncCombo);
 
   auto *minifyCombo = new QComboBox(displayGroup);
+  minifyCombo->setObjectName("minifyFilter");
   minifyCombo->addItem(QCoreApplication::translate("SettingsDialog", "Area"),
                        static_cast<int>(MinifyFilter::Area));
   minifyCombo->addItem(QCoreApplication::translate("SettingsDialog", "Nearest"),
@@ -268,6 +285,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   auto *profilePathLayout = new QHBoxLayout(profilePathRow);
   profilePathLayout->setContentsMargins(0, 0, 0, 0);
   auto *profilePathEdit = new QLineEdit(current.displayProfilePath, profilePathRow);
+  profilePathEdit->setObjectName("displayProfilePath");
   profilePathEdit->setPlaceholderText(
       QCoreApplication::translate("SettingsDialog", "Path to an .icc or .icm file"));
   auto *browseButton =
@@ -275,10 +293,17 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   profilePathLayout->addWidget(profilePathEdit, 1);
   profilePathLayout->addWidget(browseButton);
   colorForm->addRow(QCoreApplication::translate("SettingsDialog", "ICC file"), profilePathRow);
+  auto *profilePathNote =
+      addSettingsNote(colorForm,
+                      QCoreApplication::translate(
+                          "SettingsDialog", "Select ICC file above to choose a profile file."),
+                      "displayProfileFileNote");
 
-  const auto updateProfilePathState = [profileModeCombo, profilePathRow]() {
-    profilePathRow->setEnabled(profileModeCombo->currentData().toInt() ==
-                               static_cast<int>(DisplayProfileMode::File));
+  const auto updateProfilePathState = [profileModeCombo, profilePathRow, profilePathNote]() {
+    const bool fileMode =
+        profileModeCombo->currentData().toInt() == static_cast<int>(DisplayProfileMode::File);
+    profilePathRow->setEnabled(fileMode);
+    profilePathNote->setVisible(!fileMode);
   };
   updateProfilePathState();
   QObject::connect(profileModeCombo, &QComboBox::currentIndexChanged, &dialog,
@@ -294,6 +319,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   });
 
   auto *intentCombo = new QComboBox(colorGroup);
+  intentCombo->setObjectName("renderingIntent");
   intentCombo->addItem(QCoreApplication::translate("SettingsDialog", "Relative colorimetric"),
                        static_cast<int>(RenderingIntent::RelativeColorimetric));
   intentCombo->addItem(QCoreApplication::translate("SettingsDialog", "Perceptual"),
@@ -323,6 +349,11 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
       "Stretches the range so the darkest tone of the image lands on the darkest tone the display "
       "can show."));
   colorForm->addRow(QString(), blackPointCheckBox);
+  QLabel *intentAvailabilityNote = nullptr;
+  if (!supportsRenderingIntents()) {
+    intentAvailabilityNote =
+        addSettingsNote(colorForm, intentCombo->toolTip(), "renderingIntentUnavailableNote");
+  }
 
   auto *analysisSpaceCombo = new QComboBox(colorGroup);
   analysisSpaceCombo->addItem(QCoreApplication::translate("SettingsDialog", "Source values"),
@@ -337,24 +368,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
       "which makes differences comparable as light rather than as encoded values."));
   colorForm->addRow(QCoreApplication::translate("SettingsDialog", "Analysis values"),
                     analysisSpaceCombo);
-
-  auto *analysisNote =
-      new QLabel(QCoreApplication::translate(
-                     "SettingsDialog",
-                     "Applies to the pixel readout, loupe, histogram, diff and change graph."),
-                 colorGroup);
-  analysisNote->setWordWrap(true);
-  colorForm->addRow(analysisNote);
-
-  auto *colorNote = new QLabel(
-      QCoreApplication::translate(
-          "SettingsDialog",
-          "Images are converted from their embedded profile to the display profile. Images without "
-          "a "
-          "profile are treated as sRGB, or as linear when the file stores floating point values."),
-      colorGroup);
-  colorNote->setWordWrap(true);
-  colorForm->addRow(colorNote);
 
   auto *cacheGroup = new QGroupBox(categoryTitles.at(3), &dialog);
   auto *cacheForm = new QFormLayout(cacheGroup);
@@ -386,26 +399,10 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   cacheForm->addRow(QCoreApplication::translate("SettingsDialog", "Animation streaming threshold"),
                     streamingSpinBox);
 
-  auto *cacheNote = new QLabel(
-      QCoreApplication::translate(
-          "SettingsDialog",
-          "Soft limit. The least recently used pages are dropped first, and the current page is "
-          "kept "
-          "while possible.\nHEIRAN_DECODE_CACHE_BUDGET_MB overrides this value when set.\n"
-          "The GPU texture budget is shared by all cells. Textures over the limit are dropped from "
-          "the least recently used across all cells, so more cells share the same video memory. "
-          "HEIRAN_GPU_TEXTURE_BUDGET_MB overrides it.\n"
-          "APNG and WebP animations larger than the streaming threshold once expanded (width x "
-          "height "
-          "x 4 x frames) are kept compressed and only the frames needed are decoded, which saves "
-          "memory but uses the CPU while playing. It applies to files opened afterwards. GIF over "
-          "the "
-          "threshold is "
-          "compressed and stored while it plays. HEIRAN_ANIMATION_STREAMING_THRESHOLD_MB overrides "
-          "it."),
-      cacheGroup);
-  cacheNote->setWordWrap(true);
-  cacheForm->addRow(cacheNote);
+  auto *streamingNote = addSettingsNote(
+      cacheForm,
+      QCoreApplication::translate("SettingsDialog", "Applies to files opened afterwards."),
+      "animationStreamingNote");
   for (auto *group : {generalGroup, displayGroup, colorGroup, cacheGroup}) {
     addSettingsPage(pages, group);
   }
@@ -413,10 +410,130 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                    &QStackedWidget::setCurrentIndex);
   categories->setCurrentRow(0);
 
+  auto *information =
+      new QGroupBox(QCoreApplication::translate("SettingsDialog", "Information"), &dialog);
+  information->setObjectName("settingsInformation");
+  information->setFixedHeight(std::max(144, dialog.fontMetrics().lineSpacing() * 6 + 44));
+  auto *informationLayout = new QVBoxLayout(information);
+  auto *helpTitle =
+      new QLabel(QCoreApplication::translate("SettingsDialog", "Setting description"), information);
+  helpTitle->setObjectName("settingsHelpTitle");
+  helpTitle->setTextFormat(Qt::PlainText);
+  QFont helpFont = helpTitle->font();
+  helpFont.setBold(true);
+  helpTitle->setFont(helpFont);
+  auto *helpDescription = new QPlainTextEdit(information);
+  helpDescription->setObjectName("settingsHelpDescription");
+  helpDescription->setAccessibleName(
+      QCoreApplication::translate("SettingsDialog", "Setting description"));
+  helpDescription->setReadOnly(true);
+  helpDescription->setTabChangesFocus(true);
+  helpDescription->setFont(dialog.font());
+  helpDescription->setFrameShape(QFrame::NoFrame);
+  helpDescription->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  helpDescription->setPlainText(QCoreApplication::translate(
+      "SettingsDialog",
+      "Point to a setting or focus it with the keyboard to read its description."));
+  informationLayout->addWidget(helpTitle);
+  informationLayout->addWidget(helpDescription, 1);
+  rightSide->addWidget(information);
+
   auto *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
   QObject::connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
   QObject::connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
   layout->addWidget(buttonBox);
+
+  SettingsHelpController help(&dialog, helpTitle, helpDescription);
+  const auto bindHelp = [&help](QFormLayout *form, QWidget *field, const QString &description,
+                                QString title = QString()) {
+    auto *label = qobject_cast<QLabel *>(form->labelForField(field));
+    if (title.isEmpty() && label != nullptr) {
+      title = label->text();
+    }
+    help.setHelp(field, title, description);
+    if (label != nullptr) {
+      help.setHelp(label, title, description);
+    }
+  };
+  bindHelp(generalForm, languageCombo, languageCombo->toolTip());
+  help.setHelp(languageNote, QCoreApplication::translate("SettingsDialog", "Language"),
+               languageCombo->toolTip());
+  bindHelp(generalForm, themeCombo, themeCombo->toolTip());
+  bindHelp(displayForm, pixelValueCombo,
+           QCoreApplication::translate("SettingsDialog",
+                                       "Changes the unit used for pixel values: 0-255 "
+                                       "or 0.0-1.0. The image data is not changed."));
+  bindHelp(displayForm, fitCheckBox,
+           QCoreApplication::translate("SettingsDialog",
+                                       "Fits images to their cells whenever the page changes. You "
+                                       "can also fit them at any time with F."));
+  bindHelp(displayForm, bordersCheckBox,
+           QCoreApplication::translate("SettingsDialog",
+                                       "Separates cells with a dark gutter and an outline to make "
+                                       "their boundaries easier to see."));
+  bindHelp(displayForm, backgroundCombo,
+           QCoreApplication::translate(
+               "SettingsDialog",
+               "Chooses a solid color or checkerboard behind transparent pixels in every cell and "
+               "the loupe. Image margins, pixel values and analysis results are not changed."));
+  const QString backgroundColorsDescription = QCoreApplication::translate(
+      "SettingsDialog", "Sets the solid background color or the two alternating checkerboard "
+                        "colors. Each color is kept when you change the background pattern.");
+  bindHelp(displayForm, backgroundColors, backgroundColorsDescription);
+  for (auto *button : {solidButton, checker1Button, checker2Button}) {
+    help.setHelp(button, button->accessibleName(), backgroundColorsDescription);
+  }
+  bindHelp(displayForm, magnifyCombo, magnifyCombo->toolTip());
+  bindHelp(displayForm, minifyCombo, minifyCombo->toolTip());
+  bindHelp(displayForm, animationSyncCombo, animationSyncCombo->toolTip());
+  bindHelp(colorForm, profileModeCombo,
+           QStringList{profileModeCombo->toolTip(),
+                       QCoreApplication::translate(
+                           "SettingsDialog",
+                           "Images are converted from their embedded profile to the display "
+                           "profile. Images without a profile are treated as sRGB, or as linear "
+                           "when the file stores floating point values.")}
+               .join("\n\n"));
+  bindHelp(colorForm, profilePathRow,
+           QCoreApplication::translate("SettingsDialog",
+                                       "Choose ICC file as the display profile to select an .icc "
+                                       "or .icm file. Browse opens the file picker."));
+  bindHelp(colorForm, intentCombo, intentCombo->toolTip());
+  bindHelp(colorForm, blackPointCheckBox, blackPointCheckBox->toolTip(),
+           QCoreApplication::translate("SettingsDialog", "Black point compensation"));
+  if (intentAvailabilityNote != nullptr) {
+    help.setHelp(intentAvailabilityNote,
+                 QCoreApplication::translate("SettingsDialog", "Rendering intent"),
+                 intentCombo->toolTip());
+  }
+  bindHelp(
+      colorForm, analysisSpaceCombo,
+      QStringList{analysisSpaceCombo->toolTip(),
+                  QCoreApplication::translate(
+                      "SettingsDialog",
+                      "Applies to the pixel readout, loupe, histogram, diff and change graph.")}
+          .join("\n\n"));
+  bindHelp(cacheForm, cacheBudgetSpinBox,
+           QCoreApplication::translate(
+               "SettingsDialog", "Soft limit for decoded images. The least recently used pages are "
+                                 "dropped first, and the current page is kept while possible. "
+                                 "HEIRAN_DECODE_CACHE_BUDGET_MB overrides this value when set."));
+  bindHelp(cacheForm, textureBudgetSpinBox,
+           QCoreApplication::translate(
+               "SettingsDialog", "The GPU texture budget is shared by all cells. Textures over the "
+                                 "limit are dropped from the least recently used across all cells. "
+                                 "HEIRAN_GPU_TEXTURE_BUDGET_MB overrides this value when set."));
+  const QString streamingDescription = QCoreApplication::translate(
+      "SettingsDialog",
+      "APNG and WebP animations larger than this threshold after expansion (width x height x 4 x "
+      "frames) are kept compressed and decoded as needed. This saves memory but uses the CPU "
+      "during playback. GIF over the threshold is compressed and stored while it plays. Applies to "
+      "files opened "
+      "afterwards. HEIRAN_ANIMATION_STREAMING_THRESHOLD_MB overrides this value when set.");
+  bindHelp(cacheForm, streamingSpinBox, streamingDescription);
+  help.setHelp(streamingNote,
+               QCoreApplication::translate("SettingsDialog", "Animation streaming threshold"),
+               streamingDescription);
 
   if (dialog.exec() != QDialog::Accepted) {
     return std::nullopt;
