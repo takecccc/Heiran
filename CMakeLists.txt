@@ -21,6 +21,19 @@ if(HEIRAN_ENABLE_ASAN)
     string(REGEX REPLACE "/RTC[1csu]*" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
     add_compile_options(/fsanitize=address /Zi)
     add_link_options(/INCREMENTAL:NO /DEBUG)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      execute_process(COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
+        OUTPUT_VARIABLE heiran_clang_resource_dir OUTPUT_STRIP_TRAILING_WHITESPACE
+        COMMAND_ERROR_IS_FATAL ANY)
+      set(heiran_clang_runtime_paths "${heiran_clang_resource_dir}/lib/windows"
+        "${heiran_clang_resource_dir}/lib/x86_64-pc-windows-msvc")
+      find_library(HEIRAN_CLANG_ASAN_RUNTIME clang_rt.asan_dynamic-x86_64
+        PATHS ${heiran_clang_runtime_paths} NO_DEFAULT_PATH REQUIRED)
+      find_library(HEIRAN_CLANG_ASAN_THUNK clang_rt.asan_dynamic_runtime_thunk-x86_64
+        PATHS ${heiran_clang_runtime_paths} NO_DEFAULT_PATH REQUIRED)
+      link_libraries("${HEIRAN_CLANG_ASAN_RUNTIME}")
+      add_link_options("/WHOLEARCHIVE:${HEIRAN_CLANG_ASAN_THUNK}")
+    endif()
   else()
     add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
     add_link_options(-fsanitize=address)
@@ -159,6 +172,7 @@ add_library(heiran_core
   src/infra/ImageDecoder.cpp
   src/ui/AnalysisSampler.cpp
   src/ui/AppSettings.cpp
+  src/ui/TransparencyBackground.cpp
   src/ui/CellContextMenu.cpp
   src/ui/AboutDialog.cpp
   src/ui/ManualLocator.cpp
@@ -268,6 +282,7 @@ target_sources(heiran_core
     include/heiran/infra/ParallelRows.hpp
     include/heiran/ui/AnalysisSampler.hpp
     include/heiran/ui/AppSettings.hpp
+    include/heiran/ui/TransparencyBackground.hpp
     include/heiran/ui/CellContextMenu.hpp
     include/heiran/ui/CellOverlayPainter.hpp
     include/heiran/ui/CellStatusPainter.hpp
@@ -1135,9 +1150,16 @@ if(WIN32)
   # page of the installer offers the choice, and the sections below read back
   # what was ticked. Component names become the NSIS section identifiers.
   # The VC++ runtime is not shipped. The installer checks for a runtime at least as new as the toolset
-  # that built Heiran (compiler 19.51 -> runtime 14.51) and points to Microsoft's download page.
-  string(REPLACE "." ";" heiran_compiler_version "${CMAKE_CXX_COMPILER_VERSION}")
-  list(GET heiran_compiler_version 1 HEIRAN_VCRUNTIME_MINOR)
+  # used to build Heiran. Read the CRT headers because Clang's version is unrelated to the runtime.
+  find_file(HEIRAN_CRT_VERSION_HEADER crtversion.h
+    PATHS ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES} ENV INCLUDE NO_DEFAULT_PATH REQUIRED)
+  file(STRINGS "${HEIRAN_CRT_VERSION_HEADER}" heiran_crt_minor_definition
+    REGEX "^#define[ \t]+_VC_CRT_MINOR_VERSION[ \t]+[0-9]+")
+  if(NOT heiran_crt_minor_definition)
+    message(FATAL_ERROR "Could not determine the VC++ runtime version from crtversion.h.")
+  endif()
+  string(REGEX REPLACE ".*_VC_CRT_MINOR_VERSION[ \t]+([0-9]+).*" "\\1"
+    HEIRAN_VCRUNTIME_MINOR "${heiran_crt_minor_definition}")
   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis/vcruntime_check.nsh.in"
     "${CMAKE_CURRENT_BINARY_DIR}/vcruntime_check.nsh" @ONLY)
   file(READ "${CMAKE_CURRENT_BINARY_DIR}/vcruntime_check.nsh" CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS)

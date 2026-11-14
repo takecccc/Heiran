@@ -5,13 +5,14 @@ function Get-HeiranBuildConfig {
 
   $config = @{
     BuildDir = "build"
-    QtPrefixPath = ""
-    VcpkgRoot = ""
+    QtPrefixPath = $env:Qt6_ROOT
+    VcpkgRoot = if ($env:VCPKG_ROOT) { $env:VCPKG_ROOT } else { ".tools/vcpkg" }
     CMakeOptions = @()
-    BuildConfig = "Debug"
+    BuildConfig = "Release"
   }
 
   $localSettingsPath = Join-Path $ScriptRoot "local.settings.ps1"
+  $HeiranBuildConfig = $null
   if (Test-Path $localSettingsPath) {
     . $localSettingsPath
     if ($HeiranBuildConfig) {
@@ -64,6 +65,23 @@ function Get-HeiranVisualStudioInfo {
     InstallationPath = $installationPath.Trim()
     InstanceId = $instanceId.Trim()
   }
+}
+
+function Get-HeiranClangClPath {
+  $vsInfo = Get-HeiranVisualStudioInfo
+  if ($vsInfo) {
+    $candidate = Join-Path $vsInfo.InstallationPath "VC/Tools/Llvm/x64/bin/clang-cl.exe"
+    if (Test-Path $candidate) {
+      return $candidate
+    }
+  }
+
+  $command = Get-Command "clang-cl.exe" -CommandType Application -ErrorAction SilentlyContinue
+  if ($command) {
+    return $command.Source
+  }
+
+  throw "clang-cl was not found. Install the C++ Clang tools for Windows component in Visual Studio Installer."
 }
 
 function Get-HeiranVsDevShellScriptPath {
@@ -169,14 +187,28 @@ function Invoke-HeiranProcess {
   )
 
   $environmentSnapshot = Get-HeiranEnvironmentSnapshot
+  if (-not $Config.QtPrefixPath) {
+    throw "Qt was not configured. Set Qt6_ROOT to your Qt MSVC installation prefix (for example C:/Qt/6.11.1/msvc2022_64), or set QtPrefixPath in scripts/local.settings.ps1."
+  }
   $qtBinPath = Join-Path $Config.QtPrefixPath "bin"
 
   try {
     Enter-HeiranVsDevShell
+    $clangClPath = Get-HeiranClangClPath
+    $clangBinPath = Split-Path -Parent $clangClPath
+    $env:PATH = "$clangBinPath;$env:PATH"
+    $clangResourceDir = (& $clangClPath -print-resource-dir).Trim()
+    foreach ($runtimeSubdirectory in @("lib/windows", "lib/x86_64-pc-windows-msvc")) {
+      $clangRuntimePath = Join-Path $clangResourceDir $runtimeSubdirectory
+      if (Test-Path $clangRuntimePath) {
+        $env:PATH = "$clangRuntimePath;$env:PATH"
+      }
+    }
     if (Test-Path $qtBinPath) {
       $env:PATH = "$qtBinPath;$env:PATH"
     }
     Write-Host "Generator: Ninja"
+    Write-Host "Compiler: $clangClPath"
     Write-Host "Qt toolchain: msvc"
 
     if (-not $StandardErrorPath) {

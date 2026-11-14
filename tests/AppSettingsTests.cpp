@@ -1,7 +1,14 @@
 #include "heiran/ui/AppSettings.hpp"
+#include "heiran/ui/SettingsDialog.hpp"
 
+#include <QApplication>
+#include <QColorDialog>
+#include <QComboBox>
 #include <QCoreApplication>
+#include <QDialog>
+#include <QPushButton>
 #include <QSettings>
+#include <QTimer>
 #include <QtTest>
 
 using heiran::ui::AppSettings;
@@ -27,6 +34,80 @@ private Q_SLOTS:
     QCOMPARE(settings.pixelValueFormat, PixelValueFormat::Normalized255);
     QCOMPARE(settings.fitOnPageChange, false);
     QCOMPARE(settings.decodeCacheBudgetMib, 1024);
+    QCOMPARE(settings.transparencyBackground, heiran::ui::TransparencyBackground{});
+  }
+
+  void storesBothTransparencyBackgrounds() {
+    QSettings().clear();
+    AppSettings settings;
+    settings.transparencyBackground = {.pattern = heiran::ui::TransparencyPattern::Checkerboard,
+                                       .solidColor = QColor(12, 34, 56),
+                                       .checkerColor1 = QColor(70, 80, 90),
+                                       .checkerColor2 = QColor(170, 180, 190)};
+    settings.save();
+    QCOMPARE(AppSettings::load().transparencyBackground, settings.transparencyBackground);
+    settings.transparencyBackground.pattern = heiran::ui::TransparencyPattern::Solid;
+    settings.save();
+    QCOMPARE(AppSettings::load().transparencyBackground, settings.transparencyBackground);
+  }
+
+  void validatesStoredTransparencyBackground() {
+    QSettings().clear();
+    QSettings().setValue("display/transparencyPattern", "unknown");
+    QSettings().setValue("display/transparencySolidColor", "not-a-color");
+    QSettings().setValue("display/transparencyCheckerColor1", "#80123456");
+    const auto background = AppSettings::load().transparencyBackground;
+    QCOMPARE(background.pattern, heiran::ui::TransparencyPattern::Solid);
+    QCOMPARE(background.solidColor, QColor(245, 245, 245));
+    QCOMPARE(background.checkerColor1, QColor(0x12, 0x34, 0x56));
+    QCOMPARE(background.checkerColor2, QColor(245, 245, 245));
+  }
+
+  void editsAllBackgroundColorsAndPreservesThemAcrossPatterns() {
+    const AppSettings current;
+    QTimer::singleShot(0, []() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog != nullptr);
+      auto *combo = dialog->findChild<QComboBox *>("transparencyPattern");
+      QVERIFY(combo != nullptr);
+      const auto chooseColor = [dialog](const char *name, QColor color) {
+        auto *button = dialog->findChild<QPushButton *>(name);
+        QVERIFY(button != nullptr);
+        QTimer::singleShot(0, [color]() {
+          auto *picker = qobject_cast<QColorDialog *>(QApplication::activeModalWidget());
+          QVERIFY(picker != nullptr);
+          picker->setCurrentColor(color);
+          picker->accept();
+        });
+        button->click();
+      };
+      chooseColor("transparencySolidColor", QColor(11, 22, 33));
+      combo->setCurrentIndex(1);
+      chooseColor("transparencyCheckerColor1", QColor(44, 55, 66));
+      chooseColor("transparencyCheckerColor2", QColor(77, 88, 99));
+      combo->setCurrentIndex(0);
+      combo->setCurrentIndex(1);
+      dialog->accept();
+    });
+    const auto updated = heiran::ui::showSettingsDialog(nullptr, current);
+    QVERIFY(updated.has_value());
+    QCOMPARE(updated->transparencyBackground.pattern,
+             heiran::ui::TransparencyPattern::Checkerboard);
+    QCOMPARE(updated->transparencyBackground.solidColor, QColor(11, 22, 33));
+    QCOMPARE(updated->transparencyBackground.checkerColor1, QColor(44, 55, 66));
+    QCOMPARE(updated->transparencyBackground.checkerColor2, QColor(77, 88, 99));
+    QCOMPARE(current.transparencyBackground, heiran::ui::TransparencyBackground{});
+  }
+
+  void cancelsTransparencyBackgroundChanges() {
+    const AppSettings current;
+    QTimer::singleShot(0, []() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog != nullptr);
+      dialog->findChild<QComboBox *>("transparencyPattern")->setCurrentIndex(1);
+      dialog->reject();
+    });
+    QVERIFY(!heiran::ui::showSettingsDialog(nullptr, current).has_value());
   }
 
   void roundTripsThroughStorage() {

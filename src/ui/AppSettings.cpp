@@ -24,6 +24,19 @@ constexpr auto kBlackPointCompensationKey = "display/blackPointCompensation";
 constexpr auto kColorThemeKey = "display/colorTheme";
 constexpr auto kLanguageKey = "general/language";
 constexpr auto kCursorStyleKey = "display/cursorStyle";
+constexpr auto kTransparencyPatternKey = "display/transparencyPattern";
+constexpr auto kTransparencySolidKey = "display/transparencySolidColor";
+constexpr auto kTransparencyChecker1Key = "display/transparencyCheckerColor1";
+constexpr auto kTransparencyChecker2Key = "display/transparencyCheckerColor2";
+
+QColor loadBackgroundColor(const QSettings &settings, const char *key, const QColor &fallback) {
+  QColor color(settings.value(key, fallback.name()).toString());
+  if (!color.isValid()) {
+    return fallback;
+  }
+  color.setAlpha(255);
+  return color;
+}
 
 }  // namespace
 
@@ -71,6 +84,16 @@ MinifyFilter minifyFilterFromString(const QString &text) {
 AppSettings AppSettings::load() {
   QSettings settings;
   AppSettings appSettings;
+  auto &background = appSettings.transparencyBackground;
+  background.pattern = settings.value(kTransparencyPatternKey).toString() == "checkerboard"
+                           ? TransparencyPattern::Checkerboard
+                           : TransparencyPattern::Solid;
+  background.solidColor =
+      loadBackgroundColor(settings, kTransparencySolidKey, background.solidColor);
+  background.checkerColor1 =
+      loadBackgroundColor(settings, kTransparencyChecker1Key, background.checkerColor1);
+  background.checkerColor2 =
+      loadBackgroundColor(settings, kTransparencyChecker2Key, background.checkerColor2);
   appSettings.pixelValueFormat =
       pixelValueFormatFromString(settings.value(kPixelValueFormatKey).toString());
   appSettings.fitOnPageChange = settings.value(kFitOnPageChangeKey, false).toBool();
@@ -101,6 +124,13 @@ AppSettings AppSettings::load() {
 
 void AppSettings::save() const {
   QSettings settings;
+  settings.setValue(kTransparencyPatternKey,
+                    transparencyBackground.pattern == TransparencyPattern::Checkerboard
+                        ? "checkerboard"
+                        : "solid");
+  settings.setValue(kTransparencySolidKey, transparencyBackground.solidColor.name());
+  settings.setValue(kTransparencyChecker1Key, transparencyBackground.checkerColor1.name());
+  settings.setValue(kTransparencyChecker2Key, transparencyBackground.checkerColor2.name());
   settings.setValue(kPixelValueFormatKey, pixelValueFormatToString(pixelValueFormat));
   settings.setValue(kFitOnPageChangeKey, fitOnPageChange);
   settings.setValue(kShowCellBordersKey, showCellBorders);

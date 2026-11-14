@@ -50,6 +50,7 @@ public:
   void setPixelValueFormat(PixelValueFormat pixelValueFormat);
   void setExposureStops(double exposureStops);
   void setFilters(MagnifyFilter magnifyFilter, MinifyFilter minifyFilter);
+  void setTransparencyBackground(const TransparencyBackground &background);
   // セルの枠線 (画像の面の外周と、見出しの下の線) を描くか。
   void setBordersVisible(bool visible);
   // ワイプの境目の線の位置 (このウィジェットの座標)。試験のために出している。線が出ていなければ、無効な値。
@@ -109,6 +110,7 @@ Q_SIGNALS:
   void hoverInfoRequested(int cellIndex, const QPointF &imagePosition, bool active);
   void channelContextMenuRequested(int cellIndex, ChannelMode channelMode, const QPoint &globalPos);
   void syncToggleRequested(int cellIndex);
+  void transparencyPatternRequested(TransparencyPattern pattern);
   void scaleContextMenuRequested(int cellIndex, double scale);
   void gammaContextMenuRequested(int cellIndex, double gamma);
   void invertContextMenuRequested(int cellIndex, bool invert);
@@ -184,6 +186,7 @@ private:
   mutable QColorSpace colorLutDisplay_;
   mutable ColorLutOptions colorLutBuiltOptions_;
   MagnifyFilter magnifyFilter_ = MagnifyFilter::Nearest;
+  TransparencyBackground transparencyBackground_;
   bool bordersVisible_ = true;
   bool activeFrame_ = false;
   QWidget *activeFrameWidget_ = nullptr;

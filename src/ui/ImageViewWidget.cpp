@@ -65,7 +65,6 @@ constexpr int kSyncButtonWidth = 44;
 constexpr int kInnerPadding = 8;
 
 // 透過画素の下地。市松模様ではなく単色にしている。
-const QColor kImageBackdropColor(245, 245, 245);
 
 ProfileAccumulator &paintProfiler() {
   static ProfileAccumulator profiler("HEIRAN_PROFILE_PAN", "paint", {"total", "image"}, 60);
@@ -636,7 +635,7 @@ protected:
                                       : owner_->magnifyFilter_ == MagnifyFilter::Smooth;
         // 透過画素の下地は画像と同じ四角形の中でシェーダが合成する。
         renderer_.draw(owner_->displayTransformParams(), projectedImageRect, size(),
-                       devicePixelRatioF(), smooth, kImageBackdropColor);
+                       devicePixelRatioF(), smooth, owner_->transparencyBackground_);
       }
 
       if (profilingEnabled()) {
@@ -681,6 +680,7 @@ protected:
 
   void contextMenuEvent(QContextMenuEvent *event) override {
     CellContextMenuState menuState;
+    menuState.transparencyPattern = owner_->transparencyBackground_.pattern;
     menuState.syncEnabled = owner_->cellState_.syncEnabled;
     menuState.scale = owner_->cellState_.scale;
     menuState.gamma = owner_->cellState_.gamma;
@@ -703,6 +703,9 @@ protected:
     const CellContextMenuResult result = showCellContextMenu(this, globalPos, menuState);
     const int cellIndex = owner_->cellIndex_;
     switch (result.action) {
+      case CellContextMenuResult::Action::SetTransparencyPattern:
+        Q_EMIT owner_->transparencyPatternRequested(result.transparencyPattern);
+        break;
       case CellContextMenuResult::Action::ToggleSync:
         Q_EMIT owner_->syncToggleRequested(cellIndex);
         break;
@@ -1154,6 +1157,14 @@ void ImageViewWidget::updateLumaWeights() {
 
 void ImageViewWidget::setPixelValueFormat(PixelValueFormat pixelValueFormat) {
   pixelValueFormat_ = pixelValueFormat;
+}
+
+void ImageViewWidget::setTransparencyBackground(const TransparencyBackground &background) {
+  if (transparencyBackground_ == background) {
+    return;
+  }
+  transparencyBackground_ = background;
+  canvasWidget_->requestCoalescedUpdate();
 }
 
 void ImageViewWidget::setFilters(MagnifyFilter magnifyFilter, MinifyFilter minifyFilter) {

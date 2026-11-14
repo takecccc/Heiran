@@ -3,6 +3,7 @@
 #include "heiran/ui/ActionIcons.hpp"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCoreApplication>
 #include <QInputDialog>
 #include <QMenu>
@@ -28,6 +29,23 @@ int normalizedQuarterTurns(int rotationQuarterTurns) {
 CellContextMenuResult showCellContextMenu(QWidget *parent, const QPoint &globalPosition,
                                           const CellContextMenuState &state) {
   QMenu menu(parent);
+
+  auto *backgroundMenu =
+      menu.addMenu(QCoreApplication::translate("CellContextMenu", "Transparency background"));
+  auto *backgroundGroup = new QActionGroup(backgroundMenu);
+  backgroundGroup->setExclusive(true);
+  auto *solidBackgroundAction =
+      backgroundMenu->addAction(QCoreApplication::translate("CellContextMenu", "Solid color"));
+  auto *checkerBackgroundAction =
+      backgroundMenu->addAction(QCoreApplication::translate("CellContextMenu", "Checkerboard"));
+  for (auto *action : {solidBackgroundAction, checkerBackgroundAction}) {
+    action->setCheckable(true);
+    backgroundGroup->addAction(action);
+  }
+  solidBackgroundAction->setChecked(state.transparencyPattern == TransparencyPattern::Solid);
+  checkerBackgroundAction->setChecked(state.transparencyPattern ==
+                                      TransparencyPattern::Checkerboard);
+  menu.addSeparator();
 
   auto *syncAction = menu.addAction(
       state.syncEnabled ? QCoreApplication::translate("CellContextMenu", "Disable Sync")
@@ -197,7 +215,12 @@ CellContextMenuResult showCellContextMenu(QWidget *parent, const QPoint &globalP
   }
 
   CellContextMenuResult result;
-  if (selectedAction == syncAction) {
+  if (selectedAction == solidBackgroundAction || selectedAction == checkerBackgroundAction) {
+    result.action = CellContextMenuResult::Action::SetTransparencyPattern;
+    result.transparencyPattern = selectedAction == checkerBackgroundAction
+                                     ? TransparencyPattern::Checkerboard
+                                     : TransparencyPattern::Solid;
+  } else if (selectedAction == syncAction) {
     result.action = CellContextMenuResult::Action::ToggleSync;
   } else if (selectedAction == customScaleAction) {
     bool ok = false;

@@ -131,6 +131,7 @@ public:
   QImage targetCellImage() const;
   // ページ切り替え時にセルへフィットさせる。
   void setFilters(MagnifyFilter magnifyFilter, MinifyFilter minifyFilter);
+  void setTransparencyBackground(const TransparencyBackground &background);
   // セルの枠線を描くか。あとから作るセルにも引き継ぐ。
   void setCellBordersVisible(bool visible);
   bool cellBordersVisible() const { return cellBordersVisible_; }
@@ -191,6 +192,7 @@ public:
   double exposureStops() const;
 
 Q_SIGNALS:
+  void transparencyPatternRequested(TransparencyPattern pattern);
   void statusChanged(const QString &message);
   void pixelInfoChanged(const QStringList &lines);
   void pixelPreviewChanged(const LoupePreview &preview);
@@ -210,6 +212,7 @@ Q_SIGNALS:
 protected:
   // セルの間の溝を、暗い色で塗る。
   void paintEvent(QPaintEvent *event) override;
+  void showEvent(QShowEvent *event) override;
 
 private:
   void handleDecodeCompleted(const DecodeCompletion &completion);
@@ -325,6 +328,7 @@ private:
   DisplayProfileMode displayProfileMode_ = DisplayProfileMode::System;
   QString displayProfilePath_;
   MagnifyFilter magnifyFilter_ = MagnifyFilter::Nearest;
+  TransparencyBackground transparencyBackground_;
   bool cellBordersVisible_ = true;
   CursorStyle cursorStyle_ = CursorStyle::Outline;
   MinifyFilter minifyFilter_ = MinifyFilter::Area;

@@ -77,5 +77,5 @@ if ($LASTEXITCODE -ne 0) {
   exit $LASTEXITCODE
 }
 
-Write-Host "Done. Set VcpkgRoot in scripts/local.settings.ps1 if needed:"
+Write-Host "Done. The default build uses VCPKG_ROOT or .tools/vcpkg. For a custom location, set:"
 Write-Host "  VcpkgRoot = `"$resolvedVcpkgRoot`""

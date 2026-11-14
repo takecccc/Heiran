@@ -307,6 +307,13 @@ void ViewerGridWidget::setDisplayProfile(DisplayProfileMode mode, const QString 
   }
 }
 
+void ViewerGridWidget::setTransparencyBackground(const TransparencyBackground &background) {
+  transparencyBackground_ = background;
+  for (auto *cell : cells_) {
+    cell->setTransparencyBackground(background);
+  }
+}
+
 void ViewerGridWidget::setFilters(MagnifyFilter magnifyFilter, MinifyFilter minifyFilter) {
   magnifyFilter_ = magnifyFilter;
   minifyFilter_ = minifyFilter;
@@ -321,6 +328,11 @@ void ViewerGridWidget::paintEvent(QPaintEvent *) {
   }
   QPainter painter(this);
   painter.fillRect(rect(), kCellGutterColor);
+}
+
+void ViewerGridWidget::showEvent(QShowEvent *event) {
+  QWidget::showEvent(event);
+  QMetaObject::invokeMethod(this, [this]() { applyPendingFit(); }, Qt::QueuedConnection);
 }
 
 void ViewerGridWidget::setCursorStyle(CursorStyle style) {
@@ -412,7 +424,7 @@ void ViewerGridWidget::requestFitToCells() {
 
 // 画像は非同期で読み込まれるため、対象が揃うまで待ってから適用する。
 void ViewerGridWidget::applyPendingFit() {
-  if (!fitPending_ || cells_.isEmpty()) {
+  if (!fitPending_ || cells_.isEmpty() || !isVisible()) {
     return;
   }
 
@@ -444,6 +456,7 @@ void ViewerGridWidget::applyPendingFit() {
   }
 
   fitPending_ = false;
+  lastReferenceCanvasSize_ = cellSize;
   globalState_.baseScale = fitResult.baseScale;
   globalState_.baseOffsetX = fitResult.baseOffsetX;
   globalState_.baseOffsetY = fitResult.baseOffsetY;
@@ -1153,6 +1166,9 @@ void ViewerGridWidget::rebuildGrid() {
     view->setPixelValueFormat(pixelValueFormat_);
     view->setExposureStops(exposureStops_);
     view->setFilters(magnifyFilter_, minifyFilter_);
+    view->setTransparencyBackground(transparencyBackground_);
+    connect(view, &ImageViewWidget::transparencyPatternRequested, this,
+            &ViewerGridWidget::transparencyPatternRequested);
     view->setBordersVisible(cellBordersVisible_);
     view->setCursorStyle(cursorStyle_);
     view->setDisplayProfile(displayProfileMode_, displayProfilePath_);

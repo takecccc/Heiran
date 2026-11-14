@@ -24,6 +24,11 @@ void LoupeWidget::setPreview(const LoupePreview &preview) {
   update();
 }
 
+void LoupeWidget::setTransparencyBackground(const TransparencyBackground &background) {
+  transparencyBackground_ = background;
+  update();
+}
+
 void LoupeWidget::paintEvent(QPaintEvent *) {
   QPainter painter(this);
   painter.fillRect(rect(), QColor(24, 26, 30));
@@ -62,6 +67,8 @@ void LoupeWidget::paintEvent(QPaintEvent *) {
   // 塗りは表示用画像から、数値は解析用バッファから取る。
   const bool grayscaleSource = preview_.sampler.isGrayscale(preview_.image);
   const bool alphaSource = preview_.sampler.hasAlpha(preview_.image);
+  painter.fillRect(QRect(offsetX, offsetY, gridPixelSize, gridPixelSize),
+                   transparencyBackgroundBrush(transparencyBackground_));
 
   for (int gridY = 0; gridY < kGridSize; ++gridY) {
     for (int gridX = 0; gridX < kGridSize; ++gridX) {
@@ -95,8 +102,13 @@ void LoupeWidget::paintEvent(QPaintEvent *) {
         }
         const QString valueText = valueLines.join('\n');
 
-        const int brightness =
-            (pixelColor.red() * 299 + pixelColor.green() * 587 + pixelColor.blue() * 114) / 1000;
+        const QColor background = transparencyBackground_.colorAt(cellRect.center());
+        const double alpha = pixelColor.alphaF();
+        const double brightness =
+            ((pixelColor.red() * alpha + background.red() * (1.0 - alpha)) * 299 +
+             (pixelColor.green() * alpha + background.green() * (1.0 - alpha)) * 587 +
+             (pixelColor.blue() * alpha + background.blue() * (1.0 - alpha)) * 114) /
+            1000;
         painter.setPen(brightness < 128 ? QColor(245, 245, 245) : QColor(20, 20, 20));
         const QStringList lines = valueText.split('\n');
         const int totalTextHeight = lineStep * static_cast<int>(lines.size()) - 1;

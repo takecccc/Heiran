@@ -33,6 +33,9 @@ void main() {
 constexpr auto kFragmentShader = R"(
 uniform sampler2D source;
 uniform highp vec3 backdrop;
+uniform highp vec3 alternateBackdrop;
+uniform highp float checkerSize;
+uniform highp float viewportHeight;
 uniform highp float gain;
 uniform highp float gammaExponent;
 uniform int channelMode;
@@ -130,7 +133,12 @@ void main() {
 
   // 下地は変換の対象にしない。CPU 実装が白の矩形を先に塗ってから
   // 画像を重ねていたのと同じ結果になる。
-  gl_FragColor = vec4(mix(backdrop, rgb, alpha), 1.0);
+  highp vec3 background = backdrop;
+  if (checkerSize > 0.0) {
+    highp vec2 square = floor(vec2(gl_FragCoord.x, viewportHeight - gl_FragCoord.y) / checkerSize);
+    background = mix(backdrop, alternateBackdrop, mod(square.x + square.y, 2.0));
+  }
+  gl_FragColor = vec4(mix(background, rgb, alpha), 1.0);
 }
 )";
 
@@ -499,7 +507,7 @@ bool GpuImageRenderer::ensureTexture() {
 
 void GpuImageRenderer::draw(const DisplayTransformParams &params, const QRectF &targetRect,
                             const QSize &widgetSize, double devicePixelRatio, bool smooth,
-                            const QColor &backdropColor) {
+                            const TransparencyBackground &background) {
   if (!initialized_ || program_ == nullptr || !ensureTexture() || texture_ == nullptr) {
     return;
   }
@@ -543,6 +551,18 @@ void GpuImageRenderer::draw(const DisplayTransformParams &params, const QRectF &
   program_->setAttributeBuffer(texCoordLocation, GL_FLOAT, 2 * sizeof(float), 2, 4 * sizeof(float));
 
   const double gamma = params.gamma <= 0.0 ? 1.0 : params.gamma;
+  const bool checkerboard = background.pattern == TransparencyPattern::Checkerboard;
+  const QColor backdropColor = checkerboard ? background.checkerColor1 : background.solidColor;
+  const QColor alternateColor = background.checkerColor2;
+  program_->setUniformValue("alternateBackdrop",
+                            QVector3D(static_cast<float>(alternateColor.redF()),
+                                      static_cast<float>(alternateColor.greenF()),
+                                      static_cast<float>(alternateColor.blueF())));
+  program_->setUniformValue(
+      "checkerSize",
+      checkerboard ? static_cast<float>(kTransparencyCheckerSize * devicePixelRatio) : 0.0F);
+  program_->setUniformValue(
+      "viewportHeight", static_cast<float>(std::lround(widgetSize.height() * devicePixelRatio)));
   program_->setUniformValue("backdrop", QVector3D(static_cast<float>(backdropColor.redF()),
                                                   static_cast<float>(backdropColor.greenF()),
                                                   static_cast<float>(backdropColor.blueF())));

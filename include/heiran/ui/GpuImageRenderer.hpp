@@ -1,5 +1,7 @@
 #pragma once
 
+#include "heiran/ui/TransparencyBackground.hpp"
+
 #include "heiran/infra/ImageDecoder.hpp"
 #include "heiran/ui/DisplayTransform.hpp"
 #include "heiran/ui/TextureBudgetLedger.hpp"
@@ -60,10 +62,10 @@ public:
 
   // targetRect はウィジェット座標での描画先。
   // devicePixelRatio は QOpenGLWidget の値をそのまま渡す。
-  // backdropColor は透過画素の下地。別の矩形として塗ると丸めの差で縁からはみ出すため、
+  // background は透過画素の下地。別の矩形として塗ると丸めの差で縁からはみ出すため、
   // シェーダ内で合成する。
   void draw(const DisplayTransformParams &params, const QRectF &targetRect, const QSize &widgetSize,
-            double devicePixelRatio, bool smooth, const QColor &backdropColor);
+            double devicePixelRatio, bool smooth, const TransparencyBackground &background);
 
   void release();
 

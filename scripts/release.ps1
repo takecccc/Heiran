@@ -4,7 +4,7 @@ param(
   # A separate build directory, so the release build never disturbs the day-to-day one.
   [string]$BuildDir = "build-release",
   [string]$Branch = "main",
-  # Delete the whole build directory first (slow: vcpkg libraries are built again).
+  # Delete the whole build directory first (shared vcpkg dependencies are kept).
   [switch]$CleanBuildDir,
   [switch]$SkipTests,
   [switch]$SkipSmokeTest,

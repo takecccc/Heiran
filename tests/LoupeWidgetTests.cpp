@@ -41,6 +41,39 @@ private Q_SLOTS:
     QVERIFY(!rendered.isNull());
   }
 
+  void compositesTransparentPixelsOnTheConfiguredBackground() {
+    QImage image(16, 16, QImage::Format_RGBA8888);
+    image.fill(Qt::transparent);
+    heiran::ui::LoupeWidget widget;
+    widget.resize(300, 300);
+    widget.setPreview(makePreview(image, QPointF(8.5, 8.5), heiran::ui::ChannelMode::Color));
+    heiran::ui::TransparencyBackground background{.solidColor = QColor(23, 67, 101),
+                                                  .checkerColor1 = QColor(40, 90, 130),
+                                                  .checkerColor2 = QColor(170, 200, 230)};
+    for (const auto pattern :
+         {heiran::ui::TransparencyPattern::Solid, heiran::ui::TransparencyPattern::Checkerboard}) {
+      background.pattern = pattern;
+      widget.setTransparencyBackground(background);
+      const QImage rendered = renderWidget(&widget);
+      int firstCount = 0;
+      int secondCount = 0;
+      for (int y = 20; y < 280; ++y) {
+        for (int x = 20; x < 280; ++x) {
+          const QColor pixel = rendered.pixelColor(x, y);
+          firstCount += pixel == (pattern == heiran::ui::TransparencyPattern::Solid
+                                      ? background.solidColor
+                                      : background.checkerColor1);
+          secondCount += pixel == background.checkerColor2;
+        }
+      }
+      QVERIFY(firstCount > 100);
+      if (pattern == heiran::ui::TransparencyPattern::Checkerboard) {
+        QVERIFY(secondCount > 100);
+      }
+      QCOMPARE(rendered.pixelColor(0, 0), QColor(24, 26, 30));
+    }
+  }
+
   // 中心の升目に、指した画素の色が塗られること。
   // 塗りは表示用画像から取るため、渡した色がそのまま出る。
   void fillsTheCenterCellWithTheHoveredColor() {

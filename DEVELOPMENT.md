@@ -14,7 +14,7 @@
 
 ## 前提
 
-- Windows (64bit)、Visual Studio (MSVC)、Ninja
+- Windows (64bit)、Visual Studio (C++ ツール、Windows SDK、C++ Clang tools for Windows)、Ninja
 - CMake 3.24 以上
 - C++20 対応コンパイラ
 - Qt 6.5 以上 (`Core`, `Gui`, `Widgets`, `Test`)
@@ -23,17 +23,46 @@
 - 補助スクリプトとマニュアルの作成には、Python と `uv` を使う
 
 Windows では `PowerShell` スクリプトをビルド入口として使います。
-ビルド構成は `Ninja + msvc` 固定です。
-ローカル依存の値は `scripts/local.settings.ps1` に閉じ込めます (コミットしません)。
+ビルド構成は `Ninja + Clang (clang-cl)` 固定です。
+`clang-cl` は Visual Studio 同梱の x64 版を優先し、なければ PATH から探します。
+MSVC 互換の ABI とランタイムを使うため、Qt は引き続き MSVC 版を使います。
+Visual Studio の開発シェルで、Windows SDK、標準ライブラリ、リンカを利用します。
+vcpkg の依存は従来の `x64-windows` (MSVC) を利用します。
+既定値は `scripts/common.ps1` で共有し、ビルド構成は Release です。
+Qt の場所は環境変数 `Qt6_ROOT` で設定することを推奨します。
+環境ごとの上書きが必要な場合だけ `scripts/local.settings.ps1` を使います (コミットしません)。
 
 ## 初回設定
+
+```powershell
+$env:Qt6_ROOT = "C:/Qt/6.11.1/msvc2022_64"
+[Environment]::SetEnvironmentVariable("Qt6_ROOT", $env:Qt6_ROOT, "User")
+```
+
+パスは自分の環境の MSVC 版 Qt のインストール先に合わせます (`bin/` や `lib/cmake/Qt6/` を含むルートディレクトリ)。
+上の手順は現在の PowerShell と、今後起動するプロセスの両方に設定します。
+すでに起動している IDE や別のターミナルで使う場合は、それらを再起動します。
+ビルド、テスト、実行スクリプトは、この Qt の `bin/` を実行中だけ PATH に追加します。
+
+通常、`local.settings.ps1` の作成は不要です。Qt をプロジェクト単位で上書きする場合などは、次で作成します。
 
 ```powershell
 Copy-Item scripts/local.settings.sample.ps1 scripts/local.settings.ps1
 ```
 
-`QtPrefixPath` などを自分の環境に合わせて編集します。
-vcpkg は `./scripts/setup-vcpkg.ps1` で用意し、`VcpkgRoot` を設定します。
+Qt の場所の優先順位は `configure.ps1 -QtPrefixPath`、ローカル設定の `QtPrefixPath`、環境変数 `Qt6_ROOT` の順です。
+コマンド引数は configure の実行だけに効くため、後続のビルド・テスト・実行で使う Qt も環境変数かローカル設定で揃えます。
+既存のローカル設定に `QtPrefixPath` がある場合、環境変数を使うにはその行を削除します。
+Qt を切り替える場合は、`configure.ps1 -Clean` で古い CMake の探索結果を初期化します。
+
+vcpkg は `./scripts/setup-vcpkg.ps1` で用意します。
+配置先はローカル設定の `VcpkgRoot`、環境変数 `VCPKG_ROOT`、`.tools/vcpkg` の順で決まります。
+標準の場所を使う場合、`VcpkgRoot` の記入は不要です。
+
+依存はリポジトリ直下の `vcpkg.json` によるマニフェストモードで導入します。
+`configure.ps1` も不足する依存を自動で導入します。
+セットアップと CMake は、リポジトリ直下の `vcpkg_installed/` を共有します。
+`CMakeOptions` から toolchain、マニフェストモード、依存のインストール先を変更することはできません。
 
 ## ビルドと実行
 
@@ -42,6 +71,21 @@ vcpkg は `./scripts/setup-vcpkg.ps1` で用意し、`VcpkgRoot` を設定しま
 ```powershell
 ./scripts/configure.ps1
 ```
+
+MSVC や `clang++` で構成したビルドディレクトリを移行するときは、`./scripts/configure.ps1 -Clean` で再構成します。
+既存のコンパイラと異なる場合、通常の configure はエラーにして切り替え手順を示します。
+
+Debug が必要な場合は、ローカル設定を書き換えず、別ディレクトリへ構成できます。
+
+```powershell
+./scripts/configure.ps1 -BuildDir build-debug -BuildConfig Debug
+./scripts/build.ps1 -BuildDir build-debug
+./scripts/test.ps1 -BuildDir build-debug
+```
+
+既存の `local.settings.ps1` の `BuildConfig` は引き続き優先されます。
+共通の Release 既定値を使うには、その行を削除し、`configure.ps1` を再実行します。
+ビルドとテストは構成済みの `CMAKE_BUILD_TYPE` を使います。
 
 以前のキャッシュが残っている場合は、次でビルドディレクトリのメタデータを初期化できます。
 
@@ -61,10 +105,19 @@ vcpkg は `./scripts/setup-vcpkg.ps1` で用意し、`VcpkgRoot` を設定しま
 直接 CMake を使う場合:
 
 ```powershell
-cmake -S . -B build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_CXX_COMPILER=clang-cl `
+  -DCMAKE_TOOLCHAIN_FILE=.tools/vcpkg/scripts/buildsystems/vcpkg.cmake `
+  -DVCPKG_MANIFEST_MODE=ON -DVCPKG_MANIFEST_INSTALL=ON `
+  -DVCPKG_MANIFEST_DIR="$PWD" -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed"
 cmake --build build
+$env:PATH = "$env:Qt6_ROOT/bin;$env:PATH"
 ./build/heiran.exe examples/sample.hrn
 ```
+
+直接実行する場合は Developer PowerShell を使い、`clang-cl.exe` のあるディレクトリを PATH に追加し、
+`Qt6_ROOT` を設定し、vcpkg のパスを環境に合わせます。
+`heiran.exe` の起動前に Qt の `bin/` を PATH に追加し、DLL を探索できるようにします。
 
 ## テスト
 
@@ -102,7 +155,7 @@ uv run python tools/generate_example_images.py
 ## 配布物の作成
 
 ```powershell
-./scripts/configure.ps1   # BuildConfig = Release にしておく
+./scripts/configure.ps1 -BuildConfig Release
 ./scripts/package.ps1
 ```
 
@@ -119,7 +172,7 @@ uv run python tools/generate_example_images.py
 2. **準備 (同じコマンド)。** Release 構成で `build-release/` へ作り直し、テストを通し、`-Fast` なしでパッケージを作る。
    続けて、ZIP を一時フォルダへ展開し (PATH から Qt を外して)、`heiran.exe` が起動し続けるかを確かめる。
    成果物は `build-release/release/` に出る (インストーラ、ZIP、`SHA256SUMS.txt`、`release-notes.md`)。
-   - 依存を更新した後など、確実に作り直したいときは `-CleanBuildDir` (vcpkg の依存も作り直すため遅い)。
+   - アプリを確実に作り直したいときは `-CleanBuildDir` (共有の `vcpkg_installed/` は残す)。
    - `-SkipTests`、`-SkipSmokeTest` もある (どちらも、公開前には外さない)。
 3. **手で確かめる。** `release-notes.md` を書き直す。インストーラは、きれいな環境 (VM など) で実行し、
    関連付け、アンインストール、VC++ ランタイムの案内を確かめる (レジストリへの書き込みは、スクリプトでは確かめない)。

@@ -14,6 +14,7 @@ public:
   explicit LoupeWidget(QWidget *parent = nullptr);
 
   void setPixelValueFormat(PixelValueFormat pixelValueFormat);
+  void setTransparencyBackground(const TransparencyBackground &background);
   void setPreview(const LoupePreview &preview);
 
 protected:
@@ -21,6 +22,7 @@ protected:
 
 private:
   LoupePreview preview_;
+  TransparencyBackground transparencyBackground_;
   PixelValueFormat pixelValueFormat_ = PixelValueFormat::Normalized255;
 };
 

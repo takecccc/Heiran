@@ -7,7 +7,7 @@ vcpkg で入れたライブラリの `share/<port>/copyright` と、Qt、Lucide�
     py tools/generate_third_party_notices.py --check    # 書き出す内容と、今のファイルが同じか確かめる
 
 依存を足す、外す、版を上げたときに流して、結果をコミットする。
-vcpkg の installed (既定: build/vcpkg_installed/x64-windows) が要る。見つからない、または
+vcpkg の installed (既定: vcpkg_installed/x64-windows) が要る。見つからない、または
 このスクリプトが知らないライブラリが入っているときは、失敗して知らせる (表記の漏れを防ぐ)。
 """
 
@@ -173,7 +173,7 @@ https://doc.qt.io/qt-6/licenses-used-in-qt.html for the list and the notices.
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--installed", type=Path, default=ROOT / "build" / "vcpkg_installed" / "x64-windows")
+    parser.add_argument("--installed", type=Path, default=ROOT / "vcpkg_installed" / "x64-windows")
     parser.add_argument("--build-dir", type=Path, default=ROOT / "build")
     parser.add_argument("--output", type=Path, default=ROOT / "THIRD_PARTY_NOTICES.txt")
     parser.add_argument("--check", action="store_true", help="書き出さず、今のファイルと同じかだけ確かめる")

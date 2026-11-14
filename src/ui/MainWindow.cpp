@@ -161,6 +161,12 @@ void MainWindow::connectViewerGrid() {
           [this](int cellIndex) { editLabelForCell(cellIndex); });
   connect(viewerGrid_, &ViewerGridWidget::assignImageIndexRequested, this,
           [this](int cellIndex, int imageIndex) { assignImageIndexToCell(cellIndex, imageIndex); });
+  connect(viewerGrid_, &ViewerGridWidget::transparencyPatternRequested, this,
+          [this](TransparencyPattern pattern) {
+            appSettings_.transparencyBackground.pattern = pattern;
+            appSettings_.save();
+            applyAppSettings();
+          });
 }
 
 // 画素値情報のドック。既定では畳んでおく。
@@ -2036,6 +2042,7 @@ void MainWindow::applyAppSettings() {
   viewerGrid_->setDisplayProfile(appSettings_.displayProfileMode, appSettings_.displayProfilePath);
   updateFitOnPageChange();
   viewerGrid_->setFilters(appSettings_.magnifyFilter, appSettings_.minifyFilter);
+  viewerGrid_->setTransparencyBackground(appSettings_.transparencyBackground);
   viewerGrid_->setDecodeCacheBudgetBytes(
       resolveDecodeCacheBudgetBytes(appSettings_.decodeCacheBudgetMib,
                                     qEnvironmentVariableIntValue("HEIRAN_DECODE_CACHE_BUDGET_MB")));
@@ -2059,6 +2066,7 @@ void MainWindow::applyAppSettings() {
   }
   if (loupeWidget_ != nullptr) {
     loupeWidget_->setPixelValueFormat(appSettings_.pixelValueFormat);
+    loupeWidget_->setTransparencyBackground(appSettings_.transparencyBackground);
   }
 
   viewerGrid_->setCursorStyle(appSettings_.cursorStyle);

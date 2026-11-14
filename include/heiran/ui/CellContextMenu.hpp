@@ -1,6 +1,7 @@
 #pragma once
 
 #include "heiran/ui/ChannelMode.hpp"
+#include "heiran/ui/TransparencyBackground.hpp"
 
 #include <QPoint>
 #include <QString>
@@ -19,6 +20,7 @@ namespace heiran::ui {
 // 表示中の状態に応じてチェックを付けるため、状態は一括で渡す。
 
 struct CellContextMenuState {
+  TransparencyPattern transparencyPattern = TransparencyPattern::Solid;
   bool syncEnabled = true;
   double scale = 1.0;
   double gamma = 1.0;
@@ -45,6 +47,7 @@ struct CellContextMenuState {
 struct CellContextMenuResult {
   enum class Action {
     None,
+    SetTransparencyPattern,
     ToggleSync,
     SetScale,
     SetGamma,
@@ -66,6 +69,7 @@ struct CellContextMenuResult {
   };
 
   Action action = Action::None;
+  TransparencyPattern transparencyPattern = TransparencyPattern::Solid;
   double scale = 1.0;
   double gamma = 1.0;
   int rotationQuarterTurns = 0;

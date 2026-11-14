@@ -3,6 +3,8 @@
 //   heiran_screenshot <out.png> [--theme light|dark] [--lang en|ja] [--size 1280x800] [--menu View]
 //                     [--analysis Histogram|"Diff Window"|"Change Graph"] [--diff-cell]
 //                     [--hover-cell N] [--hrn file.hrn] [--dialog "Settings..."]
+//                     [--transparency solid|checkerboard]
+//                     [--context-cell N --menu "Transparency background"]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -39,6 +41,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QContextMenuEvent>
 #include <QDialog>
 #include <QElapsedTimer>
 #include <QEnterEvent>
@@ -72,8 +75,9 @@ bool sameName(const QString &shown, const QString &english) {
   // (&File)。印のない名前でも、引けるようにする。
   for (const QString &candidate : {english, "&" + english}) {
     const QByteArray source = candidate.toUtf8();
-    for (const char *context : {"MainWindow", "ImageSetManagerDialog", "SettingsDialog",
-                                "HistogramWindow", "heiran::ui::DiffBarWidget"}) {
+    for (const char *context :
+         {"MainWindow", "ImageSetManagerDialog", "SettingsDialog", "CellContextMenu",
+          "HistogramWindow", "heiran::ui::DiffBarWidget"}) {
       if (target == normalize(QCoreApplication::translate(context, source.constData()))) {
         return true;
       }
@@ -101,6 +105,8 @@ int main(int argc, char *argv[]) {
   const QStringList arguments = app.arguments().mid(1);
   QString outPath;
   QString theme = "dark";
+  QString transparencyPattern;
+  int contextCell = -1;
   QSize size(1280, 800);
   QString menuTitle;
   QString analysisTitle;
@@ -123,6 +129,13 @@ int main(int argc, char *argv[]) {
     const QString &argument = arguments.at(index);
     if (argument == "--theme" && index + 1 < arguments.size()) {
       theme = arguments.at(++index);
+    } else if (argument == "--context-cell" && index + 1 < arguments.size()) {
+      contextCell = arguments.at(++index).toInt();
+    } else if (argument == "--transparency" && index + 1 < arguments.size()) {
+      transparencyPattern = arguments.at(++index);
+      if (transparencyPattern != "solid" && transparencyPattern != "checkerboard") {
+        return 2;
+      }
     } else if (argument == "--lang" && index + 1 < arguments.size()) {
       heiran::app::installTranslators(app, arguments.at(++index));
     } else if (argument == "--menu" && index + 1 < arguments.size()) {
@@ -180,6 +193,11 @@ int main(int argc, char *argv[]) {
   // 主ウィンドウは設定から配色を適用する。専用の保存先へ書いて、そこから読ませる。
   auto settings = heiran::ui::AppSettings::load();
   settings.colorTheme = heiran::ui::colorThemeFromString(theme);
+  if (!transparencyPattern.isEmpty()) {
+    settings.transparencyBackground.pattern = transparencyPattern == "checkerboard"
+                                                  ? heiran::ui::TransparencyPattern::Checkerboard
+                                                  : heiran::ui::TransparencyPattern::Solid;
+  }
   settings.save();
   heiran::ui::MainWindow window;
   window.resize(size);
@@ -293,6 +311,45 @@ int main(int argc, char *argv[]) {
       }
     }
     return 8;
+  }
+  if (contextCell >= 0) {
+    for (auto *cell : window.findChildren<heiran::ui::ImageViewWidget *>()) {
+      if (cell->cellIndex() != contextCell) {
+        continue;
+      }
+      auto *canvas = cell->findChild<QWidget *>("imageCanvas");
+      if (canvas == nullptr) {
+        return 9;
+      }
+      int result = 9;
+      QTimer::singleShot(200, [&]() {
+        auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
+        if (menu == nullptr) {
+          return;
+        }
+        QMenu *target = menu;
+        if (!menuTitle.isEmpty()) {
+          target = nullptr;
+          for (auto *action : menu->actions()) {
+            if (action->menu() != nullptr && sameName(action->text(), menuTitle)) {
+              target = action->menu();
+              target->popup(menu->mapToGlobal(menu->actionGeometry(action).topRight()));
+              pump(200);
+              break;
+            }
+          }
+        }
+        if (target != nullptr) {
+          result = target->grab().save(outPath) ? 0 : 1;
+        }
+        menu->close();
+      });
+      QContextMenuEvent event(QContextMenuEvent::Mouse, QPoint(5, 5),
+                              canvas->mapToGlobal(QPoint(5, 5)));
+      QCoreApplication::sendEvent(canvas, &event);
+      return result;
+    }
+    return 9;
   }
   if (!dialogTitle.isEmpty()) {
     // モーダルなダイアログは、開くと呼び出しが戻らない。開いたあとに動く時計で、書き出して閉じる。

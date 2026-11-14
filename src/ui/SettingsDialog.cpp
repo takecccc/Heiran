@@ -1,6 +1,7 @@
 #include "heiran/ui/SettingsDialog.hpp"
 
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDialog>
@@ -11,6 +12,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPixmap>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
@@ -18,6 +20,34 @@
 #include <algorithm>
 
 namespace heiran::ui {
+
+namespace {
+
+QPushButton *backgroundColorButton(QColor *color, QWidget *parent, const QString &title,
+                                   const char *objectName) {
+  auto *button = new QPushButton(parent);
+  button->setObjectName(objectName);
+  button->setToolTip(title);
+  button->setAccessibleName(title);
+  const auto refresh = [button, color]() {
+    QPixmap swatch(24, 16);
+    swatch.fill(*color);
+    button->setIcon(QIcon(swatch));
+    button->setText(color->name());
+  };
+  refresh();
+  QObject::connect(button, &QPushButton::clicked, button, [button, color, title, refresh]() {
+    const QColor chosen =
+        QColorDialog::getColor(*color, button, title, QColorDialog::DontUseNativeDialog);
+    if (chosen.isValid()) {
+      *color = chosen;
+      refresh();
+    }
+  });
+  return button;
+}
+
+}  // namespace
 
 std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings &current) {
   QDialog dialog(parent);
@@ -66,6 +96,48 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
       "The area that shows the images keeps its neutral dark backdrop either way, so images are "
       "judged against the same background."));
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Color theme"), themeCombo);
+
+  TransparencyBackground background = current.transparencyBackground;
+  auto *backgroundCombo = new QComboBox(displayGroup);
+  backgroundCombo->setObjectName("transparencyPattern");
+  backgroundCombo->addItem(QCoreApplication::translate("SettingsDialog", "Solid color"),
+                           static_cast<int>(TransparencyPattern::Solid));
+  backgroundCombo->addItem(QCoreApplication::translate("SettingsDialog", "Checkerboard"),
+                           static_cast<int>(TransparencyPattern::Checkerboard));
+  backgroundCombo->setCurrentIndex(backgroundCombo->findData(static_cast<int>(background.pattern)));
+  displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Transparency background"),
+                      backgroundCombo);
+  auto *backgroundColors = new QWidget(displayGroup);
+  auto *backgroundColorsLayout = new QHBoxLayout(backgroundColors);
+  backgroundColorsLayout->setContentsMargins(0, 0, 0, 0);
+  auto *solidButton =
+      backgroundColorButton(&background.solidColor, backgroundColors,
+                            QCoreApplication::translate("SettingsDialog", "Solid background color"),
+                            "transparencySolidColor");
+  auto *checker1Button =
+      backgroundColorButton(&background.checkerColor1, backgroundColors,
+                            QCoreApplication::translate("SettingsDialog", "Checkerboard color 1"),
+                            "transparencyCheckerColor1");
+  auto *checker2Button =
+      backgroundColorButton(&background.checkerColor2, backgroundColors,
+                            QCoreApplication::translate("SettingsDialog", "Checkerboard color 2"),
+                            "transparencyCheckerColor2");
+  backgroundColorsLayout->addWidget(solidButton);
+  backgroundColorsLayout->addWidget(checker1Button);
+  backgroundColorsLayout->addWidget(checker2Button);
+  const auto updateBackgroundButtons = [backgroundCombo, solidButton, checker1Button,
+                                        checker2Button]() {
+    const bool checkerboard = backgroundCombo->currentData().toInt() ==
+                              static_cast<int>(TransparencyPattern::Checkerboard);
+    solidButton->setVisible(!checkerboard);
+    checker1Button->setVisible(checkerboard);
+    checker2Button->setVisible(checkerboard);
+  };
+  updateBackgroundButtons();
+  QObject::connect(backgroundCombo, &QComboBox::currentIndexChanged, &dialog,
+                   updateBackgroundButtons);
+  displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Background colors"),
+                      backgroundColors);
 
   // 言語の名前は、どの言語で動いていても、その言語の文字で出す
   // (読めない言語になったときに戻れるように)。
@@ -294,6 +366,8 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   }
 
   AppSettings updated = current;
+  background.pattern = static_cast<TransparencyPattern>(backgroundCombo->currentData().toInt());
+  updated.transparencyBackground = background;
   updated.pixelValueFormat = static_cast<PixelValueFormat>(pixelValueCombo->currentData().toInt());
   updated.fitOnPageChange = fitCheckBox->isChecked();
   updated.showCellBorders = bordersCheckBox->isChecked();

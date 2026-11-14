@@ -12,6 +12,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QContextMenuEvent>
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
@@ -22,12 +23,18 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
+#include <QScopeGuard>
 #include <QSlider>
 #include <QStatusBar>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QtTest>
+
+#include <algorithm>
+#include <cmath>
+#include <vector>
 
 namespace {
 
@@ -70,6 +77,139 @@ class MainWindowTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void fitsImagesOpenedBeforeShowingTheWindow_data() {
+    QTest::addColumn<int>("imageCount");
+    QTest::addColumn<bool>("decodeBeforeShow");
+    QTest::newRow("single-async") << 1 << false;
+    QTest::newRow("multiple-async") << 2 << false;
+    QTest::newRow("single-decoded-before-show") << 1 << true;
+    QTest::newRow("multiple-decoded-before-show") << 2 << true;
+  }
+
+  void fitsImagesOpenedBeforeShowingTheWindow() {
+    QFETCH(int, imageCount);
+    QFETCH(bool, decodeBeforeShow);
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    QStringList paths;
+    for (int index = 0; index < imageCount; ++index) {
+      QImage image(index == 0 ? QSize(1600, 900) : QSize(900, 1600), QImage::Format_RGB32);
+      image.fill(QColor(30, 90, 150));
+      const QString path = directory.filePath(QString("startup%1.png").arg(index));
+      QVERIFY(image.save(path));
+      paths.push_back(path);
+    }
+    heiran::ui::MainWindow window;
+    window.resize(900, 600);
+    window.openImageFiles(paths);
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(grid != nullptr);
+    const auto cells = grid->findChildren<heiran::ui::ImageViewWidget *>();
+    QCOMPARE(cells.size(), imageCount);
+    const auto decoded = [&]() {
+      return std::all_of(cells.begin(), cells.end(), [](auto *cell) {
+        return cell->cellStatus() == heiran::ui::CellStatus::Ready;
+      });
+    };
+    if (decodeBeforeShow) {
+      QTRY_VERIFY(decoded());
+    }
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QTRY_VERIFY(decoded());
+    QTest::qWait(50);
+    const auto fitsCurrentCells = [&]() {
+      std::vector<heiran::domain::FitTarget> targets;
+      for (auto *cell : cells) {
+        const QSize imageSize = cell->currentImage().size();
+        targets.push_back(
+            {.imageWidth = imageSize.width(), .imageHeight = imageSize.height(), .cellScale = 1.0});
+      }
+      const QSize canvasSize = cells.first()->canvasSize();
+      const auto expected =
+          heiran::domain::computeFitView(targets, canvasSize.width(), canvasSize.height());
+      const auto actual = grid->globalViewState();
+      return expected.valid && std::abs(actual.baseScale - expected.baseScale) < 1e-6 &&
+             std::abs(actual.baseOffsetX - expected.baseOffsetX) < 1e-6 &&
+             std::abs(actual.baseOffsetY - expected.baseOffsetY) < 1e-6;
+    };
+    QTRY_VERIFY_WITH_TIMEOUT(fitsCurrentCells(), 2000);
+  }
+
+  void switchesTransparencyBackgroundFromTheCanvasContextMenu() {
+    const QString organization = QCoreApplication::organizationName();
+    const QString application = QCoreApplication::applicationName();
+    QCoreApplication::setOrganizationName("HeiranTests");
+    QCoreApplication::setApplicationName("MainWindowTransparencyMenuTests");
+    const auto restoreSettings = qScopeGuard([organization, application]() {
+      QSettings().clear();
+      QCoreApplication::setOrganizationName(organization);
+      QCoreApplication::setApplicationName(application);
+    });
+    QSettings().clear();
+    heiran::ui::AppSettings initial;
+    initial.transparencyBackground.solidColor = QColor(20, 40, 60);
+    initial.transparencyBackground.checkerColor1 = QColor(70, 80, 90);
+    initial.transparencyBackground.checkerColor2 = QColor(170, 180, 190);
+    initial.save();
+    heiran::ui::MainWindow window;
+    heiran::domain::SessionModel session;
+    session.viewer.layout.cols = 2;
+    session.cells.resize(2);
+    window.setSession(session);
+    window.resize(640, 480);
+    window.show();
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(grid != nullptr);
+
+    for (const auto desired :
+         {heiran::ui::TransparencyPattern::Checkerboard, heiran::ui::TransparencyPattern::Solid}) {
+      const auto previous = heiran::ui::AppSettings::load().transparencyBackground.pattern;
+      const auto cells = grid->findChildren<heiran::ui::ImageViewWidget *>();
+      QVERIFY(!cells.isEmpty());
+      auto *cell =
+          desired == heiran::ui::TransparencyPattern::Checkerboard ? cells.last() : cells.first();
+      auto *canvas = cell->findChild<QWidget *>("imageCanvas");
+      QVERIFY(canvas != nullptr);
+      bool checkedStateMatches = false;
+      QTimer::singleShot(0, [&]() {
+        auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
+        if (menu == nullptr) {
+          return;
+        }
+        QMenu *backgroundMenu = nullptr;
+        for (auto *action : menu->actions()) {
+          if (action->text() == "Transparency background") {
+            backgroundMenu = action->menu();
+          }
+        }
+        if (backgroundMenu == nullptr || backgroundMenu->actions().size() != 2) {
+          menu->close();
+          return;
+        }
+        auto *solid = backgroundMenu->actions().at(0);
+        auto *checker = backgroundMenu->actions().at(1);
+        checkedStateMatches =
+            solid->isCheckable() && checker->isCheckable() &&
+            solid->isChecked() == (previous == heiran::ui::TransparencyPattern::Solid) &&
+            checker->isChecked() == (previous == heiran::ui::TransparencyPattern::Checkerboard);
+        menu->setActiveAction(backgroundMenu->menuAction());
+        QTest::keyClick(menu, Qt::Key_Right);
+        backgroundMenu->setActiveAction(
+            desired == heiran::ui::TransparencyPattern::Solid ? solid : checker);
+        QTest::keyClick(backgroundMenu, Qt::Key_Return);
+      });
+      QContextMenuEvent event(QContextMenuEvent::Mouse, QPoint(5, 5),
+                              canvas->mapToGlobal(QPoint(5, 5)));
+      QApplication::sendEvent(canvas, &event);
+      QVERIFY(checkedStateMatches);
+      auto expected = initial.transparencyBackground;
+      expected.pattern = desired;
+      QCOMPARE(heiran::ui::AppSettings::load().transparencyBackground, expected);
+      QVERIFY(!window.isWindowModified());
+    }
+  }
+
   void offersPixelInfoDockToggleInViewMenu() {
     heiran::ui::MainWindow window;
 

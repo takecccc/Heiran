@@ -20,7 +20,7 @@ if ($Config) {
 }
 
 if ($ConfigureFirst) {
-  & (Join-Path $PSScriptRoot "configure.ps1") -BuildDir $resolvedBuildDir
+  & (Join-Path $PSScriptRoot "configure.ps1") -BuildDir $resolvedBuildDir -BuildConfig $resolvedConfig
   if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
   }

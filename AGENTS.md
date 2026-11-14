@@ -2,7 +2,7 @@
 
 複数の画像を同期表示するイメージビューワー `Heiran` のプロジェクト。
 
-C++20 / Qt6 Widgets / CMake、Windows + MSVC + Ninja 前提。
+C++20 / Qt6 Widgets / CMake、Windows + Clang (clang-cl) + Ninja 前提。Qt は MSVC 版を使う。
 
 要件定義は [docs/要件定義.md](./docs/要件定義.md) に記載してある。
 
@@ -44,14 +44,17 @@ C++20 / Qt6 Widgets / CMake、Windows + MSVC + Ninja 前提。
 `README.md` は利用者向け (機能、動作環境、入手方法)、[DEVELOPMENT.md](./DEVELOPMENT.md) は開発者向け (ビルドと配布物の作り方) に分けている。
 手順を変えたら、DEVELOPMENT.md も合わせて直す。
 
-初回のみ `scripts/local.settings.ps1` を作成する。未作成だと configure が失敗する。
+Qt の場所は環境変数 `Qt6_ROOT` で設定することを推奨する。通常、`scripts/local.settings.ps1` の作成は不要。
 
 ```powershell
-Copy-Item scripts/local.settings.sample.ps1 scripts/local.settings.ps1
+$env:Qt6_ROOT = "C:/Qt/6.11.1/msvc2022_64"
+[Environment]::SetEnvironmentVariable("Qt6_ROOT", $env:Qt6_ROOT, "User")
 ```
 
-`QtPrefixPath` を環境に合わせて編集する。
-画像の復号ライブラリ (libavif、libjxl、OpenEXR、libtiff、libwebp など) は vcpkg で入る。`./scripts/setup-vcpkg.ps1` を実行し、`VcpkgRoot` を設定する。
+パスは環境に合わせる。既存の IDE や別のターミナルは再起動する。
+必要な場合だけ雛形から `local.settings.ps1` を作り、`QtPrefixPath` などを上書きする。既存の `QtPrefixPath` は `Qt6_ROOT` より優先する。
+画像の復号ライブラリ (libavif、libjxl、OpenEXR、libtiff、libwebp など) は vcpkg のマニフェストモードで入る。`./scripts/setup-vcpkg.ps1` を実行する。
+配置先はローカル設定の `VcpkgRoot`、環境変数 `VCPKG_ROOT`、`.tools/vcpkg` の順で決まり、標準の場所なら記入は不要。
 
 ```powershell
 ./scripts/configure.ps1      # -Clean で CMake キャッシュを初期化
@@ -61,7 +64,9 @@ Copy-Item scripts/local.settings.sample.ps1 scripts/local.settings.ps1
 ```
 
 - スクリプトは内部で VsDevShell に入るため、通常の PowerShell から実行してよい。
-- ジェネレータは `Ninja` 固定。ビルド構成は `local.settings.ps1` の `BuildConfig` に従う。
+- ジェネレータは `Ninja` 固定。共通の既定値は `scripts/common.ps1` にあり、ビルド構成は Release。
+  コンパイラは Visual Studio 同梱の x64 `clang-cl` を優先し、なければ PATH から探す。別のコンパイラからの移行には `configure.ps1 -Clean` を使う。
+  `local.settings.ps1` には環境差分だけを書く。構成は `BuildConfig` または `configure.ps1 -BuildConfig Debug` などで上書きできる。
   `Ninja` は単一構成ジェネレータのため、構成は `configure.ps1` が `CMAKE_BUILD_TYPE` として決める。
   `BuildConfig` を変更した場合は `configure.ps1` からやり直す必要がある。
 - `scripts/local.settings.ps1` は環境依存のためコミットしない。
@@ -187,10 +192,9 @@ Windows PowerShell 5.1 は BOM 無しの `.ps1` を UTF-8 ではなく ANSI (CP9
 
 注意事項:
 
-- ASan は未初期化領域の読み出しは検出しない。MSVC に MemorySanitizer は無い。
-  未初期化のローカル変数を検出したい場合は Debug ビルドの `/RTC1` を使う。ASan とは併用できない。
+- ASan は未初期化領域の読み出しは検出しない。MSVC 向けの `/RTC1` を clang-cl での検査手段として使わない。
 - 実行には `clang_rt.asan_dynamic-x86_64.dll` が必要になる。
-  `scripts/run.ps1` は VsDevShell を経由するため PATH に入る。
+  各スクリプトは clang-cl のランタイムディレクトリを実行中の PATH に追加する。
 - `ASAN_OPTIONS` の区切り文字は `:` のため、`log_path` に `C:/...` のような
   ドライブレター付きパスを渡すと解析に失敗する。作業ディレクトリからの相対パスを使う。
 - ASan ビルドは起動が遅い。ウィンドウが出る前に閉じようとすると閉じられないので、
@@ -413,7 +417,7 @@ py tools/generate_app_icon.py --preview
 ## 配布物の作成
 
 ```powershell
-./scripts/configure.ps1   # BuildConfig = Release にしておく
+./scripts/configure.ps1 -BuildConfig Release
 ./scripts/package.ps1
 ```
 
@@ -424,7 +428,7 @@ py tools/generate_app_icon.py --preview
   Direct3D のシェーダコンパイラ (`d3dcompiler_47`、`dxcompiler`、`dxil`。約 19 MB) は、使わないため、入れていない (`windeployqt --no-system-*`)。
   ソフトウェアの OpenGL (`opengl32sw.dll`、約 21 MB) も入れない (`--no-opengl-sw`)。**動作の要件は、OpenGL 3.0 以上に対応した GPU とドライバ**で、起動の前に確かめる
   (`src/app/OpenGlCheck.cpp`)。`vc_redist.x64.exe` (約 19 MB。圧縮済みで、圧縮しても縮まない) も入れない (`--no-compiler-runtime`)。代わりに、インストーラが、ランタイムの有無と版を確かめて案内を出す
-  (`resources/nsis/vcruntime_check.nsh.in`。求める版は、ビルドしたコンパイラの版から決まる)。
+  (`resources/nsis/vcruntime_check.nsh.in`。求める版は、使用する CRT ヘッダの版から決まる)。
 - **時間**: 全体で 1 分ほどかかる。大半は、NSIS の LZMA 圧縮 (約 50 秒。ZIP は約 15 秒)。残りは、Qt の DLL の収集 (`windeployqt`) と、依存の探索。
   試しに作るだけなら、`./scripts/package.ps1 -Fast` (zlib 圧縮。約 25 秒、サイズは約 2 割増え) か、`-Generator ZIP` (ZIP だけ。約 15 秒) を使う。
   配るものは、`-Fast` なしで作る。

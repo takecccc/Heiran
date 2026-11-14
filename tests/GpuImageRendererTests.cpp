@@ -176,7 +176,8 @@ private:
       return {};
     }
 
-    renderer.draw(params, QRectF(QPointF(0, 0), QSizeF(size)), size, 1.0, false, Qt::white);
+    renderer.draw(params, QRectF(QPointF(0, 0), QSizeF(size)), size, 1.0, false,
+                  {.solidColor = Qt::white});
     frameBuffer.release();
     return frameBuffer.toImage();
   }
@@ -206,6 +207,48 @@ private Q_SLOTS:
     QCOMPARE(renderer.displaySize({.rotationQuarterTurns = 2}), QSize(8, 4));
   }
 
+  void compositesCustomBackgroundsAtEveryDeviceScale() {
+    for (const double ratio : {1.0, 1.25, 1.5, 2.0}) {
+      for (const auto pattern : {heiran::ui::TransparencyPattern::Solid,
+                                 heiran::ui::TransparencyPattern::Checkerboard}) {
+        for (const int alpha : {0, 128, 255}) {
+          QImage image(33, 25, QImage::Format_RGBA8888);
+          const QColor foreground(200, 80, 40, alpha);
+          image.fill(foreground);
+          heiran::ui::GpuImageRenderer renderer;
+          QVERIFY(renderer.initialize());
+          renderer.setImage({.displayImage = image});
+          const heiran::ui::TransparencyBackground background{.pattern = pattern,
+                                                              .solidColor = QColor(20, 40, 60),
+                                                              .checkerColor1 = QColor(30, 60, 90),
+                                                              .checkerColor2 =
+                                                                  QColor(180, 200, 220)};
+          const QSize physicalSize(qRound(image.width() * ratio), qRound(image.height() * ratio));
+          QOpenGLFramebufferObject buffer(physicalSize);
+          QVERIFY(buffer.bind());
+          renderer.draw({}, QRectF(QPointF(0, 0), QSizeF(image.size())), image.size(), ratio, false,
+                        background);
+          buffer.release();
+          const QImage actual = buffer.toImage();
+          QVERIFY(!actual.isNull());
+          for (int y = 0; y < actual.height(); ++y) {
+            for (int x = 0; x < actual.width(); ++x) {
+              const QColor base =
+                  background.colorAt(QPoint(qFloor((x + 0.5) / ratio), qFloor((y + 0.5) / ratio)));
+              const QColor pixel = actual.pixelColor(x, y);
+              const double a = alpha / 255.0;
+              QVERIFY(std::abs(pixel.red() - (foreground.red() * a + base.red() * (1.0 - a))) <= 2);
+              QVERIFY(std::abs(pixel.green() -
+                               (foreground.green() * a + base.green() * (1.0 - a))) <= 2);
+              QVERIFY(std::abs(pixel.blue() - (foreground.blue() * a + base.blue() * (1.0 - a))) <=
+                      2);
+            }
+          }
+        }
+      }
+    }
+  }
+
   // VRAM の使用量を把握するための集計。ミップマップ分を含む。
   void reportsTextureBytes() {
     heiran::ui::GpuImageRenderer renderer;
@@ -214,12 +257,12 @@ private Q_SLOTS:
 
     // 8bit 画像は RGBA8。16x16 のミップマップ列は 256+64+16+4+1 テクセル。
     renderer.setImage(makeDecodedImage(16, 16));
-    renderer.draw({}, QRectF(0, 0, 16, 16), QSize(16, 16), 1.0, false, Qt::white);
+    renderer.draw({}, QRectF(0, 0, 16, 16), QSize(16, 16), 1.0, false, {.solidColor = Qt::white});
     QCOMPARE(renderer.textureBytes(), (256 + 64 + 16 + 4 + 1) * 4);
 
     // 解析用バッファを持つ画像は RGBA16F になり、1 テクセルが 2 倍になる。
     renderer.setImage(makeFloatDecodedImage(16, 16));
-    renderer.draw({}, QRectF(0, 0, 16, 16), QSize(16, 16), 1.0, false, Qt::white);
+    renderer.draw({}, QRectF(0, 0, 16, 16), QSize(16, 16), 1.0, false, {.solidColor = Qt::white});
     QCOMPARE(renderer.textureBytes(), (256 + 64 + 16 + 4 + 1) * 8);
 
     renderer.release();
@@ -570,7 +613,8 @@ private Q_SLOTS:
       const double offset = 6.0 + static_cast<double>(step) * 0.1;
       functions->glClearColor(0.0F, 0.0F, 1.0F, 1.0F);
       functions->glClear(GL_COLOR_BUFFER_BIT);
-      renderer.draw({}, QRectF(offset, offset, 17.3, 13.7), frameSize, 1.0, false, Qt::white);
+      renderer.draw({}, QRectF(offset, offset, 17.3, 13.7), frameSize, 1.0, false,
+                    {.solidColor = Qt::white});
 
       const QImage rendered = frameBuffer.toImage();
       for (int y = 0; y < frameSize.height(); ++y) {

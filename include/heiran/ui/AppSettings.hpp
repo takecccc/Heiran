@@ -5,6 +5,7 @@
 #include "heiran/ui/CursorStyle.hpp"
 #include "heiran/ui/DisplayProfile.hpp"
 #include "heiran/ui/PixelValueFormat.hpp"
+#include "heiran/ui/TransparencyBackground.hpp"
 
 #include <QString>
 #include <QtTypes>
@@ -49,6 +50,7 @@ MinifyFilter minifyFilterFromString(const QString &text);
 // アプリ全体設定。セッションではなく利用者に属する設定を持つ。
 // セッションごとに変わる設定は .hrn 側に持たせる。
 struct AppSettings {
+  TransparencyBackground transparencyBackground;
   PixelValueFormat pixelValueFormat = PixelValueFormat::Normalized255;
   bool fitOnPageChange = false;
   // セルの境目を強調するか。隣のセルとの間に暗い溝を挟み、外周と見出しの下に線を引く。
