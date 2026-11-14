@@ -1,0 +1,5 @@
+!define MUI_PAGE_HEADER_TEXT "$(HeiranAssociationsTitle)"
+!define MUI_PAGE_HEADER_SUBTEXT "$(HeiranAssociationsSubtitle)"
+!define MUI_COMPONENTSPAGE_TEXT_TOP "$(HeiranAssociationsIntro)"
+!define MUI_COMPONENTSPAGE_TEXT_COMPLIST "$(HeiranAssociationsList)"
+!define MUI_COMPONENTSPAGE_TEXT_DESCRIPTION_INFO "$(HeiranAssociationsHelp)"

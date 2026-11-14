@@ -21,5 +21,13 @@ function(heiran_localize_nsis_template output_dir)
     "  !insertmacro MUI_LANGUAGE \"English\"\n  !insertmacro MUI_LANGUAGE \"Japanese\"\n  !include \"${localization}\"\n"
     template "${template}")
   file(MAKE_DIRECTORY "${output_dir}")
+  set(component_page "@CPACK_NSIS_PAGE_COMPONENTS@")
+  string(FIND "${template}" "${component_page}" position)
+  if(position EQUAL -1)
+    message(FATAL_ERROR "CPack's NSIS component page changed. Review InstallerLocalization.cmake.")
+  endif()
+  file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis/association_page.nsh" association_page)
+  string(REPLACE "${component_page}" "!include \"${association_page}\"\n  ${component_page}"
+    template "${template}")
   file(WRITE "${output_dir}/NSIS.template.in" "${template}")
 endfunction()

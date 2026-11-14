@@ -1,5 +1,5 @@
 file(READ "${HEIRAN_CPACK_TEMPLATE}" template)
-foreach(reference IN ITEMS "$(HeiranUpgradePrompt)" "$(HeiranUninstallFailed)")
+foreach(reference IN ITEMS "$(HeiranUpgradePrompt)" "$(HeiranUninstallFailed)" "association_page.nsh")
   string(FIND "${template}" "${reference}" position)
   if(position EQUAL -1)
     message(FATAL_ERROR "Installer message is not localized: ${reference}")

@@ -17,9 +17,13 @@ BrandingText "Heiran - design preview"
 
 !ifdef HEIRAN_PREVIEW_FINISH
   !insertmacro MUI_PAGE_FINISH
+!else ifdef HEIRAN_PREVIEW_ASSOCIATIONS
+  !include "association_page.nsh"
+  !insertmacro MUI_PAGE_COMPONENTS
 !else
   !insertmacro MUI_PAGE_WELCOME
   !insertmacro MUI_PAGE_LICENSE "..\..\LICENSE"
+  !include "association_page.nsh"
   !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_DIRECTORY
 !endif
@@ -27,7 +31,7 @@ BrandingText "Heiran - design preview"
 !insertmacro MUI_LANGUAGE "Japanese"
 !include "localization.nsh"
 
-Section "Heiran" Application
+Section "-Heiran" Application
   SectionIn RO
 SectionEnd
 Section "$(HeiranAssociationHrnName)" AssociationHrn
