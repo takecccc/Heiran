@@ -6,8 +6,13 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDialog>
+#include <QDialogButtonBox>
+#include <QListWidget>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QSettings>
+#include <QSpinBox>
+#include <QStackedWidget>
 #include <QTimer>
 #include <QtTest>
 
@@ -68,6 +73,7 @@ private Q_SLOTS:
     QTimer::singleShot(0, []() {
       auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
       QVERIFY(dialog != nullptr);
+      dialog->findChild<QListWidget *>("settingsCategories")->setCurrentRow(1);
       auto *combo = dialog->findChild<QComboBox *>("transparencyPattern");
       QVERIFY(combo != nullptr);
       const auto chooseColor = [dialog](const char *name, QColor color) {
@@ -104,10 +110,93 @@ private Q_SLOTS:
     QTimer::singleShot(0, []() {
       auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
       QVERIFY(dialog != nullptr);
+      dialog->findChild<QListWidget *>("settingsCategories")->setCurrentRow(1);
       dialog->findChild<QComboBox *>("transparencyPattern")->setCurrentIndex(1);
       dialog->reject();
     });
     QVERIFY(!heiran::ui::showSettingsDialog(nullptr, current).has_value());
+  }
+
+  void keepsEditsAcrossSettingsPages_data() {
+    QTest::addColumn<bool>("accept");
+    QTest::newRow("accept") << true;
+    QTest::newRow("cancel") << false;
+  }
+
+  void keepsEditsAcrossSettingsPages() {
+    QFETCH(bool, accept);
+    QSettings().clear();
+    const AppSettings current;
+    current.save();
+    QTimer::singleShot(0, [accept]() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog != nullptr);
+      auto *categories = dialog->findChild<QListWidget *>("settingsCategories");
+      auto *pages = dialog->findChild<QStackedWidget *>("settingsPages");
+      QVERIFY(categories != nullptr);
+      QVERIFY(pages != nullptr);
+      QCOMPARE(categories->count(), 4);
+      QCOMPARE(categories->item(0)->text(), QString("General"));
+      QCOMPARE(categories->item(1)->text(), QString("Display and playback"));
+      QCOMPARE(categories->item(2)->text(), QString("Color management"));
+      QCOMPARE(categories->item(3)->text(), QString("Cache"));
+      QCOMPARE(categories->currentRow(), 0);
+      auto *theme = dialog->findChild<QComboBox *>("colorTheme");
+      auto *language = dialog->findChild<QComboBox *>("language");
+      theme->setCurrentIndex(theme->findData(static_cast<int>(heiran::ui::ColorTheme::Dark)));
+      language->setCurrentIndex(language->findData("ja"));
+      categories->setCurrentRow(1);
+      QCOMPARE(pages->currentIndex(), 1);
+      auto *background = dialog->findChild<QComboBox *>("transparencyPattern");
+      background->setCurrentIndex(1);
+      categories->setCurrentRow(2);
+      auto *profile = dialog->findChild<QComboBox *>("displayProfileMode");
+      profile->setCurrentIndex(
+          profile->findData(static_cast<int>(heiran::ui::DisplayProfileMode::SRgb)));
+      categories->setCurrentRow(3);
+      auto *cache = dialog->findChild<QSpinBox *>("decodeCacheBudget");
+      cache->setValue(2048);
+      categories->setCurrentRow(0);
+      QCOMPARE(theme->currentData().toInt(), static_cast<int>(heiran::ui::ColorTheme::Dark));
+      QCOMPARE(language->currentData().toString(), QString("ja"));
+      categories->setCurrentRow(1);
+      QCOMPARE(background->currentIndex(), 1);
+      dialog->resize(620, 400);
+      for (int row = 0; row < categories->count(); ++row) {
+        categories->setCurrentRow(row);
+        QCoreApplication::processEvents();
+        QCOMPARE(pages->currentIndex(), row);
+        auto *scroll = qobject_cast<QScrollArea *>(pages->currentWidget());
+        QVERIFY(scroll != nullptr);
+        QVERIFY(scroll->widgetResizable());
+        QCOMPARE(scroll->horizontalScrollBarPolicy(), Qt::ScrollBarAlwaysOff);
+        auto *buttons = dialog->findChild<QDialogButtonBox *>();
+        QVERIFY(buttons != nullptr && buttons->isVisible());
+        QVERIFY(dialog->rect().contains(QRect(buttons->mapTo(dialog, QPoint()), buttons->size())));
+        QVERIFY(dialog->height() <= 420);
+      }
+      if (accept) {
+        dialog->accept();
+      } else {
+        dialog->reject();
+      }
+    });
+    const auto updated = heiran::ui::showSettingsDialog(nullptr, current);
+    QCOMPARE(updated.has_value(), accept);
+    if (accept) {
+      QCOMPARE(updated->colorTheme, heiran::ui::ColorTheme::Dark);
+      QCOMPARE(updated->language, QString("ja"));
+      QCOMPARE(updated->transparencyBackground.pattern,
+               heiran::ui::TransparencyPattern::Checkerboard);
+      QCOMPARE(updated->displayProfileMode, heiran::ui::DisplayProfileMode::SRgb);
+      QCOMPARE(updated->decodeCacheBudgetMib, 2048);
+    }
+    const auto stored = AppSettings::load();
+    QCOMPARE(stored.colorTheme, current.colorTheme);
+    QCOMPARE(stored.language, current.language);
+    QCOMPARE(stored.transparencyBackground, current.transparencyBackground);
+    QCOMPARE(stored.displayProfileMode, current.displayProfileMode);
+    QCOMPARE(stored.decodeCacheBudgetMib, current.decodeCacheBudgetMib);
   }
 
   void roundTripsThroughStorage() {

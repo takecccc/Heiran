@@ -5,6 +5,7 @@
 //                     [--hover-cell N] [--hrn file.hrn] [--dialog "Settings..."]
 //                     [--transparency solid|checkerboard]
 //                     [--context-cell N --menu "Transparency background"]
+//                     [--dialog-category "Display and playback"]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -48,6 +49,7 @@
 #include <QEventLoop>
 #include <QFrame>
 #include <QImage>
+#include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
@@ -119,6 +121,7 @@ int main(int argc, char *argv[]) {
   QString dialogTitle;
   int dialogWaitMs = 1500;
   QString dialogTab;
+  QString dialogCategory;
   int cursorCell = -1;
   QPoint cursorPosition;
   QPoint hoverPosition(-1, -1);
@@ -152,6 +155,8 @@ int main(int argc, char *argv[]) {
       sessionPath = arguments.at(++index);
     } else if (argument == "--dialog-tab" && index + 1 < arguments.size()) {
       dialogTab = arguments.at(++index);
+    } else if (argument == "--dialog-category" && index + 1 < arguments.size()) {
+      dialogCategory = arguments.at(++index);
     } else if (argument == "--dialog-wait" && index + 1 < arguments.size()) {
       dialogWaitMs = arguments.at(++index).toInt();
     } else if (argument == "--dialog" && index + 1 < arguments.size()) {
@@ -356,6 +361,17 @@ int main(int argc, char *argv[]) {
     int result = 6;
     QTimer::singleShot(dialogWaitMs, [&]() {
       if (QWidget *modal = QApplication::activeModalWidget()) {
+        if (!dialogCategory.isEmpty()) {
+          if (auto *categories = modal->findChild<QListWidget *>("settingsCategories")) {
+            for (int row = 0; row < categories->count(); ++row) {
+              if (sameName(categories->item(row)->text(), dialogCategory)) {
+                categories->setCurrentRow(row);
+                break;
+              }
+            }
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 200);
+          }
+        }
         if (!dialogTab.isEmpty()) {
           // タブのあるダイアログで、指定した名前のタブを開く。
           for (auto *tabs : modal->findChildren<QTabWidget *>()) {
