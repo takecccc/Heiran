@@ -213,6 +213,7 @@ add_library(heiran_core
   src/ui/ImageSetManagerDialog.cpp
   src/ui/ImageViewWidget.cpp
   src/ui/PageWheelController.cpp
+  src/ui/FileDragController.cpp
   src/ui/LoupeWidget.cpp
   src/ui/MainWindow.cpp
   src/ui/PixelInfoWidget.cpp
@@ -333,6 +334,7 @@ target_sources(heiran_core
     include/heiran/ui/ScopeWindows.hpp
     include/heiran/ui/SessionLayoutController.hpp
     include/heiran/ui/PageWheelController.hpp
+    include/heiran/ui/FileDragController.hpp
     include/heiran/ui/SessionMutationController.hpp
     include/heiran/ui/ThumbnailCache.hpp
     include/heiran/ui/ThumbnailLoader.hpp
@@ -1007,6 +1009,10 @@ target_link_libraries(heiran_app_settings_tests
 )
 
 add_test(NAME heiran_app_settings_tests COMMAND heiran_app_settings_tests)
+
+add_executable(heiran_file_drag_tests tests/FileDragTests.cpp)
+target_link_libraries(heiran_file_drag_tests PRIVATE heiran_core Qt6::Test)
+add_test(NAME heiran_file_drag_tests COMMAND heiran_file_drag_tests)
 
 add_executable(heiran_viewer_grid_widget_tests
   tests/ViewerGridWidgetTests.cpp

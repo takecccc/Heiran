@@ -36,6 +36,8 @@
   - 前のコマ / 次のコマ
 * - <kbd>T</kbd> / <kbd>I</kbd>
   - ページの一覧 / 画像情報
+* - <kbd>Ctrl</kbd> + ドラッグ
+  - 開いている元ファイルを別アプリへ渡す
 * - <kbd>Shift</kbd> + ドラッグ / <kbd>Esc</kbd>
   - 範囲を選ぶ / 範囲を解除する (範囲が無いときは、単独表示から戻る)
 * - <kbd>F11</kbd> / <kbd>Alt</kbd> + <kbd>Enter</kbd>

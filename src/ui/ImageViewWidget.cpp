@@ -2,6 +2,7 @@
 
 #include "heiran/ui/DiffBarWidget.hpp"
 
+#include "heiran/ui/FileDragController.hpp"
 #include "heiran/ui/FileOperations.hpp"
 
 #include "heiran/ui/CellOverlayPainter.hpp"
@@ -359,7 +360,8 @@ protected:
 // 画像の描画は GPU で行う。選択範囲やラベルなどの重ね描きだけ QPainter を使う。
 class ImageCanvasWidget final : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
-  explicit ImageCanvasWidget(ImageViewWidget *owner) : QOpenGLWidget(owner), owner_(owner) {
+  explicit ImageCanvasWidget(ImageViewWidget *owner)
+      : QOpenGLWidget(owner), owner_(owner), fileDragController_(this) {
     setMouseTracking(true);
     setAcceptDrops(true);
     // 画像をクリックしたら操作の対象をビューアへ戻す。ツールバーの入力欄を
@@ -894,7 +896,7 @@ protected:
   }
 
   void dragEnterEvent(QDragEnterEvent *event) override {
-    if (!event->mimeData()->hasUrls()) {
+    if (event->source() == this || !event->mimeData()->hasUrls()) {
       event->ignore();
       return;
     }
@@ -915,7 +917,7 @@ protected:
   }
 
   void dragMoveEvent(QDragMoveEvent *event) override {
-    if (event->mimeData()->hasUrls()) {
+    if (event->source() != this && event->mimeData()->hasUrls()) {
       event->acceptProposedAction();
       return;
     }
@@ -924,7 +926,7 @@ protected:
   }
 
   void dropEvent(QDropEvent *event) override {
-    if (!event->mimeData()->hasUrls()) {
+    if (event->source() == this || !event->mimeData()->hasUrls()) {
       event->ignore();
       return;
     }
@@ -945,8 +947,12 @@ protected:
     event->acceptProposedAction();
   }
 
+public:
+  void setFileDragSource(const QString &path) { fileDragController_.setSourceFile(path); }
+
 private:
   ImageViewWidget *owner_;
+  FileDragController fileDragController_;
   GpuImageRenderer renderer_;
   PageWheelController pageWheelController_;
   // renderer_ へ載せた画像の世代。owner_ 側の世代と違えばテクスチャを作り直す。
@@ -1108,6 +1114,8 @@ void ImageViewWidget::setDecodedImage(const heiran::infra::DecodedImage &decoded
   sourceImage_ = decodedImage.displayImage;
   sourcePath_ = sourcePath;
   statusInfo_ = statusInfo;
+  canvasWidget_->setFileDragSource(
+      hasImage() && statusInfo.status == CellStatus::Ready ? sourcePath : QString());
   rebuildDisplayImage();
   rebuildOverlayCache();
   headerWidget_->update();
