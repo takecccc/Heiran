@@ -24,7 +24,7 @@ Summary
   Little CMS (lcms2) 2.19.1
       License: MIT
       https://www.littlecms.com/
-  libavif 1.4.1
+  libavif 1.4.2
       License: BSD-2-Clause
       https://github.com/AOMediaCodec/libavif
   libdeflate 1.25
@@ -48,10 +48,10 @@ Summary
   libyuv 1916
       License: BSD-3-Clause
       https://chromium.googlesource.com/libyuv/libyuv
-  OpenEXR 3.4.11
+  OpenEXR 3.4.12
       License: BSD-3-Clause
       https://github.com/AcademySoftwareFoundation/openexr
-  OpenJPH 0.27.2
+  OpenJPH 0.28.1
       License: BSD-2-Clause
       https://github.com/aous72/OpenJPH
   libtiff 4.7.1
@@ -568,7 +568,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ==============================================================================
-libavif 1.4.1  --  BSD-2-Clause
+libavif 1.4.2  --  BSD-2-Clause
 https://github.com/AOMediaCodec/libavif
 ==============================================================================
 Copyright 2019 Joe Drago. All rights reserved.
@@ -1360,7 +1360,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ==============================================================================
-OpenEXR 3.4.11  --  BSD-3-Clause
+OpenEXR 3.4.12  --  BSD-3-Clause
 https://github.com/AcademySoftwareFoundation/openexr
 ==============================================================================
 Copyright (c) Contributors to the OpenEXR Project. All rights reserved.
@@ -1376,7 +1376,7 @@ Redistribution and use in source and binary forms, with or without modification,
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ==============================================================================
-OpenJPH 0.27.2  --  BSD-2-Clause
+OpenJPH 0.28.1  --  BSD-2-Clause
 https://github.com/aous72/OpenJPH
 ==============================================================================
 BSD 2-Clause License

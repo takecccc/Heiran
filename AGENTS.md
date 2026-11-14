@@ -346,9 +346,10 @@ const char *source = R"({ path: 'a/*.png' })";
 - 実装は `add_library(heiran_core ...)` に追加する。
 - ヘッダは `target_sources(heiran_core PRIVATE ...)` に追加する。
 
-`CMAKE_SUPPRESS_REGENERATION ON` のため、`CMakeLists.txt` を編集しても
-ビルド時に CMake は再実行されない。編集したら `./scripts/configure.ps1` を明示的に走らせる。
-走らせないと古い設定のままビルドが通り、変更が反映されていないことに気づきにくい。
+`CMAKE_SUPPRESS_REGENERATION OFF` により、`CMakeLists.txt` や CMake の入力を編集すると、
+ビルド時に CMake が自動で再実行される。新規ファイルの登録も、通常のビルドで反映される。
+自動再構成が無効だった古いビルドディレクトリでは、最初に `./scripts/configure.ps1` を実行する。
+コンパイラ、Qt、ビルド構成を変更するときも、引き続き明示的に configure を実行する。
 
 ## 画面の文言 (日本語対応)
 
