@@ -188,8 +188,14 @@ makensis "/DHEIRAN_PREVIEW_OUTPUT=$preview" resources/nsis/preview.nsi
 
 英語で確認する場合は `/DHEIRAN_PREVIEW_ENGLISH`、完了画面だけを確認する場合は
 `/DHEIRAN_PREVIEW_FINISH` を `makensis` に追加します。
+起動時の旧版削除の確認は `/DHEIRAN_PREVIEW_UPGRADE` で表示できます。プレビューでは、どのボタンでも削除は実行しません。
 プレビューにはインストール処理がなく、歓迎、ライセンス、コンポーネント、保存先、完了画面の配置を確認できます。
 実際の配布物は `./scripts/package.ps1 -Fast -Generator NSIS` で生成し、最終確認は上記の通常手順に従います。
+
+インストーラー独自の文言は `resources/nsis/strings_en.nsh` と `strings_ja.nsh` で管理します。
+日本語の OS では日本語、それ以外では英語になります。アプリ内の言語設定とは独立しています。
+`cmake/InstallerLocalization.cmake` は、利用中の CPack テンプレートから英語固定の確認文と対応言語の部分だけを置き換えます。
+CPack の該当部分が変わった場合は configure を失敗させるため、CMake 更新時にテンプレートの差分を確認してください。
 
 ## リリース
 

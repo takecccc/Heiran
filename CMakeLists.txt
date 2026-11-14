@@ -1146,6 +1146,15 @@ set(CPACK_VERBATIM_VARIABLES ON)
 
 if(WIN32)
   set(CPACK_GENERATOR "NSIS;ZIP")
+  include(cmake/InstallerLocalization.cmake)
+  set(heiran_cpack_template_dir "${CMAKE_CURRENT_BINARY_DIR}/cpack-templates")
+  heiran_localize_nsis_template("${heiran_cpack_template_dir}")
+  set(CPACK_MODULE_PATH "${heiran_cpack_template_dir};${CMAKE_MODULE_PATH}")
+  add_test(NAME heiran_installer_localization_tests
+    COMMAND ${CMAKE_COMMAND}
+      "-DHEIRAN_CPACK_TEMPLATE=${heiran_cpack_template_dir}/NSIS.template.in"
+      "-DHEIRAN_CPACK_CONFIG=${CMAKE_CURRENT_BINARY_DIR}/CPackConfig.cmake"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/InstallerLocalizationTests.cmake")
   set(CPACK_NSIS_PACKAGE_NAME "Heiran")
   set(CPACK_NSIS_DISPLAY_NAME "Heiran")
   # The installer, the uninstaller and the entry in the installed programs list.
@@ -1196,25 +1205,24 @@ include(CPack)
 
 cpack_add_component(application
   DISPLAY_NAME "Heiran"
-  DESCRIPTION "The viewer and the libraries it needs."
+  DESCRIPTION "$(HeiranApplicationDescription)"
   REQUIRED
   HIDDEN
 )
 cpack_add_component(association_hrn
-  DISPLAY_NAME ".hrn (Heiran session)"
-  DESCRIPTION "Open .hrn session files with Heiran. No other application uses this extension."
+  DISPLAY_NAME "$(HeiranAssociationHrnName)"
+  DESCRIPTION "$(HeiranAssociationHrnDescription)"
 )
 # A semicolon starts a comment in NSIS, so descriptions must not contain one.
 # The generated script silently loses everything after it.
 cpack_add_component(association_image
-  DISPLAY_NAME "Common image formats"
-  DESCRIPTION
-    "Offer Heiran for png, jpg, jpeg, bmp, gif, webp, avif, jxl, psd, tif and tiff. Windows keeps the current default application. Heiran is added to Open with and to Default apps."
+  DISPLAY_NAME "$(HeiranAssociationImageName)"
+  DESCRIPTION "$(HeiranAssociationImageDescription)"
   DISABLED
 )
 cpack_add_component(association_hdr
-  DISPLAY_NAME "High precision formats"
-  DESCRIPTION "Offer Heiran for exr, hdr, dpx and tga. These usually have no default application."
+  DISPLAY_NAME "$(HeiranAssociationHdrName)"
+  DESCRIPTION "$(HeiranAssociationHdrDescription)"
 )
 
 add_executable(heiran_page_listing_tests
