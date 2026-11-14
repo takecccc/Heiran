@@ -1152,6 +1152,15 @@ if(WIN32)
   set(CPACK_NSIS_MUI_ICON "${HEIRAN_APP_ICON}")
   set(CPACK_NSIS_MUI_UNIICON "${HEIRAN_APP_ICON}")
   set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\heiran.exe")
+  set(CPACK_NSIS_MANIFEST_DPI_AWARE ON)
+  set(CPACK_NSIS_BRANDING_TEXT "Heiran ${PROJECT_VERSION}")
+  file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis" heiran_nsis_asset_dir)
+  file(TO_NATIVE_PATH "${HEIRAN_APP_ICON}" heiran_nsis_icon)
+  string(CONCAT CPACK_NSIS_INSTALLER_MUI_ICON_CODE
+    "!define MUI_ICON \"${heiran_nsis_icon}\"\n"
+    "!define MUI_UNICON \"${heiran_nsis_icon}\"\n"
+    "!define HEIRAN_NSIS_ASSET_DIR \"${heiran_nsis_asset_dir}\"\n"
+    "!include \"${heiran_nsis_asset_dir}\\appearance.nsh\"")
   # Remove the previous version first so stale DLLs do not survive an upgrade.
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
   set(CPACK_NSIS_MODIFY_PATH OFF)

@@ -162,6 +162,31 @@ uv run python tools/generate_example_images.py
 `build/Heiran-<version>-win64.exe` (NSIS インストーラ) と `build/Heiran-<version>-win64.zip` ができます。
 詳細は [AGENTS.md](./AGENTS.md) の「配布物の作成」にあります。
 
+### インストーラーの外観
+
+外観は `resources/nsis/appearance.nsh`、歓迎・完了画面とヘッダーの画像は
+`resources/nsis/sidebar.bmp` と `header.bmp` で管理します。画像はビルド入力としてコミットし、
+通常のビルドでは再生成しません。アプリアイコンを変更した場合は、次で画像も再生成します
+(Windows 標準の System.Drawing と Segoe UI を使用)。
+
+```powershell
+./tools/generate_installer_artwork.ps1
+```
+
+ファイルやレジストリを書き換えずに各ページを確認できるプレビューを用意しています。
+`build` を作成したうえで、次を実行します。
+
+```powershell
+$preview = Join-Path (Resolve-Path build) "installer-preview.exe"
+makensis "/DHEIRAN_PREVIEW_OUTPUT=$preview" resources/nsis/preview.nsi
+& $preview
+```
+
+英語で確認する場合は `/DHEIRAN_PREVIEW_ENGLISH`、完了画面だけを確認する場合は
+`/DHEIRAN_PREVIEW_FINISH` を `makensis` に追加します。
+プレビューにはインストール処理がなく、歓迎、ライセンス、コンポーネント、保存先、完了画面の配置を確認できます。
+実際の配布物は `./scripts/package.ps1 -Fast -Generator NSIS` で生成し、最終確認は上記の通常手順に従います。
+
 ## リリース
 
 配布物は、リポジトリへ入れず、GitHub の Releases に添付する。手順は `scripts/release.ps1` が二段に分けて行う。
