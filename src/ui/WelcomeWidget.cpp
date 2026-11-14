@@ -1,4 +1,5 @@
 #include "heiran/ui/WelcomeWidget.hpp"
+#include "heiran/ui/AppStyle.hpp"
 
 #include <QDir>
 #include <QDragEnterEvent>
@@ -9,7 +10,10 @@
 #include <QFont>
 #include <QLabel>
 #include <QMimeData>
+#include <QPainter>
 #include <QPushButton>
+#include <QResizeEvent>
+#include <QScrollArea>
 #include <QVBoxLayout>
 
 namespace heiran::ui {
@@ -36,6 +40,7 @@ QLabel *makeLabel(const QString &text, int pointSize, bool bold, QWidget *parent
   font.setBold(bold);
   label->setFont(font);
   label->setAlignment(Qt::AlignHCenter);
+  label->setWordWrap(true);
   label->setAttribute(Qt::WA_TransparentForMouseEvents);
   return label;
 }
@@ -45,11 +50,7 @@ QLabel *makeLabel(const QString &text, int pointSize, bool bold, QWidget *parent
 WelcomeWidget::WelcomeWidget(QWidget *parent) : QWidget(parent) {
   setObjectName("welcome");
   setAcceptDrops(true);
-  // 案内の何も無い所は、下のセルへマウスを通す
-  // (右クリックや、ドロップは、セルが受ける)。ボタンは、自分で受ける。
-  setAttribute(Qt::WA_TransparentForMouseEvents);
-  // 背景は塗らない (セルの下地が見える)。案内の文字は、画像の面の暗い下地の上で読める色にする。
-  setAttribute(Qt::WA_TranslucentBackground);
+  setAttribute(Qt::WA_OpaquePaintEvent);
   setStyleSheet(
       "#welcome QLabel { color: #b4b9c2; }"
       "#welcome QLabel#welcomeTitle { color: #e4e7ec; }"
@@ -59,8 +60,22 @@ WelcomeWidget::WelcomeWidget(QWidget *parent) : QWidget(parent) {
       " background: transparent; }"
       "#welcome QPushButton#welcomeRecent:hover { color: #c4defa; text-decoration: underline; }");
 
-  auto *layout = new QVBoxLayout(this);
-  layout->setAlignment(Qt::AlignCenter);
+  auto *outerLayout = new QVBoxLayout(this);
+  outerLayout->setContentsMargins(0, 0, 0, 0);
+  auto *scroll = new QScrollArea(this);
+  scroll->setWidgetResizable(true);
+  scroll->setFrameShape(QFrame::NoFrame);
+  scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  scroll->setStyleSheet(
+      "QScrollArea, QScrollArea > QWidget > QWidget { background: transparent; }");
+  scroll->viewport()->setAutoFillBackground(false);
+  auto *content = new QWidget;
+  auto *layout = new QVBoxLayout(content);
+  layout->setContentsMargins(24, 24, 24, 24);
+  layout->setSizeConstraint(QLayout::SetMinimumSize);
+  scroll->setWidget(content);
+  outerLayout->addWidget(scroll);
+  layout->setAlignment(Qt::AlignVCenter);
   layout->setSpacing(10);
 
   auto *title = makeLabel(tr("Heiran"), 22, true, this);
@@ -87,7 +102,7 @@ WelcomeWidget::WelcomeWidget(QWidget *parent) : QWidget(parent) {
   recentLayout_ = new QVBoxLayout(recentContainer_);
   recentLayout_->setContentsMargins(0, 12, 0, 0);
   recentLayout_->setSpacing(0);
-  layout->addWidget(recentContainer_, 0, Qt::AlignHCenter);
+  layout->addWidget(recentContainer_);
   rebuildRecentList();
 
   // 親 (画像の面) の大きさに、いつも合わせる。
@@ -128,13 +143,33 @@ void WelcomeWidget::rebuildRecentList() {
                                                     : QString("%1/%2").arg(folder, info.fileName()),
                                    recentContainer_);
     button->setObjectName("welcomeRecent");
+    button->setProperty("displayPath", button->text());
+    button->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     button->setFlat(true);
     button->setCursor(Qt::PointingHandCursor);
     button->setToolTip(QDir::toNativeSeparators(path));
     connect(button, &QPushButton::clicked, this,
             [this, path]() { Q_EMIT recentImageRequested(path); });
-    recentLayout_->addWidget(button, 0, Qt::AlignHCenter);
+    recentLayout_->addWidget(button);
   }
+  updateRecentButtonTexts();
+}
+
+void WelcomeWidget::updateRecentButtonTexts() {
+  for (auto *button : findChildren<QPushButton *>("welcomeRecent")) {
+    button->setText(button->fontMetrics().elidedText(button->property("displayPath").toString(),
+                                                     Qt::ElideMiddle, std::max(0, width() - 80)));
+  }
+}
+
+void WelcomeWidget::paintEvent(QPaintEvent *) {
+  QPainter painter(this);
+  painter.fillRect(rect(), AppStyleTokens::viewerBackground());
+}
+
+void WelcomeWidget::resizeEvent(QResizeEvent *event) {
+  QWidget::resizeEvent(event);
+  updateRecentButtonTexts();
 }
 
 bool WelcomeWidget::eventFilter(QObject *watched, QEvent *event) {

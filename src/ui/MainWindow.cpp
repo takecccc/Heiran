@@ -29,6 +29,7 @@
 #include "heiran/ui/SettingsDialog.hpp"
 #include "heiran/ui/TextureBudgetLedger.hpp"
 #include "heiran/ui/TransientMessageWidget.hpp"
+#include "heiran/ui/ViewerChromeController.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 #include "heiran/ui/WelcomeWidget.hpp"
 
@@ -387,6 +388,7 @@ void MainWindow::createLayoutMenu() {
 // View メニュー。ドックの再表示もここから行うため、ドックの後に呼ぶ。
 void MainWindow::createViewMenu() {
   auto *viewMenu = menuBar()->addMenu(QCoreApplication::translate("MainWindow", "&View"));
+  viewMenu->setObjectName("viewMenu");
   auto *channelMenu = viewMenu->addMenu(QCoreApplication::translate("MainWindow", "Channel"));
   channelActionGroup_ = new QActionGroup(this);
   channelActionGroup_->setExclusive(true);
@@ -757,6 +759,7 @@ void MainWindow::createAnalysisMenu() {
 // ページ送りとズームのツールバー。
 void MainWindow::createNavigationToolBar() {
   auto *navigationToolBar = addToolBar(QCoreApplication::translate("MainWindow", "Navigation"));
+  navigationToolBar->setObjectName("navigationToolBar");
   // 位置は固定。つまみの点々が、画像を見る邪魔になる。
   navigationToolBar->setMovable(false);
 
@@ -909,6 +912,8 @@ void MainWindow::createNavigationToolBar() {
   resetViewAction->setShortcut(QKeySequence(Qt::Key_0));
   connect(resetViewAction, &QAction::triggered, this, [this]() { viewerGrid_->resetView(); });
   addAction(resetViewAction);
+  viewerChrome_ = new ViewerChromeController(this, viewerGrid_, navigationToolBar, pageComboBox_,
+                                             previousPageAction, nextPageAction);
 }
 
 // メニューに出さないキー操作。ズーム、全画面、選択解除。
@@ -1430,6 +1435,9 @@ void MainWindow::updatePageControls() {
   }
   pageComboBox_->blockSignals(false);
   pageComboBox_->setEnabled(actualTotalPages > 0);
+  if (viewerChrome_ != nullptr) {
+    viewerChrome_->refreshPages();
+  }
 }
 
 void MainWindow::refreshAnalysisWindows() {

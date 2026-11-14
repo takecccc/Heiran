@@ -342,6 +342,13 @@ void ViewerGridWidget::setCursorStyle(CursorStyle style) {
   }
 }
 
+void ViewerGridWidget::setCellHeadersVisible(bool visible) {
+  cellHeadersVisible_ = visible;
+  for (auto *cell : cells_) {
+    cell->setHeaderVisible(visible);
+  }
+}
+
 void ViewerGridWidget::setCellBordersVisible(bool visible) {
   cellBordersVisible_ = visible;
   layout_->setSpacing(visible ? kCellGutterPixels : 0);
@@ -1170,6 +1177,7 @@ void ViewerGridWidget::rebuildGrid() {
     connect(view, &ImageViewWidget::transparencyPatternRequested, this,
             &ViewerGridWidget::transparencyPatternRequested);
     view->setBordersVisible(cellBordersVisible_);
+    view->setHeaderVisible(cellHeadersVisible_);
     view->setCursorStyle(cursorStyle_);
     view->setDisplayProfile(displayProfileMode_, displayProfilePath_);
     view->setAnalysisValueSpace(analysisValueSpace_);

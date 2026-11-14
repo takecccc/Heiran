@@ -135,6 +135,7 @@ public:
   // セルの枠線を描くか。あとから作るセルにも引き継ぐ。
   void setCellBordersVisible(bool visible);
   bool cellBordersVisible() const { return cellBordersVisible_; }
+  void setCellHeadersVisible(bool visible);
   // 共有カーソルの描き方。あとから作るセルにも引き継ぐ。
   void setCursorStyle(CursorStyle style);
   void setDisplayProfile(DisplayProfileMode mode, const QString &profilePath);
@@ -330,6 +331,7 @@ private:
   MagnifyFilter magnifyFilter_ = MagnifyFilter::Nearest;
   TransparencyBackground transparencyBackground_;
   bool cellBordersVisible_ = true;
+  bool cellHeadersVisible_ = true;
   CursorStyle cursorStyle_ = CursorStyle::Outline;
   MinifyFilter minifyFilter_ = MinifyFilter::Area;
   int activeCellIndex_ = -1;

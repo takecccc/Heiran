@@ -24,6 +24,7 @@ struct AppStyleTokens {
   QColor input;
 
   static AppStyleTokens forDarkScheme(bool dark);
+  static QColor viewerBackground();
 };
 
 // トークンからアプリ全体のスタイルシートを作る。

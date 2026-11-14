@@ -77,6 +77,73 @@ class MainWindowTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void keepsPageControlsAvailableWhenNavigationIsHidden() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto paths = writeImageFiles(directory.path(), 3);
+    heiran::ui::MainWindow window;
+    window.openImageFiles({paths.first()});
+    window.resize(440, 560);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *navigation = window.findChild<QToolBar *>("navigationToolBar");
+    auto *compact = window.findChild<QWidget *>("compactPageNavigation");
+    auto *selector = window.findChild<QComboBox *>("compactPageSelector");
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(navigation && compact && selector && grid);
+    QVERIFY(compact->isHidden());
+    navigation->hide();
+    QVERIFY(compact->isVisible());
+    QCOMPARE(selector->count(), 3);
+    window.findChild<QToolButton *>("compactNextPage")->click();
+    QCOMPARE(grid->currentPage(), 1);
+    QCOMPARE(selector->currentIndex(), 1);
+    selector->setCurrentIndex(2);
+    QCOMPARE(grid->currentPage(), 2);
+    window.findChild<QToolButton *>("compactPreviousPage")->click();
+    QCOMPARE(grid->currentPage(), 1);
+    navigation->show();
+    QVERIFY(compact->isHidden());
+  }
+
+  void hidesCellHeadersAcrossRebuildAndRestart() {
+    const auto organization = QCoreApplication::organizationName();
+    const auto application = QCoreApplication::applicationName();
+    QCoreApplication::setOrganizationName("HeiranTests");
+    QCoreApplication::setApplicationName("CellHeaderVisibilityTests");
+    const auto restore = qScopeGuard([organization, application]() {
+      QSettings().clear();
+      QCoreApplication::setOrganizationName(organization);
+      QCoreApplication::setApplicationName(application);
+    });
+    QSettings().clear();
+    {
+      heiran::ui::MainWindow window;
+      auto *action = window.findChild<QAction *>("cellHeadersAction");
+      QVERIFY(action && action->isChecked());
+      action->trigger();
+      for (auto *header : window.findChildren<QWidget *>("cellHeader")) {
+        QVERIFY(header->isHidden());
+      }
+      heiran::domain::SessionModel session;
+      session.viewer.layout.rows = 1;
+      session.viewer.layout.cols = 2;
+      session.cells.resize(2);
+      window.setSession(session);
+      QCOMPARE(window.findChildren<QWidget *>("cellHeader").size(), 2);
+      for (auto *header : window.findChildren<QWidget *>("cellHeader")) {
+        QVERIFY(header->isHidden());
+      }
+    }
+    heiran::ui::MainWindow restored;
+    auto *action = restored.findChild<QAction *>("cellHeadersAction");
+    QVERIFY(action && !action->isChecked());
+    action->trigger();
+    for (auto *header : restored.findChildren<QWidget *>("cellHeader")) {
+      QVERIFY(!header->isHidden());
+    }
+  }
+
   void fitsImagesOpenedBeforeShowingTheWindow_data() {
     QTest::addColumn<int>("imageCount");
     QTest::addColumn<bool>("decodeBeforeShow");
@@ -133,6 +200,12 @@ private Q_SLOTS:
              std::abs(actual.baseOffsetX - expected.baseOffsetX) < 1e-6 &&
              std::abs(actual.baseOffsetY - expected.baseOffsetY) < 1e-6;
     };
+    QTRY_VERIFY_WITH_TIMEOUT(fitsCurrentCells(), 2000);
+    auto *headersAction = window.findChild<QAction *>("cellHeadersAction");
+    QVERIFY(headersAction != nullptr);
+    headersAction->trigger();
+    QTRY_VERIFY_WITH_TIMEOUT(fitsCurrentCells(), 2000);
+    headersAction->trigger();
     QTRY_VERIFY_WITH_TIMEOUT(fitsCurrentCells(), 2000);
   }
 

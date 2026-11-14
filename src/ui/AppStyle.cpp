@@ -54,6 +54,10 @@ AppStyleTokens AppStyleTokens::forDarkScheme(bool dark) {
   };
 }
 
+QColor AppStyleTokens::viewerBackground() {
+  return QColor(56, 60, 66);
+}
+
 QString buildAppStyleSheet(const AppStyleTokens &t) {
   // 角丸と余白は、要素をまたいで揃える。
   return QString(R"(

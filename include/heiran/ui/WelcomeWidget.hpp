@@ -12,7 +12,7 @@ namespace heiran::ui {
 // 画像を 1 枚も開いていないときに、画像の面へ出す案内。何をすれば始められるかを示す
 // (ドロップ、開くボタンとキー、マニュアル、最近開いた画像)。
 //
-// 親 (画像の面) の全体へ広がる。背景は塗らず、マウス操作は、案内の部品 (ボタン) だけが受ける。
+// 親 (画像の面) の全体へ広がり、下の空セルの案内を覆う。内容が収まらなければスクロールする。
 // ファイルのドロップは、案内の上でも受けて、`filesDropped` で返す。
 class WelcomeWidget : public QWidget {
   Q_OBJECT
@@ -31,6 +31,8 @@ Q_SIGNALS:
   void filesDropped(const QStringList &paths);
 
 protected:
+  void paintEvent(QPaintEvent *event) override;
+  void resizeEvent(QResizeEvent *event) override;
   bool eventFilter(QObject *watched, QEvent *event) override;
   void dragEnterEvent(QDragEnterEvent *event) override;
   void dragMoveEvent(QDragMoveEvent *event) override;
@@ -38,6 +40,7 @@ protected:
 
 private:
   void rebuildRecentList();
+  void updateRecentButtonTexts();
 
   QWidget *recentContainer_ = nullptr;
   QVBoxLayout *recentLayout_ = nullptr;

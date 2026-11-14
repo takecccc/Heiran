@@ -53,6 +53,7 @@ public:
   void setTransparencyBackground(const TransparencyBackground &background);
   // セルの枠線 (画像の面の外周と、見出しの下の線) を描くか。
   void setBordersVisible(bool visible);
+  void setHeaderVisible(bool visible);
   // ワイプの境目の線の位置 (このウィジェットの座標)。試験のために出している。線が出ていなければ、無効な値。
   QRect wipeHandleGeometry() const;
   // 境目の線を、ドラッグで動かす (指した位置は、このウィジェットの座標)。試験のために出している。

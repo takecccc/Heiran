@@ -990,6 +990,7 @@ ImageViewWidget::ImageViewWidget(QWidget *parent) : QWidget(parent) {
   layout->setSpacing(0);
 
   headerWidget_ = new CellHeaderWidget(this);
+  headerWidget_->setObjectName("cellHeader");
   canvasWidget_ = new ImageCanvasWidget(this);
   // マウス操作を伴うテストが送り先を特定するために使う。キャンバスの型は
   // この翻訳単位の中にしかないため、名前で引けるようにしておく。
@@ -1298,6 +1299,16 @@ void ImageViewWidget::setActiveFrame(bool visible) {
     }
   }
   activeFrameWidget_->setVisible(visible);
+}
+
+void ImageViewWidget::setHeaderVisible(bool visible) {
+  if (headerWidget_->isHidden() == !visible) {
+    return;
+  }
+  headerWidget_->setVisible(visible);
+  layout()->activate();
+  updateWipeHandle();
+  Q_EMIT cellResized();
 }
 
 void ImageViewWidget::setBordersVisible(bool visible) {

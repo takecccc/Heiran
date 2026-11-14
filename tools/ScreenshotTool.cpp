@@ -7,6 +7,7 @@
 //                     [--context-cell N --menu "Transparency background"]
 //                     [--dialog-category "Display and playback"]
 //                     [--dialog-focus magnifyFilter]
+//                     [--recent-image path]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -38,6 +39,7 @@
 #include "heiran/ui/ColorTheme.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
+#include "heiran/ui/RecentImages.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QAction>
@@ -55,6 +57,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QRegularExpression>
+#include <QSettings>
 #include <QSize>
 #include <QStringList>
 #include <QTabWidget>
@@ -80,7 +83,7 @@ bool sameName(const QString &shown, const QString &english) {
     const QByteArray source = candidate.toUtf8();
     for (const char *context :
          {"MainWindow", "ImageSetManagerDialog", "SettingsDialog", "CellContextMenu",
-          "HistogramWindow", "heiran::ui::DiffBarWidget"}) {
+          "HistogramWindow", "ViewerChromeController", "heiran::ui::DiffBarWidget"}) {
       if (target == normalize(QCoreApplication::translate(context, source.constData()))) {
         return true;
       }
@@ -119,6 +122,7 @@ int main(int argc, char *argv[]) {
   int soloCell = -1;
   QStringList actionTitles;
   QString sessionPath;
+  QStringList recentImages;
   QString dialogTitle;
   int dialogWaitMs = 1500;
   QString dialogTab;
@@ -155,6 +159,8 @@ int main(int argc, char *argv[]) {
       diffPopup = true;
     } else if (argument == "--hrn" && index + 1 < arguments.size()) {
       sessionPath = arguments.at(++index);
+    } else if (argument == "--recent-image" && index + 1 < arguments.size()) {
+      recentImages.push_back(arguments.at(++index));
     } else if (argument == "--dialog-tab" && index + 1 < arguments.size()) {
       dialogTab = arguments.at(++index);
     } else if (argument == "--dialog-category" && index + 1 < arguments.size()) {
@@ -208,6 +214,10 @@ int main(int argc, char *argv[]) {
                                                   : heiran::ui::TransparencyPattern::Solid;
   }
   settings.save();
+  QSettings().setValue("display/showCellHeaders", true);
+  if (!recentImages.isEmpty()) {
+    heiran::ui::RecentImages::save(recentImages);
+  }
   heiran::ui::MainWindow window;
   window.resize(size);
   if (!sessionPath.isEmpty()) {
@@ -460,6 +470,7 @@ int main(int argc, char *argv[]) {
         auto *menu = action->menu();
         menu->ensurePolished();
         menu->adjustSize();
+        menu->resize(menu->sizeHint());
         return menu->grab().save(outPath) ? 0 : 1;
       }
     }

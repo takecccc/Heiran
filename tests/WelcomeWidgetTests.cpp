@@ -4,6 +4,8 @@
 #include <QDropEvent>
 #include <QMimeData>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSignalSpy>
 #include <QUrl>
 #include <QtTest>
@@ -14,6 +16,25 @@ class WelcomeWidgetTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void keepsTheWelcomeReadableInASmallWindow() {
+    QWidget parent;
+    parent.resize(420, 260);
+    WelcomeWidget welcome(&parent);
+    welcome.setRecentImages({"C:/photos/a-very-long-image-file-name-0001.png",
+                             "C:/photos/a-very-long-image-file-name-0002.png",
+                             "C:/photos/a-very-long-image-file-name-0003.png",
+                             "C:/photos/a-very-long-image-file-name-0004.png",
+                             "C:/photos/a-very-long-image-file-name-0005.png"});
+    parent.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&parent));
+    auto *scroll = welcome.findChild<QScrollArea *>();
+    QVERIFY(scroll != nullptr);
+    QVERIFY(scroll->verticalScrollBar()->maximum() > 0);
+    QCOMPARE(scroll->horizontalScrollBar()->maximum(), 0);
+    const auto image = welcome.grab().toImage();
+    QCOMPARE(image.pixelColor(1, 1), QColor(56, 60, 66));
+  }
+
   // 親の全体へ広がり、親の大きさに従う。
   void followsTheParentSize() {
     QWidget parent;

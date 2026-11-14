@@ -226,6 +226,7 @@ add_library(heiran_core
   src/ui/SettingsHelpController.cpp
   src/ui/TransientMessageWidget.cpp
   src/ui/WelcomeWidget.cpp
+  src/ui/ViewerChromeController.cpp
   src/ui/ScopeBuilder.cpp
   src/ui/ScopeWindows.cpp
   src/ui/SessionLayoutController.cpp
@@ -330,6 +331,7 @@ target_sources(heiran_core
     include/heiran/ui/SettingsHelpController.hpp
     include/heiran/ui/TransientMessageWidget.hpp
     include/heiran/ui/WelcomeWidget.hpp
+    include/heiran/ui/ViewerChromeController.hpp
     include/heiran/ui/ScopeBuilder.hpp
     include/heiran/ui/ScopeWindows.hpp
     include/heiran/ui/SessionLayoutController.hpp

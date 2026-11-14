@@ -45,6 +45,7 @@ class ImageSetManagerDialog;
 class TransientMessageWidget;
 class ViewerGridWidget;
 class WelcomeWidget;
+class ViewerChromeController;
 struct LoupePreview;
 
 class MainWindow : public QMainWindow {
@@ -196,6 +197,7 @@ private:
   void updateWelcomeVisibility();
   void openRecentImage(const QString &path);
   WelcomeWidget *welcome_ = nullptr;
+  ViewerChromeController *viewerChrome_ = nullptr;
   QActionGroup *layoutActionGroup_ = nullptr;
   QActionGroup *layoutOrderActionGroup_ = nullptr;
   QActionGroup *channelActionGroup_ = nullptr;
