@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QStringList>
 
 class QDockWidget;
 class QMainWindow;
@@ -16,6 +17,9 @@ class ImageListPanelController final : public QObject {
 
 public:
   ImageListPanelController(QMainWindow *window, ViewerGridWidget *grid);
+
+Q_SIGNALS:
+  void compareRequested(const QStringList &paths);
 
 private:
   void refresh();

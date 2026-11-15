@@ -1,5 +1,8 @@
 #include "heiran/ui/ImageListPanelWidget.hpp"
 
+#include "heiran/infra/FavoriteStore.hpp"
+#include "heiran/ui/ImageListDragViews.hpp"
+#include "heiran/ui/SessionLayoutController.hpp"
 #include "heiran/ui/ThumbnailCache.hpp"
 
 #include <QCheckBox>
@@ -10,11 +13,14 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QLocale>
+#include <QPushButton>
+#include <QSet>
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QtConcurrent>
+#include <algorithm>
 
 namespace heiran::ui {
 
@@ -23,10 +29,11 @@ constexpr QSize kThumbnailSize(160, 120);
 }
 
 ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
-    : QWidget(parent), list_(new QListWidget(this)), count_(new QLabel(this)),
+    : QWidget(parent), list_(new ImageFileListWidget(this)), count_(new QLabel(this)),
       empty_(new QLabel(tr("No images to display."), this)),
       favoritesOnly_(new QCheckBox(tr("Favorites only"), this)), viewMode_(new QComboBox(this)),
-      views_(new QStackedWidget(this)), details_(new QTreeWidget(this)) {
+      views_(new QStackedWidget(this)), details_(new ImageFileDetailsWidget(this)),
+      compare_(new QPushButton(tr("Compare Selected"), this)) {
   setObjectName("imageListPanelWidget");
   auto *layout = new QVBoxLayout(this);
   layout->setContentsMargins(6, 6, 6, 6);
@@ -42,6 +49,12 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   layout->addLayout(modeLayout);
   layout->addWidget(favoritesOnly_);
   layout->addWidget(count_);
+  layout->addWidget(compare_);
+  compare_->setObjectName("compareSelectedImages");
+  compare_->setToolTip(tr("Select 2 to 16 images to view side by side. Ctrl-click or Shift-click "
+                          "to select multiple images."));
+  connect(compare_, &QPushButton::clicked, this,
+          [this]() { Q_EMIT compareRequested(selectedFilePaths()); });
   layout->addWidget(views_, 1);
   layout->addWidget(empty_, 1);
   views_->addWidget(list_);
@@ -53,7 +66,11 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   details_->headerItem()->setToolTip(0, tr("Favorite"));
   details_->setRootIsDecorated(false);
   details_->setUniformRowHeights(true);
-  details_->setSelectionMode(QAbstractItemView::SingleSelection);
+  details_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+  details_->setSelectionBehavior(QAbstractItemView::SelectRows);
+  details_->setDragEnabled(true);
+  details_->setDragDropMode(QAbstractItemView::DragOnly);
+  details_->setDefaultDropAction(Qt::CopyAction);
   details_->setColumnWidth(0, 32);
   details_->setColumnWidth(1, 160);
   details_->setColumnWidth(2, 80);
@@ -61,11 +78,7 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   details_->setColumnWidth(4, 120);
   details_->header()->setStretchLastSection(false);
   detailsPool_.setMaxThreadCount(1);
-  connect(details_, &QTreeWidget::currentItemChanged, this, [this](QTreeWidgetItem *item) {
-    if (item) {
-      Q_EMIT pageSelected(details_->indexOfTopLevelItem(item));
-    }
-  });
+  connect(details_, &QTreeWidget::itemSelectionChanged, this, [this]() { syncSelection(true); });
   connect(favoritesOnly_, &QCheckBox::toggled, this, &ImageListPanelWidget::favoritesOnlyRequested);
   connect(viewMode_, &QComboBox::currentIndexChanged, this, [this]() { updateViewMode(); });
   empty_->setAlignment(Qt::AlignCenter);
@@ -79,11 +92,11 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   list_->setMovement(QListView::Static);
   list_->setUniformItemSizes(true);
   list_->setWordWrap(true);
-  connect(list_, &QListWidget::currentRowChanged, this, [this](int row) {
-    if (row >= 0) {
-      Q_EMIT pageSelected(row);
-    }
-  });
+  list_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+  list_->setDragEnabled(true);
+  list_->setDragDropMode(QAbstractItemView::DragOnly);
+  list_->setDefaultDropAction(Qt::CopyAction);
+  connect(list_, &QListWidget::itemSelectionChanged, this, [this]() { syncSelection(false); });
   setPages({}, -1);
 }
 
@@ -127,6 +140,7 @@ void ImageListPanelWidget::updateViewMode() {
     startLoading();
   }
   Q_EMIT detailsVisibleChanged(detailsVisible());
+  updateSelectionActions();
 }
 
 void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPage) {
@@ -158,6 +172,8 @@ void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPag
     auto *item = new QListWidgetItem(caption, list_);
     item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
     item->setData(Qt::UserRole, caption);
+    item->setData(Qt::UserRole + 1, index);
+    item->setData(Qt::UserRole + 2, path);
     item->setToolTip(path.isEmpty() ? caption : path);
     QPixmap placeholder(kThumbnailSize);
     placeholder.fill(Qt::transparent);
@@ -165,12 +181,15 @@ void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPag
     auto *detail = new QTreeWidgetItem(
         details_, {QStringLiteral("\u2014"), QFileInfo(path).fileName(), "...", "...", "..."});
     detail->setToolTip(1, path);
+    detail->setData(0, Qt::UserRole + 1, index);
+    detail->setData(0, Qt::UserRole + 2, path);
     detail->setTextAlignment(0, Qt::AlignCenter);
     for (int column = 2; column < 5; ++column) {
       detail->setTextAlignment(column, Qt::AlignRight | Qt::AlignVCenter);
     }
   }
   setCurrentPage(currentPage);
+  updateSelectionActions();
   if (detailsVisible()) {
     startDetailsLoading();
   } else {
@@ -181,20 +200,80 @@ void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPag
 void ImageListPanelWidget::setCurrentPage(int page) {
   const QSignalBlocker blocker(list_);
   const QSignalBlocker detailsBlocker(details_);
+  const bool keepSelection = selectedRows(detailsVisible()).size() > 1;
+  const auto flags =
+      keepSelection ? QItemSelectionModel::NoUpdate : QItemSelectionModel::ClearAndSelect;
   auto *detail =
       page >= 0 && page < details_->topLevelItemCount() ? details_->topLevelItem(page) : nullptr;
   if (details_->currentItem() != detail) {
-    details_->setCurrentItem(detail);
+    details_->setCurrentItem(detail, 0, flags);
     if (detail) {
       details_->scrollToItem(detail, QAbstractItemView::EnsureVisible);
     }
   }
   if (list_->currentRow() != page) {
-    list_->setCurrentRow(page >= 0 && page < list_->count() ? page : -1);
+    list_->setCurrentRow(page >= 0 && page < list_->count() ? page : -1, flags);
     if (auto *item = list_->currentItem()) {
       list_->scrollToItem(item, QAbstractItemView::EnsureVisible);
     }
   }
+  updateSelectionActions();
+}
+
+QVector<int> ImageListPanelWidget::selectedRows(bool details) const {
+  QVector<int> rows;
+  if (details) {
+    for (auto *item : details_->selectedItems()) {
+      rows.push_back(details_->indexOfTopLevelItem(item));
+    }
+  } else {
+    for (const auto *item : list_->selectedItems()) {
+      rows.push_back(list_->row(item));
+    }
+  }
+  std::sort(rows.begin(), rows.end());
+  return rows;
+}
+
+QStringList ImageListPanelWidget::selectedFilePaths() const {
+  QStringList paths;
+  QSet<QString> seen;
+  for (int row : selectedRows(detailsVisible())) {
+    const auto path = paths_.value(row);
+    const auto key = heiran::infra::FavoriteStore::pathKey(path);
+    if (QFileInfo(path).isFile() && !seen.contains(key)) {
+      paths.push_back(path);
+      seen.insert(key);
+    }
+  }
+  return paths;
+}
+
+void ImageListPanelWidget::syncSelection(bool fromDetails) {
+  const auto rows = selectedRows(fromDetails);
+  const QSignalBlocker listBlocker(list_);
+  const QSignalBlocker detailsBlocker(details_);
+  if (fromDetails) {
+    list_->clearSelection();
+    for (int row : rows) {
+      list_->item(row)->setSelected(true);
+    }
+  } else {
+    details_->clearSelection();
+    for (int row : rows) {
+      details_->topLevelItem(row)->setSelected(true);
+    }
+  }
+  updateSelectionActions();
+  if (rows.size() == 1) {
+    Q_EMIT pageSelected(rows.first());
+  }
+}
+
+void ImageListPanelWidget::updateSelectionActions() {
+  const int count = selectedRows(detailsVisible()).size();
+  count_->setText(tr("%1 items, %2 selected").arg(paths_.size()).arg(count));
+  compare_->setEnabled(count >= 2 && count <= SessionLayoutController::kMaxCellCount);
 }
 
 void ImageListPanelWidget::startDetailsLoading() {

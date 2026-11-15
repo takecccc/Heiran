@@ -78,6 +78,8 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
       grid_->setCurrentPage(page);
     }
   });
+  connect(panel_, &ImageListPanelWidget::compareRequested, this,
+          &ImageListPanelController::compareRequested);
 }
 
 void ImageListPanelController::invalidate() {

@@ -10,6 +10,7 @@
 //                     [--recent-image path]
 //                     [--favorites-file path]
 //                     [--list-mode thumbnails|details]
+//                     [--list-select 0,2] [--compare-selection]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -39,6 +40,7 @@
 #include "heiran/app/Localization.hpp"
 #include "heiran/ui/AppSettings.hpp"
 #include "heiran/ui/ColorTheme.hpp"
+#include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
 #include "heiran/ui/RecentImages.hpp"
@@ -59,6 +61,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QPushButton>
 #include <QRegularExpression>
 #include <QSettings>
 #include <QSize>
@@ -67,6 +70,7 @@
 #include <QTabWidget>
 #include <QTimer>
 #include <QToolButton>
+#include <QTreeWidget>
 #include <QWheelEvent>
 #include <cmath>
 
@@ -144,6 +148,8 @@ int main(int argc, char *argv[]) {
   QStringList images;
   QString favoritesFile;
   QString listMode = "thumbnails";
+  QStringList listSelection;
+  bool compareSelection = false;
   for (int index = 0; index < arguments.size(); ++index) {
     const QString &argument = arguments.at(index);
     if (argument == "--theme" && index + 1 < arguments.size()) {
@@ -152,6 +158,10 @@ int main(int argc, char *argv[]) {
       favoritesFile = arguments.at(++index);
     } else if (argument == "--list-mode" && index + 1 < arguments.size()) {
       listMode = arguments.at(++index);
+    } else if (argument == "--list-select" && index + 1 < arguments.size()) {
+      listSelection = arguments.at(++index).split(',');
+    } else if (argument == "--compare-selection") {
+      compareSelection = true;
     } else if (argument == "--context-cell" && index + 1 < arguments.size()) {
       contextCell = arguments.at(++index).toInt();
     } else if (argument == "--transparency" && index + 1 < arguments.size()) {
@@ -289,6 +299,31 @@ int main(int argc, char *argv[]) {
   }
   // 指定したセルの画像の上へ、マウスを動かす (画素値の表示や、共有のカーソルが出る)。
   // 位置は、そのセルの画像の面の左上からの論理座標。
+  if (!listSelection.isEmpty()) {
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *list = panel->findChild<QListWidget *>();
+    auto *tree = panel->findChild<QTreeWidget *>();
+    if (panel->detailsVisible())
+      tree->clearSelection();
+    else
+      list->clearSelection();
+    for (const auto &value : listSelection) {
+      bool valid = false;
+      const int row = value.toInt(&valid);
+      if (!valid || row < 0 || row >= list->count())
+        continue;
+      if (panel->detailsVisible())
+        tree->topLevelItem(row)->setSelected(true);
+      else
+        list->item(row)->setSelected(true);
+    }
+    if (compareSelection)
+      panel->findChild<QPushButton *>("compareSelectedImages")->click();
+    QElapsedTimer selectionTimer;
+    selectionTimer.start();
+    while (selectionTimer.elapsed() < 2000)
+      QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+  }
   if (cursorCell >= 0) {
     for (auto *cell : window.findChildren<heiran::ui::ImageViewWidget *>()) {
       if (cell->cellIndex() != cursorCell) {

@@ -64,6 +64,7 @@ try {
     @("diff-settings", @("--size", "1300x640", "--hrn", "DRIVE_SESSION", "--action", "Fit", "--hover-cell", "2", "--diff-popup")),
     @("pages", @("--size", "1100x640", "--favorites-file", $favoritesPath, "--action", "Image List", $a, $b)),
     @("image-list-details", @("--size", "1200x700", "--list-mode", "details", "--favorites-file", $favoritesPath, "--action", "Image List", "--action", "Favorites Only", $a)),
+    @("image-list-selection", @("--size", "1200x700", "--list-mode", "details", "--favorites-file", $favoritesPath, "--action", "Image List", "--list-select", "0,2", $a)),
     @("image-sets", @("--size", "1100x700", "--dialog", "Manage Image Sets...", $a, $b, $c, $d)),
     @("image-set-cells", @("--size", "1100x700", "--dialog", "Manage Image Sets...", "--dialog-tab", "Cells", $a, $b, $c, $d)),
     @("animation", @("--size", "900x560", $gif)),

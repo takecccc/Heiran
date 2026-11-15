@@ -1,5 +1,6 @@
 #include "heiran/infra/FavoriteStore.hpp"
 #include "heiran/infra/ImageFileDetails.hpp"
+#include "heiran/ui/ImageListDragViews.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
@@ -14,12 +15,16 @@
 #include <QImage>
 #include <QListWidget>
 #include <QLocale>
+#include <QMimeData>
+#include <QPushButton>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QToolBar>
 #include <QTreeWidget>
+#include <QUrl>
 #include <QtTest>
+#include <memory>
 
 namespace {
 QStringList createImages(const QString &directory, int count, QColor color = Qt::red) {
@@ -311,6 +316,140 @@ private Q_SLOTS:
     auto *table = window.findChild<QTreeWidget *>("imageDetailsList");
     QCOMPARE(table->topLevelItem(1)->text(0), QStringLiteral("\u2605"));
     QCOMPARE(table->topLevelItem(0)->text(0), QStringLiteral("\u2014"));
+  }
+
+  void preservesMultipleSelectionsAcrossViewsAndPageChanges() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 4);
+    QCOMPARE(paths.size(), 4);
+    heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *list = panel->findChild<QListWidget *>();
+    list->item(0)->setSelected(true);
+    list->item(2)->setSelected(true);
+    QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(0), paths.at(2)}));
+    panel->setDetailsVisible(true);
+    auto *table = panel->findChild<QTreeWidget *>();
+    QCOMPARE(table->selectedItems().size(), 2);
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    grid->nextPage();
+    QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(0), paths.at(2)}));
+    panel->setDetailsVisible(false);
+    QCOMPARE(list->selectedItems().size(), 2);
+    QVERIFY(panel->findChild<QPushButton *>("compareSelectedImages")->isEnabled());
+  }
+
+  void comparesSelectedImagesAndCanUndoTheLayoutChange() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 4);
+    heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    const auto original = grid->sessionSnapshot();
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *list = panel->findChild<QListWidget *>();
+    list->item(1)->setSelected(true);
+    list->item(3)->setSelected(true);
+    list->item(0)->setSelected(false);
+    QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(1), paths.at(3)}));
+    panel->findChild<QPushButton *>("compareSelectedImages")->click();
+    QCOMPARE(grid->sessionSnapshot().cells.size(), 2);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(1));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(3));
+    QVERIFY(window.isWindowModified());
+    QAction *undo = nullptr;
+    for (auto *action : window.findChildren<QAction *>()) {
+      if (action->shortcut() == QKeySequence::Undo)
+        undo = action;
+    }
+    QVERIFY(undo && undo->isEnabled());
+    undo->trigger();
+    QCOMPARE(grid->sessionSnapshot().cells.size(), original.cells.size());
+    QCOMPARE(grid->sessionSnapshot().images.first().resolvedPaths,
+             original.images.first().resolvedPaths);
+    QVERIFY(!window.isWindowModified());
+  }
+
+  void exportsSelectedOriginalFilesAsCopyOnlyUrls() {
+    QTemporaryDir source;
+    auto paths = createImages(source.path(), 3);
+    const auto unicode = source.filePath(QString::fromUtf8("画像 #1.png"));
+    QVERIFY(QFile::copy(paths.first(), unicode));
+    paths[0] = unicode;
+    heiran::ui::ImageListPanelWidget panel;
+    panel.setPages(paths, 0);
+    auto *list = panel.findChild<QListWidget *>();
+    list->item(2)->setSelected(true);
+    std::unique_ptr<QMimeData> mime(
+        list->model()->mimeData(list->selectionModel()->selectedIndexes()));
+    QVERIFY(mime && mime->hasUrls());
+    QCOMPARE(mime->urls(),
+             QList<QUrl>({QUrl::fromLocalFile(paths.at(0)), QUrl::fromLocalFile(paths.at(2))}));
+    QCOMPARE(list->model()->supportedDragActions(), Qt::DropActions(Qt::CopyAction));
+    panel.setDetailsVisible(true);
+    auto *table = panel.findChild<QTreeWidget *>();
+    std::unique_ptr<QMimeData> detailsMime(
+        table->model()->mimeData(table->selectionModel()->selectedIndexes()));
+    QCOMPARE(detailsMime->urls(), mime->urls());
+    QCOMPARE(table->model()->supportedDragActions(), Qt::DropActions(Qt::CopyAction));
+    QVERIFY(QFile::remove(paths.at(2)));
+    std::unique_ptr<QMimeData> missing(
+        table->model()->mimeData(table->selectionModel()->selectedIndexes()));
+    QCOMPARE(missing->urls(), QList<QUrl>({QUrl::fromLocalFile(paths.at(0))}));
+    QVERIFY(QFileInfo(paths.first()).isFile());
+    panel.setPages({paths.first(), paths.first()}, 0);
+    table->selectAll();
+    std::unique_ptr<QMimeData> duplicates(
+        table->model()->mimeData(table->selectionModel()->selectedIndexes()));
+    QCOMPARE(duplicates->urls(), QList<QUrl>({QUrl::fromLocalFile(paths.first())}));
+  }
+
+  void selectsWithControlAndShiftClicksInBothViews() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 4);
+    for (bool details : {false, true}) {
+      heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+      window.openImageFiles({paths.first()});
+      window.resize(1200, 800);
+      window.show();
+      window.findChild<QAction *>("imageListAction")->trigger();
+      window.resizeDocks({window.findChild<QDockWidget *>("thumbnailDock")}, {520}, Qt::Horizontal);
+      QVERIFY(QTest::qWaitForWindowActive(&window));
+      auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+      panel->setDetailsVisible(details);
+      auto *list = panel->findChild<QListWidget *>();
+      auto *tree = panel->findChild<QTreeWidget *>();
+      const auto click = [&](int row, Qt::KeyboardModifiers modifiers) {
+        auto *viewport = details ? tree->viewport() : list->viewport();
+        const auto rectangle = details ? tree->visualItemRect(tree->topLevelItem(row))
+                                       : list->visualItemRect(list->item(row));
+        QTest::mouseClick(viewport, Qt::LeftButton, modifiers, rectangle.center());
+      };
+      click(1, Qt::NoModifier);
+      click(3, Qt::ControlModifier);
+      QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(1), paths.at(3)}));
+      click(0, Qt::NoModifier);
+      click(2, Qt::ShiftModifier);
+      QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(0), paths.at(1), paths.at(2)}));
+    }
+  }
+
+  void permitsLargeDragSelectionsWithoutEnablingComparison() {
+    QTemporaryDir source;
+    const auto paths = createImages(source.path(), 20);
+    heiran::ui::ImageListPanelWidget panel;
+    panel.setPages(paths, 0);
+    auto *list = panel.findChild<QListWidget *>();
+    list->selectAll();
+    QVERIFY(!panel.findChild<QPushButton *>("compareSelectedImages")->isEnabled());
+    std::unique_ptr<QMimeData> mime(
+        list->model()->mimeData(list->selectionModel()->selectedIndexes()));
+    QCOMPARE(mime->urls().size(), 20);
   }
 
   void readsNativeFormatDimensions() {

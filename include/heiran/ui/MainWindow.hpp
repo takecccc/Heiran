@@ -67,6 +67,7 @@ public:
   // 画像を渡された場合に使う。枚数に合う格子へ切り替えてから割り当てる。
   // その場限りのセッションのため、未保存の印は付けない。
   void openImageFiles(const QStringList &paths);
+  void compareSelectedImages(const QStringList &paths);
   void openPreparedImages(const PreparedImageSession &prepared,
                           std::shared_ptr<DecodeScheduler> startupScheduler = {});
 

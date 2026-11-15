@@ -125,7 +125,9 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   createGlobalShortcuts();
   applyInitialState();
   new FavoritesController(this, viewerGrid_, std::move(favoritesFile));
-  new ImageListPanelController(this, viewerGrid_);
+  auto *imageList = new ImageListPanelController(this, viewerGrid_);
+  connect(imageList, &ImageListPanelController::compareRequested, this,
+          &MainWindow::compareSelectedImages);
   addShortcutsToToolTips();
   // 役割が文字から明らかな項目は、アイコンで出す。文字は、ツールチップとメニューに残る。
   applyActionIcons(this);
@@ -1196,6 +1198,24 @@ void MainWindow::openImageFiles(const QStringList &paths) {
   // 既定セッションの上へ載せると、使わない画像セットとその名前が残る。
   // 画像を直接開く場合は空のセッションから始める。
   openPreparedImages(StartupPreparationController::prepareImages(paths, QDir::currentPath()));
+}
+
+void MainWindow::compareSelectedImages(const QStringList &paths) {
+  if (paths.size() < 2 || paths.size() > SessionLayoutController::kMaxCellCount) {
+    return;
+  }
+  syncCurrentSessionFromViewer();
+  const auto prepared =
+      StartupPreparationController::prepareImages(paths, currentSession_.sessionDirectory);
+  pushUndo(captureUndoRecord(QCoreApplication::translate("MainWindow", "Compare selected images")));
+  currentSession_.viewer.layout = prepared.session.viewer.layout;
+  currentSession_.images = prepared.session.images;
+  currentSession_.cells = prepared.session.cells;
+  cellLayoutCache_ = currentSession_.cells;
+  viewerGrid_->setSession(currentSession_, prepared.initialPage);
+  refreshSessionDependentUi();
+  viewerGrid_->requestFitToCells();
+  dirtyStateController_.setDirty(true);
 }
 
 void MainWindow::openPreparedImages(const PreparedImageSession &prepared,
