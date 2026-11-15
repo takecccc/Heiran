@@ -1169,8 +1169,8 @@ if(WIN32)
     "!define MUI_UNICON \"${heiran_nsis_icon}\"\n"
     "!define HEIRAN_NSIS_ASSET_DIR \"${heiran_nsis_asset_dir}\"\n"
     "!include \"${heiran_nsis_asset_dir}\\appearance.nsh\"")
-  # Remove the previous version first so stale DLLs do not survive an upgrade.
-  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+  # Keep the installed application intact until the user starts installation.
+  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL OFF)
   set(CPACK_NSIS_MODIFY_PATH OFF)
 
   # Association-only sections and categories are shared with the design preview.

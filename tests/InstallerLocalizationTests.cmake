@@ -1,3 +1,8 @@
+include("${HEIRAN_CPACK_CONFIG}")
+if(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL)
+  message(FATAL_ERROR "Opening or cancelling the installer must not uninstall the existing version.")
+endif()
+
 file(READ "${HEIRAN_CPACK_TEMPLATE}" template)
 foreach(reference IN ITEMS "$(HeiranUpgradePrompt)" "$(HeiranUninstallFailed)" "association_page.nsh"
     "association_sections.nsh" "association_descriptions.nsh")

@@ -188,7 +188,9 @@ makensis "/DHEIRAN_PREVIEW_OUTPUT=$preview" resources/nsis/preview.nsi
 
 英語で確認する場合は `/DHEIRAN_PREVIEW_ENGLISH`、完了画面だけを確認する場合は
 `/DHEIRAN_PREVIEW_FINISH` を `makensis` に追加します。
-起動時の旧版削除の確認は `/DHEIRAN_PREVIEW_UPGRADE` で表示できます。プレビューでは、どのボタンでも削除は実行しません。
+起動時の旧版削除は無効にし、同じインストール先へ上書き更新します。［インストール］を押す前のキャンセルでは既存版を変更しません。
+コピー開始後の失敗に対する自動ロールバックはありません。旧版だけにあるファイルは残すため、配布構成の変更時は不要ファイルの影響を確認してください。
+`/DHEIRAN_PREVIEW_UPGRADE` は CPack 標準の旧版削除メッセージの翻訳確認用です。通常の配布物では表示せず、プレビューでも削除を実行しません。
 関連付けのページだけを確認する場合は `/DHEIRAN_PREVIEW_ASSOCIATIONS` を追加します。
 プレビューにはインストール処理がなく、歓迎、ライセンス、関連付け、保存先、完了画面の配置を確認できます。
 実際の配布物は `./scripts/package.ps1 -Fast -Generator NSIS` で生成し、最終確認は上記の通常手順に従います。
