@@ -530,6 +530,10 @@ add_executable(heiran_interaction_benchmark
 
 target_link_libraries(heiran_interaction_benchmark PRIVATE heiran_core)
 
+add_executable(heiran_startup_benchmark src/main.cpp)
+target_compile_definitions(heiran_startup_benchmark PRIVATE HEIRAN_STARTUP_BENCHMARK)
+target_link_libraries(heiran_startup_benchmark PRIVATE heiran_core)
+
 # 見た目の確認用。主ウィンドウを開いて PNG へ書き出す。
 add_executable(heiran_screenshot
   tools/ScreenshotTool.cpp

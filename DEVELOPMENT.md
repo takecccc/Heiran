@@ -132,6 +132,31 @@ ctest --test-dir build --output-on-failure
 テストは、窓を出さない `offscreen` プラットフォームで動きます (実行中も、マウスやキーボードの操作を奪いません)。
 実際の窓で動かしたいときは、`cmake -S . -B build -DHEIRAN_TEST_QPA_PLATFORM=` (空) で構成し直します。
 
+## 起動時間の計測
+
+Release 構成でビルドし、Qt の DLL を探索できる状態で実行します。
+
+```powershell
+$env:PATH = "$env:Qt6_ROOT/bin;$env:PATH"
+py tools/benchmark_startup.py --compare --runs 6 --output build/startup-results.json
+py tools/benchmark_startup.py examples/images/d/0001.png
+py tools/benchmark_startup.py examples/sample.hrn
+```
+
+`heiran_startup_benchmark` は通常アプリと同じ `main.cpp` を使い、初回フレームの表示までを測ります。
+設定は既存値を一時 INI へコピーして使うため、計測で実環境の設定や履歴を変更しません。
+窓をアクティブにせず、表示後 250 ms で自動終了します。描画が必要なため `offscreen` では実行しません。
+初回フレームが出なかった実行は失敗として扱います。画像の復号完了までの時間とは別です。
+
+Python 側の `process_ms` はプロセス作成から初回フレームのログを受信するまでで、DLL 読み込みも含みます。
+`main_ms` は `main()` の開始から初回フレームまでです。初回を除外し、最小・中央値・最大を表示します。
+`--compare` ではフォントの並行初期化を無効にした比較用実行と交互に測ります。
+ベンチマークだけが `HEIRAN_BENCHMARK_SEQUENTIAL_FONTS` を認識します。通常アプリでは並行初期化を使います。
+
+通常アプリの内訳を調べる場合は `HEIRAN_PROFILE_STARTUP=1` と `QT_ASSUME_STDERR_HAS_CONSOLE=1` を設定します。
+`startup <区間>: stage=... ms total=... ms` を標準エラーへ出し、初回描画は `first-frame` で示します。
+表示先への出力タイミングを測るため、`frameSwapped` はディスプレイへの物理的な表示完了を保証しません。
+
 ## サンプル画像
 
 `examples/sample.hrn` 用の最小サンプル画像は `examples/images/` に含めています。
