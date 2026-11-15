@@ -220,7 +220,7 @@ private Q_SLOTS:
     panel.setDetailsVisible(true);
     panel.setPages(paths, 0);
     auto *table = panel.findChild<QTreeWidget *>();
-    QCOMPARE(table->columnCount(), 5);
+    QCOMPARE(table->columnCount(), 6);
     auto *row = table->topLevelItem(0);
     QCOMPARE(row->text(1), QFileInfo(paths.first()).fileName());
     QTRY_COMPARE(row->text(2), QString("60"));
@@ -320,6 +320,41 @@ private Q_SLOTS:
     auto *table = window.findChild<QTreeWidget *>("imageDetailsList");
     QCOMPARE(table->topLevelItem(1)->text(0), QStringLiteral("\u2605"));
     QCOMPARE(table->topLevelItem(0)->text(0), QStringLiteral("\u2014"));
+  }
+
+  void identifiesDisplayedFilesSeparatelyFromSelection() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 4);
+    heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *list = panel->findChild<QListWidget *>();
+    auto *table = panel->findChild<QTreeWidget *>();
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    QCOMPARE(table->topLevelItem(0)->text(5), QString("1"));
+    QVERIFY(list->item(0)->text().contains("Displayed in cell 1"));
+    list->item(2)->setSelected(true);
+    QCOMPARE(table->topLevelItem(2)->text(5), QString());
+    grid->nextPage();
+    QCOMPARE(panel->selectedFilePaths().size(), 2);
+    QCOMPARE(table->topLevelItem(0)->text(5), QString());
+    QCOMPARE(table->topLevelItem(1)->text(5), QString("1"));
+    QVERIFY(!list->item(0)->text().contains("Displayed in cell"));
+    window.findChild<QAction *>("favoriteAction")->trigger();
+    QVERIFY(list->item(1)->text().contains("Displayed in cell 1"));
+    panel->setDetailsVisible(true);
+    QCOMPARE(table->topLevelItem(1)->text(5), QString("1"));
+    window.findChild<QDockWidget *>("thumbnailDock")->hide();
+    grid->nextPage();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    QCOMPARE(table->topLevelItem(1)->text(5), QString());
+    QCOMPARE(table->topLevelItem(2)->text(5), QString("1"));
+    panel->setDisplayedFiles({paths.at(2), paths.at(2), paths.at(3)});
+    QCOMPARE(table->topLevelItem(2)->text(5), QString("1, 2"));
+    QCOMPARE(table->topLevelItem(3)->text(5), QString("3"));
+    QVERIFY(list->item(2)->text().contains("Displayed in cell 1, 2"));
   }
 
   void preservesMultipleSelectionsAcrossViewsAndPageChanges() {

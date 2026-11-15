@@ -30,6 +30,7 @@ private:
   QDockWidget *dock_;
   ImageListPanelWidget *panel_;
   FavoritesController *favorites_;
+  QStringList displayedPaths_;
   bool pagesDirty_ = true;
 };
 

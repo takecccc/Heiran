@@ -3175,35 +3175,45 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>ファイルサイズ</translation>
     </message>
     <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="91"/>
+        <source>Displayed in</source>
+        <translation>表示中のセル</translation>
+    </message>
+    <message>
         <location filename="../../src/ui/ImageListPanelWidget.cpp" line="92"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="351"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="353"/>
         <source>Favorite</source>
         <translation>お気に入り</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="113"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="115"/>
         <source>Image List</source>
         <translation>画像一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="190"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="192"/>
         <source>%1 items</source>
         <translation>%1 件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="301"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="303"/>
         <source>%1 items, %2 selected</source>
         <translation>%1 件（%2 件選択）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="332"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="334"/>
         <source>%1 bytes</source>
         <translation>%1 バイト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="351"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="353"/>
         <source>Not a favorite</source>
         <translation>お気に入りではありません</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="372"/>
+        <source>Displayed in cell %1</source>
+        <translation>表示中: セル %1</translation>
     </message>
 </context>
 <context>

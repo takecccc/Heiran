@@ -33,6 +33,7 @@ public:
   void setDetailsVisible(bool details);
   bool detailsVisible() const;
   void setFavoriteStates(const QVector<bool> &states);
+  void setDisplayedFiles(const QStringList &cellPaths);
   QStringList selectedFilePaths() const;
 
 Q_SIGNALS:
@@ -49,6 +50,7 @@ private:
   QVector<int> selectedRows(bool details) const;
   void syncSelection(bool fromDetails);
   void updateSelectionActions();
+  void updateItemCaption(int index);
 
   QListWidget *list_;
   QLabel *count_;

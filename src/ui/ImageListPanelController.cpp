@@ -93,6 +93,7 @@ void ImageListPanelController::refresh() {
   if (!dock_->isVisible()) {
     return;
   }
+  const bool pagesChanged = pagesDirty_;
   if (pagesDirty_) {
     const auto session = grid_->sessionSnapshot();
     QStringList paths;
@@ -104,6 +105,16 @@ void ImageListPanelController::refresh() {
     pagesDirty_ = false;
   } else {
     panel_->setCurrentPage(grid_->navigationPageIndex());
+  }
+  QStringList displayed;
+  const auto session = grid_->sessionSnapshot();
+  const int count = session.viewer.layout.rows * session.viewer.layout.cols;
+  for (int cell = 0; cell < count; ++cell) {
+    displayed.push_back(grid_->currentFilePathForCell(cell));
+  }
+  if (pagesChanged || displayedPaths_ != displayed) {
+    displayedPaths_ = displayed;
+    panel_->setDisplayedFiles(displayed);
   }
 }
 
