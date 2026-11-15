@@ -20,6 +20,8 @@ namespace heiran::ui {
 // 表示中の状態に応じてチェックを付けるため、状態は一括で渡す。
 
 struct CellContextMenuState {
+  bool favorite = false;
+  bool favoriteAvailable = false;
   TransparencyPattern transparencyPattern = TransparencyPattern::Solid;
   bool syncEnabled = true;
   double scale = 1.0;
@@ -47,6 +49,7 @@ struct CellContextMenuState {
 struct CellContextMenuResult {
   enum class Action {
     None,
+    ToggleFavorite,
     SetTransparencyPattern,
     ToggleSync,
     SetScale,

@@ -232,6 +232,10 @@ add_library(heiran_core
   src/ui/SessionLayoutController.cpp
   src/ui/SessionMutationController.cpp
   src/ui/StartupPreparationController.cpp
+  src/ui/FavoritesController.cpp
+  src/ui/PageNavigationFilter.cpp
+  src/infra/FavoriteStore.cpp
+  src/infra/FavoriteExporter.cpp
   src/ui/ThumbnailCache.cpp
   src/ui/ThumbnailLoader.cpp
   src/ui/ViewerGridWidget.cpp
@@ -240,6 +244,7 @@ add_library(heiran_core
 target_sources(heiran_core
   PRIVATE
     include/heiran/app/CrashReporter.hpp
+    include/heiran/infra/UserDataPaths.hpp
     include/heiran/app/ApplicationController.hpp
     include/heiran/app/Localization.hpp
     include/heiran/app/OpenGlCheck.hpp
@@ -340,6 +345,10 @@ target_sources(heiran_core
     include/heiran/ui/FileDragController.hpp
     include/heiran/ui/SessionMutationController.hpp
     include/heiran/ui/StartupPreparationController.hpp
+    include/heiran/ui/FavoritesController.hpp
+    include/heiran/ui/PageNavigationFilter.hpp
+    include/heiran/infra/FavoriteStore.hpp
+    include/heiran/infra/FavoriteExporter.hpp
     include/heiran/ui/ThumbnailCache.hpp
     include/heiran/ui/ThumbnailLoader.hpp
     include/heiran/ui/ViewerGridWidget.hpp
@@ -406,6 +415,7 @@ qt_add_resources(heiran_core heiran_icons
     resources/icons/sun-moon.svg
     resources/icons/sun.svg
     resources/icons/tag.svg
+    resources/icons/star.svg
     resources/icons/trash-2.svg
     resources/icons/unlink.svg
     resources/icons/x.svg
@@ -1018,6 +1028,10 @@ target_link_libraries(heiran_app_settings_tests
 
 add_test(NAME heiran_app_settings_tests COMMAND heiran_app_settings_tests)
 
+add_executable(heiran_user_data_paths_tests tests/UserDataPathsTests.cpp)
+target_link_libraries(heiran_user_data_paths_tests PRIVATE heiran_core Qt6::Test)
+add_test(NAME heiran_user_data_paths_tests COMMAND heiran_user_data_paths_tests)
+
 add_executable(heiran_file_drag_tests tests/FileDragTests.cpp)
 target_link_libraries(heiran_file_drag_tests PRIVATE heiran_core Qt6::Test)
 add_test(NAME heiran_file_drag_tests COMMAND heiran_file_drag_tests)
@@ -1243,6 +1257,10 @@ add_test(NAME heiran_startup_preparation_tests COMMAND heiran_startup_preparatio
 add_executable(heiran_decode_scheduler_tests tests/DecodeSchedulerTests.cpp)
 target_link_libraries(heiran_decode_scheduler_tests PRIVATE heiran_core Qt6::Test)
 add_test(NAME heiran_decode_scheduler_tests COMMAND heiran_decode_scheduler_tests)
+
+add_executable(heiran_favorites_tests tests/FavoritesTests.cpp)
+target_link_libraries(heiran_favorites_tests PRIVATE heiran_core Qt6::Test)
+add_test(NAME heiran_favorites_tests COMMAND heiran_favorites_tests)
 
 add_executable(heiran_session_pages_tests
   tests/SessionPagesTests.cpp

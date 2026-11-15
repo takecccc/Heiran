@@ -214,7 +214,7 @@ Windows PowerShell 5.1 は BOM 無しの `.ps1` を UTF-8 ではなく ANSI (CP9
 起動時にミニダンプの書き出しを仕掛けている。落ちると次の場所へ `.dmp` が残る。
 
 ```
-%LOCALAPPDATA%/Heiran/Heiran/crashes/heiran-<日付>-<時刻>-<プロセスID>.dmp
+%LOCALAPPDATA%/Heiran/crashes/heiran-<日付>-<時刻>-<プロセスID>.dmp
 ```
 
 調べ方:

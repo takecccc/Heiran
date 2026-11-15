@@ -10,6 +10,7 @@
 #include "heiran/ui/ChangeGraphWindow.hpp"
 #include "heiran/ui/ColorTheme.hpp"
 #include "heiran/ui/DiffWindow.hpp"
+#include "heiran/ui/FavoritesController.hpp"
 #include "heiran/ui/FileOperations.hpp"
 #include "heiran/ui/Histogram3DWindow.hpp"
 #include "heiran/ui/HistogramWindow.hpp"
@@ -86,7 +87,7 @@
 
 namespace heiran::ui {
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
     : QMainWindow(parent), dirtyStateController_(this), viewerGrid_(new ViewerGridWidget) {
   setWindowTitle(QCoreApplication::translate("MainWindow", "Untitled[*] - Heiran"));
   restoreWindowState();
@@ -123,6 +124,7 @@ MainWindow::MainWindow(QWidget *parent)
   createNavigationToolBar();
   createGlobalShortcuts();
   applyInitialState();
+  new FavoritesController(this, viewerGrid_, std::move(favoritesFile));
   addShortcutsToToolTips();
   // 役割が文字から明らかな項目は、アイコンで出す。文字は、ツールチップとメニューに残る。
   applyActionIcons(this);
@@ -269,6 +271,7 @@ void MainWindow::createFileMenu() {
 // Images メニュー。
 void MainWindow::createImagesMenu() {
   auto *imagesMenu = menuBar()->addMenu(QCoreApplication::translate("MainWindow", "&Images"));
+  imagesMenu->setObjectName("imagesMenu");
   // 画像の割り当て、格子、画像セット、並べ替えの変更を、戻す。
   undoAction_ = imagesMenu->addAction(QCoreApplication::translate("MainWindow", "Undo"));
   undoAction_->setShortcut(QKeySequence::Undo);
@@ -808,7 +811,7 @@ void MainWindow::createNavigationToolBar() {
     if (pageIndex < 0) {
       return;
     }
-    viewerGrid_->setCurrentPage(pageIndex);
+    viewerGrid_->setCurrentPage(pageComboBox_->itemData(pageIndex).toInt());
   });
   navigationToolBar->addWidget(pageComboBox_);
 
@@ -1402,13 +1405,15 @@ void MainWindow::announcePageChangeInFullScreen() {
   const int page = viewerGrid_->currentPage();
   const bool changed = page != lastAnnouncedPage_;
   lastAnnouncedPage_ = page;
-  if (!changed || !isFullScreen() || viewerGrid_->totalPages() <= 0) {
+  if (!changed || !isFullScreen() || viewerGrid_->navigationPageCount() <= 0) {
     return;
   }
 
   const QString name = QFileInfo(viewerGrid_->targetCellFilePath()).fileName();
-  messageOverlay_->showMessage(
-      QString("%1 / %2  %3").arg(page + 1).arg(viewerGrid_->totalPages()).arg(name));
+  messageOverlay_->showMessage(QString("%1 / %2  %3")
+                                   .arg(viewerGrid_->navigationPageIndex() + 1)
+                                   .arg(viewerGrid_->navigationPageCount())
+                                   .arg(name));
 }
 
 void MainWindow::updatePixelInfoPanel(const QStringList &lines) {
@@ -1432,17 +1437,17 @@ void MainWindow::updatePageControls() {
     return;
   }
 
-  const int actualTotalPages = viewerGrid_->totalPages();
-  const QStringList pageTexts = PageListing::displayTexts(currentSession_, actualTotalPages);
-
+  const int available = viewerGrid_->navigationPageCount();
+  const auto allTexts = PageListing::displayTexts(currentSession_, viewerGrid_->totalPages());
   pageComboBox_->blockSignals(true);
   pageComboBox_->clear();
-  pageComboBox_->addItems(pageTexts);
-  if (actualTotalPages > 0) {
-    pageComboBox_->setCurrentIndex(std::clamp(viewerGrid_->currentPage(), 0, actualTotalPages - 1));
+  for (int index = 0; index < available; ++index) {
+    const int page = viewerGrid_->navigationPageAt(index);
+    pageComboBox_->addItem(allTexts.value(page), page);
   }
+  pageComboBox_->setCurrentIndex(viewerGrid_->navigationPageIndex());
   pageComboBox_->blockSignals(false);
-  pageComboBox_->setEnabled(actualTotalPages > 0);
+  pageComboBox_->setEnabled(available > 0);
   if (viewerChrome_ != nullptr) {
     viewerChrome_->refreshPages();
   }
@@ -2113,19 +2118,23 @@ void MainWindow::applyAppSettings() {
 
 // ページのサムネイル一覧。選んだページへ飛ぶ。
 void MainWindow::openPageThumbnails() {
-  const int totalPages = viewerGrid_->totalPages();
+  const int totalPages = viewerGrid_->navigationPageCount();
   if (totalPages <= 0) {
     statusBar()->showMessage(QCoreApplication::translate("MainWindow", "No pages to show."), 3000);
     return;
   }
 
   PageThumbnailDialog dialog(this);
-  dialog.setPages(PageListing::pagePaths(currentSession_, totalPages), viewerGrid_->currentPage());
+  QStringList paths;
+  for (int index = 0; index < viewerGrid_->navigationPageCount(); ++index) {
+    paths.push_back(PageListing::pagePath(currentSession_, viewerGrid_->navigationPageAt(index)));
+  }
+  dialog.setPages(paths, viewerGrid_->navigationPageIndex());
   if (dialog.exec() != QDialog::Accepted) {
     return;
   }
   if (dialog.selectedPage() >= 0) {
-    viewerGrid_->setCurrentPage(dialog.selectedPage());
+    viewerGrid_->setCurrentPage(viewerGrid_->navigationPageAt(dialog.selectedPage()));
   }
 }
 

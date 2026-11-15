@@ -59,9 +59,9 @@ ViewerChromeController::ViewerChromeController(QMainWindow *window, ViewerGridWi
   compact->hide();
   connect(navigation, &QToolBar::visibilityChanged, compact,
           [compact](bool visible) { compact->setVisible(!visible); });
-  connect(compactSelector_, &QComboBox::currentIndexChanged, grid, [grid](int index) {
+  connect(compactSelector_, &QComboBox::currentIndexChanged, grid, [this, grid](int index) {
     if (index >= 0) {
-      grid->setCurrentPage(index);
+      grid->setCurrentPage(compactSelector_->itemData(index).toInt());
     }
   });
   refreshPages();
@@ -72,7 +72,8 @@ void ViewerChromeController::refreshPages() {
   compactSelector_->clear();
   const int total = sourceSelector_->count();
   for (int index = 0; index < total; ++index) {
-    compactSelector_->addItem(QString("%1 / %2").arg(index + 1).arg(total));
+    compactSelector_->addItem(QString("%1 / %2").arg(index + 1).arg(total),
+                              sourceSelector_->itemData(index));
     compactSelector_->setItemData(index, sourceSelector_->itemText(index), Qt::ToolTipRole);
   }
   compactSelector_->setCurrentIndex(sourceSelector_->currentIndex());

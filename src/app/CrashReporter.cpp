@@ -1,8 +1,8 @@
 #include "heiran/app/CrashReporter.hpp"
+#include "heiran/infra/UserDataPaths.hpp"
 
 #include <QDateTime>
 #include <QDir>
-#include <QStandardPaths>
 
 #if defined(Q_OS_WIN)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -21,8 +21,7 @@ namespace heiran::app {
 namespace {
 
 QString defaultDumpDirectory() {
-  const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-  return base.isEmpty() ? QDir::tempPath() + "/Heiran/crashes" : base + "/crashes";
+  return QDir(heiran::infra::userDataDirectory()).filePath("crashes");
 }
 
 // 落ちた後に文字列を組み立てるのは避けたい。仕掛けるときに決めて持っておく。

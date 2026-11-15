@@ -8,6 +8,7 @@
 //                     [--dialog-category "Display and playback"]
 //                     [--dialog-focus magnifyFilter]
 //                     [--recent-image path]
+//                     [--favorites-file path]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -72,7 +73,7 @@ namespace {
 // 画面の項目の名前が、指定の (英語の) 名前と同じか。--lang ja のときは、翻訳された名前でも合う。
 // アクセラレーターの印 (&F、(&F)) は、無視する。
 bool sameName(const QString &shown, const QString &english) {
-  static const QRegularExpression accelerator("\(&.\)");
+  static const QRegularExpression accelerator(R"(\(&.\))");
   const auto normalize = [](QString text) { return text.remove(accelerator).remove('&'); };
   const QString target = normalize(shown);
   if (target == normalize(english)) {
@@ -82,9 +83,9 @@ bool sameName(const QString &shown, const QString &english) {
   // (&File)。印のない名前でも、引けるようにする。
   for (const QString &candidate : {english, "&" + english}) {
     const QByteArray source = candidate.toUtf8();
-    for (const char *context :
-         {"MainWindow", "ImageSetManagerDialog", "SettingsDialog", "CellContextMenu",
-          "HistogramWindow", "ViewerChromeController", "heiran::ui::DiffBarWidget"}) {
+    for (const char *context : {"MainWindow", "ImageSetManagerDialog", "SettingsDialog",
+                                "CellContextMenu", "HistogramWindow", "ViewerChromeController",
+                                "heiran::ui::DiffBarWidget", "heiran::ui::FavoritesController"}) {
       if (target == normalize(QCoreApplication::translate(context, source.constData()))) {
         return true;
       }
@@ -138,10 +139,13 @@ int main(int argc, char *argv[]) {
   int wheelSteps = 0;
   QString checkText;
   QStringList images;
+  QString favoritesFile;
   for (int index = 0; index < arguments.size(); ++index) {
     const QString &argument = arguments.at(index);
     if (argument == "--theme" && index + 1 < arguments.size()) {
       theme = arguments.at(++index);
+    } else if (argument == "--favorites-file" && index + 1 < arguments.size()) {
+      favoritesFile = arguments.at(++index);
     } else if (argument == "--context-cell" && index + 1 < arguments.size()) {
       contextCell = arguments.at(++index).toInt();
     } else if (argument == "--transparency" && index + 1 < arguments.size()) {
@@ -222,7 +226,7 @@ int main(int argc, char *argv[]) {
   if (!recentImages.isEmpty()) {
     heiran::ui::RecentImages::save(recentImages);
   }
-  heiran::ui::MainWindow window;
+  heiran::ui::MainWindow window(nullptr, favoritesFile);
   window.resize(size);
   if (!sessionPath.isEmpty()) {
     heiran::app::ApplicationController controller;

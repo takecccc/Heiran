@@ -12,22 +12,23 @@
 <context>
     <name>ApplicationController</name>
     <message>
-        <location filename="../../src/app/ApplicationController.cpp" line="24"/>
+        <location filename="../../src/app/ApplicationController.cpp" line="37"/>
         <source>Drop an image here, or use File &gt; Open Image...</source>
         <translation>画像をここへドロップするか、ファイル &gt; 画像を開く... を使ってください</translation>
     </message>
     <message>
-        <location filename="../../src/app/ApplicationController.cpp" line="38"/>
+        <location filename="../../src/app/ApplicationController.cpp" line="52"/>
         <source>Failed to load %1: %2</source>
         <translation>%1 を読み込めませんでした: %2</translation>
     </message>
     <message>
-        <location filename="../../src/app/ApplicationController.cpp" line="58"/>
+        <location filename="../../src/app/ApplicationController.cpp" line="44"/>
+        <location filename="../../src/app/ApplicationController.cpp" line="72"/>
         <source>Loaded %1</source>
         <translation>%1 を読み込みました</translation>
     </message>
     <message>
-        <location filename="../../src/app/ApplicationController.cpp" line="84"/>
+        <location filename="../../src/app/ApplicationController.cpp" line="98"/>
         <source>Saved %1</source>
         <translation>%1 を保存しました</translation>
     </message>
@@ -35,190 +36,195 @@
 <context>
     <name>CellContextMenu</name>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="34"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="32"/>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="39"/>
         <source>Transparency background</source>
         <translation>透過部分の背景</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="38"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="43"/>
         <source>Solid color</source>
         <translation>単色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="40"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="45"/>
         <source>Checkerboard</source>
         <translation>市松模様</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="51"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="56"/>
         <source>Disable Sync</source>
         <translation>同期を切る</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="52"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="57"/>
         <source>Enable Sync</source>
         <translation>同期を入れる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="54"/>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="229"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="59"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="238"/>
         <source>Scale</source>
         <translation>倍率</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="66"/>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="80"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="71"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="85"/>
         <source>Custom...</source>
         <translation>カスタム...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="68"/>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="238"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="73"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="247"/>
         <source>Gamma</source>
         <translation>ガンマ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="82"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="87"/>
         <source>Rotate</source>
         <translation>回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="87"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="92"/>
         <source>0 deg</source>
         <translation>0 度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="88"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="93"/>
         <source>90 deg</source>
         <translation>90 度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="89"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="94"/>
         <source>180 deg</source>
         <translation>180 度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="90"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="95"/>
         <source>270 deg</source>
         <translation>270 度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="101"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="106"/>
         <source>Flip Horizontally</source>
         <translation>左右反転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="105"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="110"/>
         <source>Invert</source>
         <translation>反転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="110"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="115"/>
         <source>Flip Vertically</source>
         <translation>上下反転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="116"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="121"/>
         <source>Show Label</source>
         <translation>ラベルを表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="122"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="127"/>
         <source>Edit Label...</source>
         <translation>ラベルを編集...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="128"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="133"/>
         <source>Clear Cell</source>
         <translation>セルを空にする</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="132"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="137"/>
         <source>Assign Image</source>
         <translation>画像を割り当て</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="134"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="139"/>
         <source>Empty</source>
         <translation>空</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="150"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="155"/>
         <source>Reset Cell Display</source>
         <translation>セルの表示を戻す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="157"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="162"/>
         <source>Stop Showing Wipe</source>
         <translation>ワイプの表示をやめる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="158"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="163"/>
         <source>Stop Showing Difference</source>
         <translation>差分の表示をやめる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="165"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="170"/>
         <source>Show Difference vs</source>
         <translation>差分を表示 (比べる相手)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="166"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="171"/>
         <source>Show Wipe vs</source>
         <translation>ワイプを表示 (比べる相手)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="184"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="189"/>
         <source>Copy Image</source>
         <translation>画像をコピー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="187"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="192"/>
         <source>Show in Folder</source>
         <translation>フォルダーで表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="191"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="196"/>
         <source>Channel</source>
         <translation>チャンネル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="197"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="202"/>
         <source>Color</source>
         <translation>カラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="198"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="203"/>
         <source>Gray</source>
         <translation>グレー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="199"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="204"/>
         <source>Red</source>
         <translation>赤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="200"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="205"/>
         <source>Green</source>
         <translation>緑</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="201"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="206"/>
         <source>Blue</source>
         <translation>青</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="202"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="207"/>
         <source>Alpha</source>
         <translation>アルファ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="228"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="237"/>
         <source>Custom Scale</source>
         <translation>倍率の指定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/CellContextMenu.cpp" line="237"/>
+        <location filename="../../src/ui/CellContextMenu.cpp" line="246"/>
         <source>Custom Gamma</source>
         <translation>ガンマの指定</translation>
     </message>
@@ -547,6 +553,24 @@ RMSE=%6  PSNR=%7 (輝度)
         <location filename="../../src/ui/DirtyStateController.cpp" line="74"/>
         <source>%1[*] - Heiran</source>
         <translation>%1[*] - Heiran</translation>
+    </message>
+</context>
+<context>
+    <name>FavoriteStore</name>
+    <message>
+        <location filename="../../src/infra/FavoriteStore.cpp" line="66"/>
+        <source>Invalid favorites data.</source>
+        <translation>お気に入りのデータが不正です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/infra/FavoriteStore.cpp" line="81"/>
+        <source>Could not create the favorites directory.</source>
+        <translation>お気に入りの保存フォルダーを作成できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/infra/FavoriteStore.cpp" line="88"/>
+        <source>Favorites are being updated by another window. Try again.</source>
+        <translation>別のウィンドウがお気に入りを更新しています。もう一度お試しください。</translation>
     </message>
 </context>
 <context>
@@ -1347,841 +1371,841 @@ Click to follow the other cells again.</source>
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="90"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="92"/>
         <source>Untitled[*] - Heiran</source>
         <translation>無題[*] - Heiran</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="175"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="178"/>
         <source>Pixel Info</source>
         <translation>画素の情報</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="192"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="195"/>
         <location filename="../../tests/LocalizationTests.cpp" line="73"/>
         <location filename="../../tests/LocalizationTests.cpp" line="75"/>
         <source>&amp;File</source>
         <translation>ファイル(&amp;F)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="194"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="197"/>
         <source>Open Image...</source>
         <translation>画像を開く...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="198"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="201"/>
         <source>Recent Images</source>
         <translation>最近開いた画像</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="203"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="206"/>
         <source>Open .hrn...</source>
         <translation>.hrn を開く...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="211"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1010"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="214"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1015"/>
         <source>Open .hrn</source>
         <translation>.hrn を開く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="212"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1234"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="215"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1245"/>
         <source>Heiran Config (*.hrn)</source>
         <translation>Heiran の設定 (*.hrn)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="225"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="228"/>
         <source>Open Recent</source>
         <translation>最近開いた .hrn</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="229"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="232"/>
         <source>Settings...</source>
         <translation>設定...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="233"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="236"/>
         <source>Save</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="237"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="240"/>
         <source>Save As...</source>
         <translation>名前を付けて保存...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="250"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="253"/>
         <source>Rename...</source>
         <translation>名前の変更...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="252"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="255"/>
         <source>Move to Recycle Bin...</source>
         <translation>ごみ箱へ移動...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="254"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="257"/>
         <source>Copy File Path</source>
         <translation>ファイルのパスをコピー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="256"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="259"/>
         <source>Show in Folder</source>
         <translation>フォルダーで表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="259"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="262"/>
         <source>Print...</source>
         <translation>印刷...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="261"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="264"/>
         <source>Refresh File List</source>
         <translation>ファイル一覧を更新</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="264"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="267"/>
         <source>Refreshed the file list.</source>
         <translation>ファイル一覧を更新しました。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="270"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="273"/>
         <source>&amp;Images</source>
         <translation>画像(&amp;I)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="272"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1634"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="276"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1647"/>
         <source>Undo</source>
         <translation>元に戻す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="276"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1639"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="280"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1652"/>
         <source>Redo</source>
         <translation>やり直す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="284"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1730"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="288"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1743"/>
         <source>Clear All Cells</source>
         <translation>すべてのセルを空にする</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="288"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="292"/>
         <source>Manage Image Sets...</source>
         <translation>画像セットの管理...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="294"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="298"/>
         <source>&amp;Layout</source>
         <translation>レイアウト(&amp;L)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="309"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="313"/>
         <source>1 Cell</source>
         <translation>1 セル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="310"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="314"/>
         <source>%1 Cells</source>
         <translation>%1 セル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="318"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="367"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="322"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="371"/>
         <source>Custom...</source>
         <translation>カスタム...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="322"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="333"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="326"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="337"/>
         <source>Custom Layout</source>
         <translation>レイアウトの指定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="323"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="327"/>
         <source>Rows</source>
         <translation>行数</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="334"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="338"/>
         <source>Columns</source>
         <translation>列数</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="345"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="349"/>
         <source>Fill Order</source>
         <translation>並べる順序</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="350"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="354"/>
         <source>Row First</source>
         <translation>行を先に</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="357"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="361"/>
         <source>Column First</source>
         <translation>列を先に</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="365"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="369"/>
         <source>Image Order</source>
         <translation>画像の順序</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="371"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="375"/>
         <source>Ascending</source>
         <translation>昇順</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="375"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="379"/>
         <source>Reverse</source>
         <translation>逆順</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="379"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="486"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="383"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="490"/>
         <source>Rotate Left</source>
         <translation>左へ回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="383"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="479"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="387"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="483"/>
         <source>Rotate Right</source>
         <translation>右へ回転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="390"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="394"/>
         <source>&amp;View</source>
         <translation>表示(&amp;V)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="392"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="396"/>
         <source>Channel</source>
         <translation>チャンネル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="405"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="409"/>
         <source>Color</source>
         <translation>カラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="407"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="411"/>
         <source>Gray</source>
         <translation>グレー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="409"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="413"/>
         <source>Red</source>
         <translation>赤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="411"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="415"/>
         <source>Green</source>
         <translation>緑</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="413"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="417"/>
         <source>Blue</source>
         <translation>青</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="415"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="419"/>
         <source>Alpha</source>
         <translation>アルファ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="419"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="423"/>
         <source>Pixel Value Unit</source>
         <translation>画素値の単位</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="440"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="444"/>
         <source>Fit on Page Change</source>
         <translation>ページ切り替え時にフィット</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="443"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="447"/>
         <source>Fit the images into their cells whenever the page changes. (Shift+F)</source>
         <translation>ページを替えるたびに、画像をセルへ収めます。(Shift+F)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="447"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="451"/>
         <source>Cell Borders</source>
         <translation>セルの境目</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="455"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="459"/>
         <source>Cursor</source>
         <translation>カーソル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="465"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="469"/>
         <source>Outlined Color</source>
         <translation>縁付きの色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="467"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="471"/>
         <source>Contrast Color</source>
         <translation>対比する色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="471"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="475"/>
         <source>Invert All Cells</source>
         <translation>すべてのセルを反転</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="496"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="500"/>
         <source>Play Animation</source>
         <translation>アニメーションを再生</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="504"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="508"/>
         <source>Animation Sync</source>
         <translation>アニメーションの同期</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="518"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="522"/>
         <source>Auto</source>
         <translation>自動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="519"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="523"/>
         <source>Sync the cells when the animations have the same number of frames; otherwise play each at its own speed.</source>
         <translation>アニメーションのフレーム数が同じなら、セルを同期します。違えば、それぞれの速さで再生します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="525"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="529"/>
         <source>Locked</source>
         <translation>常に同期</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="526"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="530"/>
         <source>Always keep every cell on the same frame.</source>
         <translation>常に、全セルを同じフレームにそろえます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="529"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="533"/>
         <source>Independent</source>
         <translation>個別</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="530"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="534"/>
         <source>Always play each cell at its own speed.</source>
         <translation>常に、セルごとの速さで再生します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="538"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="542"/>
         <source>Next Cell</source>
         <translation>次のセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="543"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="547"/>
         <source>Previous Cell</source>
         <translation>前のセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="549"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="553"/>
         <source>Single Cell</source>
         <translation>単独表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="553"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="557"/>
         <source>All Cells</source>
         <translation>すべてのセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="563"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1851"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="567"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1864"/>
         <source>Cell %1</source>
         <translation>セル %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="576"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="580"/>
         <source>Cell %1 of %2  (Tab: next, Esc: all cells)</source>
         <translation>セル %1 / %2  (Tab: 次へ、Esc: すべてのセル)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="581"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="585"/>
         <source>All cells</source>
         <translation>すべてのセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="587"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="591"/>
         <source>Previous Frame</source>
         <translation>前のフレーム</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="593"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="597"/>
         <source>Next Frame</source>
         <translation>次のフレーム</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="601"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="605"/>
         <source>Decrease Exposure</source>
         <translation>露出を下げる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="607"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="611"/>
         <source>Increase Exposure</source>
         <translation>露出を上げる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="614"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="618"/>
         <source>Reset Exposure</source>
         <translation>露出を戻す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="624"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="628"/>
         <source>Copy Image</source>
         <translation>画像をコピー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="631"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="635"/>
         <source>Pages...</source>
         <translation>ページ...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="638"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="642"/>
         <source>Image Info...</source>
         <translation>画像情報...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="659"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="674"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="663"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="678"/>
         <source>Manual</source>
         <translation>マニュアル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="660"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="664"/>
         <source>The manual was not found. It is installed with Heiran. In a development build, create it with scripts/build-manual.ps1.</source>
         <translation>マニュアルが見つかりません。マニュアルは Heiran と一緒にインストールされます。開発中のビルドでは、scripts/build-manual.ps1 で作ってください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="667"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="671"/>
         <source>Could not open the manual: </source>
         <translation>マニュアルを開けませんでした: </translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="673"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="677"/>
         <source>&amp;Help</source>
         <translation>ヘルプ(&amp;H)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="679"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="683"/>
         <source>About Heiran...</source>
         <translation>Heiran について...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="686"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="690"/>
         <source>About Qt...</source>
         <translation>Qt について...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="692"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="696"/>
         <source>&amp;Analysis</source>
         <translation>解析(&amp;A)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="694"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="698"/>
         <source>Histogram</source>
         <translation>ヒストグラム</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="703"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="707"/>
         <source>Histogram 3D</source>
         <translation>ヒストグラム 3D</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="713"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="717"/>
         <source>Waveform</source>
         <translation>波形モニタ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="722"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="726"/>
         <source>Vectorscope</source>
         <translation>ベクトルスコープ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="732"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="736"/>
         <source>Diff Cell</source>
         <translation>差分セル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="736"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="740"/>
         <source>Wipe Cell</source>
         <translation>ワイプセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="740"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="744"/>
         <source>Diff Window</source>
         <translation>差分ウィンドウ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="749"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="753"/>
         <source>Change Graph</source>
         <translation>変化グラフ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="761"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="765"/>
         <source>Navigation</source>
         <translation>ナビゲーション</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="767"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="771"/>
         <source>Prev</source>
         <translation>前へ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="768"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="772"/>
         <source>Previous page</source>
         <translation>前のページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="777"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="781"/>
         <source>Next</source>
         <translation>次へ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="778"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="782"/>
         <source>Next page</source>
         <translation>次のページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="786"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="790"/>
         <source>First Page</source>
         <translation>最初のページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="791"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="795"/>
         <source>Last Page</source>
         <translation>最後のページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="799"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="803"/>
         <source>Page</source>
         <translation>ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="824"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="828"/>
         <source> EV</source>
         <translation> EV</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="826"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="830"/>
         <source>Exposure in stops. The displayed value is multiplied by 2^EV before clipping.</source>
         <translation>露出 (段数)。表示する値に、クリップの前に 2^EV を掛けます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="839"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="843"/>
         <source>Reset exposure to 0 EV (\)</source>
         <translation>露出を 0 EV に戻します (\)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="861"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="865"/>
         <source>Exposure</source>
         <translation>露出</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="877"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="881"/>
         <source>%1 EV</source>
         <translation>%1 EV</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="885"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="889"/>
         <source>Exposure %1 EV</source>
         <translation>露出 %1 EV</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="893"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="897"/>
         <source>Fit</source>
         <translation>フィット</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="895"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="899"/>
         <source>Fit the images into their cells.</source>
         <translation>画像をセルに収めます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="903"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="907"/>
         <source>Show at 100%.</source>
         <translation>等倍 (100%) で表示します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="909"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="913"/>
         <source>Reset View</source>
         <translation>表示のリセット</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="911"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="915"/>
         <source>Reset the view (pan and zoom)</source>
         <translation>表示 (パンとズーム) を戻します</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="923"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="927"/>
         <source>Zoom In</source>
         <translation>拡大</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="930"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="934"/>
         <source>Zoom Out</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="937"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="941"/>
         <source>Full Screen</source>
         <translation>全画面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="943"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="947"/>
         <source>Clear Selection</source>
         <translation>選択範囲を解除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="962"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="977"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="966"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="981"/>
         <source>Ready</source>
         <translation>準備完了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1011"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1016"/>
         <source>Heiran session (*.hrn);;All files (*)</source>
         <translation>Heiran のセッション (*.hrn);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1037"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1042"/>
         <source>Open Image</source>
         <translation>画像を開く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1038"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1043"/>
         <source>Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.avif *.jxl *.tif *.tiff *.exr *.hdr *.dpx *.psd *.tga);;All Files (*)</source>
         <translation>画像 (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.avif *.jxl *.tif *.tiff *.exr *.hdr *.dpx *.psd *.tga);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1066"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1071"/>
         <source>Full screen: press Esc or F11 to exit</source>
         <translation>全画面: Esc か F11 で戻ります</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1231"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1242"/>
         <source>Save .hrn</source>
         <translation>.hrn を保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1274"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1285"/>
         <source>Confirm Overwrite</source>
         <translation>上書きの確認</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1275"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1286"/>
         <source>%1 already exists. Overwrite it?</source>
         <translation>%1 は、すでにあります。上書きしますか?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1298"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1309"/>
         <source>%1 no longer exists.</source>
         <translation>%1 が見つかりません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1339"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1370"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1350"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1381"/>
         <source>(empty)</source>
         <translation>(空)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1354"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1365"/>
         <source>Clear Recent Images</source>
         <translation>履歴を消去</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1611"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1624"/>
         <source>Undid: %1</source>
         <translation>元に戻しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1624"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1637"/>
         <source>Redid: %1</source>
         <translation>やり直しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1635"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1648"/>
         <source>Undo %1</source>
         <translation>元に戻す: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1640"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1653"/>
         <source>Redo %1</source>
         <translation>やり直す: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1652"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1665"/>
         <source>Drop Images</source>
         <translation>画像のドロップ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1674"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1687"/>
         <source>Show Label</source>
         <translation>ラベルを表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1675"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1688"/>
         <source>Hide Label</source>
         <translation>ラベルを隠す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1695"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1699"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1708"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1712"/>
         <source>Edit Label</source>
         <translation>ラベルの編集</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1700"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1713"/>
         <source>Label template</source>
         <translation>ラベルのひな形</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1717"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1730"/>
         <source>Clear Cell</source>
         <translation>セルを空にする</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1718"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1731"/>
         <source>Assign Image</source>
         <translation>画像を割り当て</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1732"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1745"/>
         <source>There is nothing to clear.</source>
         <translation>空にするものがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1739"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1752"/>
         <source>Cleared all cells. (Ctrl+Z to undo)</source>
         <translation>すべてのセルを空にしました。(Ctrl+Z で戻せます)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1744"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1757"/>
         <source>Edit Image Sets</source>
         <translation>画像セットの編集</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1763"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1776"/>
         <source>Change Layout</source>
         <translation>レイアウトの変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1777"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1790"/>
         <source>Add Wipe Cell</source>
         <translation>ワイプセルの追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1778"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1791"/>
         <source>Add Difference Cell</source>
         <translation>差分セルの追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1783"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1796"/>
         <source>No room for a difference cell. Empty a cell first.</source>
         <translation>差分セルを置く場所がありません。先にセルを空にしてください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1799"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1812"/>
         <source>A wipe needs two cells with images.</source>
         <translation>ワイプには、画像のあるセルが 2 つ必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1800"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1813"/>
         <source>A difference needs two cells with images.</source>
         <translation>差分には、画像のあるセルが 2 つ必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1815"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1828"/>
         <source>Change Fill Order</source>
         <translation>並べる順序の変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1826"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1891"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1839"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1904"/>
         <source>Reorder Images</source>
         <translation>画像の並べ替え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1833"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1846"/>
         <source>Custom Image Order</source>
         <translation>画像の順序の指定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1840"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1853"/>
         <source>0: Empty</source>
         <translation>0: 空</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1877"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1890"/>
         <source>Duplicate Image Number</source>
         <translation>画像の番号の重複</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2110"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2123"/>
         <source>No pages to show.</source>
         <translation>表示するページがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2162"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2179"/>
         <source>Paused</source>
         <translation>一時停止</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2169"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2186"/>
         <source>This file has no animation.</source>
         <translation>このファイルにアニメーションはありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2174"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2191"/>
         <source>Playing</source>
         <translation>再生中</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2179"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2196"/>
         <source>This file has only one image.</source>
         <translation>このファイルには画像が 1 枚だけです。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2225"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2242"/>
         <source>There is no file to rename.</source>
         <translation>名前を変えるファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2231"/>
         <location filename="../../src/ui/MainWindow.cpp" line="2248"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2265"/>
         <source>Rename</source>
         <translation>名前の変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2232"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2249"/>
         <source>File name</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2258"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2275"/>
         <source>Renamed to %1</source>
         <translation>%1 に名前を変えました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2265"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2282"/>
         <source>There is no file to delete.</source>
         <translation>削除するファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2270"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="2280"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2287"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2297"/>
         <source>Move to Recycle Bin</source>
         <translation>ごみ箱へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2271"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2288"/>
         <source>Move this file to the Recycle Bin?
 
 %1</source>
@@ -2190,37 +2214,37 @@ Click to follow the other cells again.</source>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2287"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2304"/>
         <source>Moved %1 to the Recycle Bin</source>
         <translation>%1 をごみ箱へ移動しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2294"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2311"/>
         <source>There is no file to copy the path of.</source>
         <translation>パスをコピーするファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2299"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2316"/>
         <source>Copied the file path.</source>
         <translation>ファイルのパスをコピーしました。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2305"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2322"/>
         <source>There is no image to print.</source>
         <translation>印刷する画像がありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2315"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2332"/>
         <source>Print</source>
         <translation>印刷</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2316"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2333"/>
         <source>Could not print the image.</source>
         <translation>画像を印刷できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2319"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2336"/>
         <source>Sent the image to the printer.</source>
         <translation>画像をプリンターへ送りました。</translation>
     </message>
@@ -2994,6 +3018,74 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     </message>
 </context>
 <context>
+    <name>heiran::ui::FavoritesController</name>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="28"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="167"/>
+        <source>Favorites</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="29"/>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="34"/>
+        <source>Favorites Only</source>
+        <translation>お気に入りのみ表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="40"/>
+        <source>Copy Favorites...</source>
+        <translation>お気に入りをコピー...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="78"/>
+        <source>Copy cancelled. %1 image(s) were copied.</source>
+        <translation>コピーを中止しました。%1 枚の画像をコピーしました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="79"/>
+        <source>Copied %1 favorite image(s). Skipped %2. Failed %3.</source>
+        <translation>お気に入りを %1 枚コピーしました。スキップ: %2、失敗: %3。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="85"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="176"/>
+        <source>Copy Favorites</source>
+        <translation>お気に入りのコピー</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="92"/>
+        <source>Could not load favorites: %1</source>
+        <translation>お気に入りを読み込めませんでした: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="167"/>
+        <source>Could not save favorites: %1</source>
+        <translation>お気に入りを保存できませんでした: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="181"/>
+        <source>Copying favorite images...</source>
+        <translation>お気に入りの画像をコピーしています...</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/FavoritesController.cpp" line="181"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+</context>
+<context>
+    <name>heiran::ui::ImageViewWidget</name>
+    <message>
+        <location filename="../../src/ui/ImageViewWidget.cpp" line="1005"/>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+</context>
+<context>
     <name>heiran::ui::PageThumbnailDialog</name>
     <message>
         <location filename="../../src/ui/PageThumbnailDialog.cpp" line="26"/>
@@ -3004,12 +3096,12 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
 <context>
     <name>heiran::ui::ViewerGridWidget</name>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="639"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="640"/>
         <source>Frame %1 / %2</source>
         <translation>フレーム %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="643"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="644"/>
         <source>Subpage %1 / %2</source>
         <translation>サブページ %1 / %2</translation>
     </message>
@@ -3024,73 +3116,78 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>差分には、画像のあるセルが 2 つ必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1437"/>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2305"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1436"/>
+        <source>No images to display.</source>
+        <translation>表示する画像がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1441"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2313"/>
         <source>Drop an image here.</source>
         <translation>ここへ画像をドロップしてください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1443"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1447"/>
         <source>No files matched the path pattern.</source>
         <translation>パスのパターンに合うファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1451"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1455"/>
         <source>This image set has no image on this page.</source>
         <translation>この画像セットには、このページの画像がありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1783"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1791"/>
         <source>No images loaded</source>
         <translation>画像が読み込まれていません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1788"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1796"/>
         <source>Page %1 / %2</source>
         <translation>ページ %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1793"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1801"/>
         <source>  Scale %1</source>
         <translation>  倍率 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1801"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1809"/>
         <source>  |  cache %1 / %2 MiB  tex %3 MiB</source>
         <translation>  |  キャッシュ %1 / %2 MiB  テクスチャ %3 MiB</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2324"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2332"/>
         <source>Cell %1</source>
         <translation>セル %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2326"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2334"/>
         <source> (diff)</source>
         <translation> (差分)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2330"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2338"/>
         <source> (empty)</source>
         <translation> (空)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2353"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2361"/>
         <source>Wipe: Cell %1 | Cell %2</source>
         <translation>ワイプ: セル %1 | セル %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2356"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2364"/>
         <source>Diff: Cell %1 - Cell %2</source>
         <translation>差分: セル %1 - セル %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2483"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2493"/>
         <source>Diff: the cell does not exist.</source>
         <translation>差分: セルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2494"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2504"/>
         <source>Diff: waiting for Cell %1 and Cell %2.</source>
         <translation>差分: セル %1 とセル %2 を待っています。</translation>
     </message>
@@ -3098,32 +3195,32 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
 <context>
     <name>heiran::ui::WelcomeWidget</name>
     <message>
-        <location filename="../../src/ui/WelcomeWidget.cpp" line="80"/>
+        <location filename="../../src/ui/WelcomeWidget.cpp" line="81"/>
         <source>Heiran</source>
         <translation>Heiran</translation>
     </message>
     <message>
-        <location filename="../../src/ui/WelcomeWidget.cpp" line="84"/>
+        <location filename="../../src/ui/WelcomeWidget.cpp" line="85"/>
         <source>An image viewer that shows several images in sync</source>
         <translation>複数の画像を同期して表示するイメージビューワー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/WelcomeWidget.cpp" line="86"/>
+        <location filename="../../src/ui/WelcomeWidget.cpp" line="87"/>
         <source>Drop images or a folder here</source>
         <translation>ここへ画像かフォルダーをドロップ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/WelcomeWidget.cpp" line="88"/>
+        <location filename="../../src/ui/WelcomeWidget.cpp" line="89"/>
         <source>Open Image...</source>
         <translation>画像を開く...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/WelcomeWidget.cpp" line="95"/>
+        <location filename="../../src/ui/WelcomeWidget.cpp" line="96"/>
         <source>Ctrl+O  open     F1  manual     Tab  compare one by one</source>
         <translation>Ctrl+O  開く     F1  マニュアル     Tab  1 つずつ見比べる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/WelcomeWidget.cpp" line="131"/>
+        <location filename="../../src/ui/WelcomeWidget.cpp" line="132"/>
         <source>Recent images</source>
         <translation>最近開いた画像</translation>
     </message>
@@ -3131,67 +3228,67 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
 <context>
     <name>main</name>
     <message>
-        <location filename="../../src/main.cpp" line="17"/>
-        <location filename="../../src/main.cpp" line="18"/>
-        <location filename="../../src/main.cpp" line="37"/>
+        <location filename="../../src/main.cpp" line="52"/>
+        <location filename="../../src/main.cpp" line="53"/>
+        <location filename="../../src/main.cpp" line="121"/>
         <source>Heiran</source>
         <translation>Heiran</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="61"/>
+        <location filename="../../src/main.cpp" line="142"/>
         <source>Failed to load %1.</source>
         <translation>%1 を読み込めませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="63"/>
+        <location filename="../../src/main.cpp" line="144"/>
         <source>The .hrn file could not be loaded.</source>
         <translation>.hrn ファイルを読み込めませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="65"/>
-        <location filename="../../src/main.cpp" line="121"/>
+        <location filename="../../src/main.cpp" line="146"/>
+        <location filename="../../src/main.cpp" line="204"/>
         <source>Fix the listed settings, or open another file.</source>
         <translation>一覧の設定を直すか、別のファイルを開いてください。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="78"/>
-        <location filename="../../src/main.cpp" line="127"/>
+        <location filename="../../src/main.cpp" line="159"/>
+        <location filename="../../src/main.cpp" line="210"/>
         <source>The .hrn file was loaded with some settings replaced by defaults.</source>
         <translation>.hrn ファイルを読み込みましたが、一部の設定を既定の値に置き換えました。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="81"/>
-        <location filename="../../src/main.cpp" line="130"/>
+        <location filename="../../src/main.cpp" line="162"/>
+        <location filename="../../src/main.cpp" line="213"/>
         <source>Review the listed settings if the result looks unexpected.</source>
         <translation>結果が想定と違うときは、一覧の設定を見直してください。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="94"/>
+        <location filename="../../src/main.cpp" line="175"/>
         <source>Failed to save %1.</source>
         <translation>%1 を保存できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="96"/>
+        <location filename="../../src/main.cpp" line="177"/>
         <source>The session could not be saved.</source>
         <translation>セッションを保存できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="98"/>
+        <location filename="../../src/main.cpp" line="179"/>
         <source>Check that the location is writable, then save again.</source>
         <translation>保存先に書き込めるかを確かめて、もう一度保存してください。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="109"/>
+        <location filename="../../src/main.cpp" line="190"/>
         <source>Save Complete</source>
         <translation>保存しました</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="110"/>
+        <location filename="../../src/main.cpp" line="191"/>
         <source>Saved %1.</source>
         <translation>%1 を保存しました。</translation>
     </message>
     <message>
-        <location filename="../../src/main.cpp" line="117"/>
+        <location filename="../../src/main.cpp" line="200"/>
         <source>The .hrn file given on the command line could not be loaded.</source>
         <translation>コマンドラインで渡された .hrn ファイルを読み込めませんでした。</translation>
     </message>

@@ -190,6 +190,10 @@ uv run python tools/generate_example_images.py
 出力は `build/manual` です。配布物には `doc/manual/` として入り、アプリの Help > Manual (F1) から開けます。
 マニュアルの画面の画像は、`./scripts/capture-manual-images.ps1` で撮り直せます。
 
+`heiran_screenshot` の `--favorites-file <JSON>` で、確認用のお気に入りファイルを指定できます。
+`--action "Favorites Only"` や `--action "Cell Headers"` と組み合わせ、絞り込みとマークの表示を確認します。
+確認用ツールの設定とキャッシュは、通常のアプリとは別の `HeiranScreenshot` フォルダーへ保存します。
+
 ## 配布物の作成
 
 ```powershell

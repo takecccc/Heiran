@@ -683,6 +683,8 @@ protected:
 
   void contextMenuEvent(QContextMenuEvent *event) override {
     CellContextMenuState menuState;
+    menuState.favorite = owner_->favorite_;
+    menuState.favoriteAvailable = owner_->favoriteAvailable_;
     menuState.transparencyPattern = owner_->transparencyBackground_.pattern;
     menuState.syncEnabled = owner_->cellState_.syncEnabled;
     menuState.scale = owner_->cellState_.scale;
@@ -706,6 +708,9 @@ protected:
     const CellContextMenuResult result = showCellContextMenu(this, globalPos, menuState);
     const int cellIndex = owner_->cellIndex_;
     switch (result.action) {
+      case CellContextMenuResult::Action::ToggleFavorite:
+        Q_EMIT owner_->favoriteToggleRequested(cellIndex);
+        break;
       case CellContextMenuResult::Action::SetTransparencyPattern:
         Q_EMIT owner_->transparencyPatternRequested(result.transparencyPattern);
         break;
@@ -995,6 +1000,13 @@ ImageViewWidget::ImageViewWidget(QWidget *parent) : QWidget(parent) {
   // マウス操作を伴うテストが送り先を特定するために使う。キャンバスの型は
   // この翻訳単位の中にしかないため、名前で引けるようにしておく。
   canvasWidget_->setObjectName("imageCanvas");
+  favoriteBadge_ = new QLabel(QStringLiteral("\u2605"), this);
+  favoriteBadge_->setObjectName("favoriteBadge");
+  favoriteBadge_->setAccessibleName(tr("Favorite"));
+  favoriteBadge_->setAttribute(Qt::WA_TransparentForMouseEvents);
+  favoriteBadge_->setAlignment(Qt::AlignCenter);
+  favoriteBadge_->setFixedSize(26, 26);
+  favoriteBadge_->hide();
   // 操作の対象のセルを示す枠。画像の面 (GPU) の上へ重ねる軽い部品で、マウスは下へ通す。
   activeFrameWidget_ = new ActiveFrameWidget(this);
   activeFrameWidget_->hide();
@@ -1066,8 +1078,24 @@ void ImageViewWidget::placeDiffBar() {
   diffBar_->raise();
 }
 
+void ImageViewWidget::setFavorite(bool favorite, bool available) {
+  const bool changed = favorite_ != favorite || favoriteAvailable_ != available;
+  favorite_ = favorite;
+  favoriteAvailable_ = available;
+  favoriteBadge_->move(width() - favoriteBadge_->width() - 7, canvasWidget_->geometry().top() + 7);
+  if (changed) {
+    favoriteBadge_->setVisible(favorite && available);
+    favoriteBadge_->raise();
+  }
+}
+
 void ImageViewWidget::resizeEvent(QResizeEvent *event) {
   QWidget::resizeEvent(event);
+  if (favoriteBadge_ && canvasWidget_) {
+    favoriteBadge_->move(width() - favoriteBadge_->width() - 7,
+                         canvasWidget_->geometry().top() + 7);
+    favoriteBadge_->raise();
+  }
   if (activeFrameWidget_ != nullptr && activeFrame_) {
     activeFrameWidget_->setGeometry(rect());
   }
@@ -1307,6 +1335,7 @@ void ImageViewWidget::setHeaderVisible(bool visible) {
   }
   headerWidget_->setVisible(visible);
   layout()->activate();
+  favoriteBadge_->move(width() - favoriteBadge_->width() - 7, canvasWidget_->geometry().top() + 7);
   updateWipeHandle();
   Q_EMIT cellResized();
 }

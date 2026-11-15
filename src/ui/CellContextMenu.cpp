@@ -29,6 +29,11 @@ int normalizedQuarterTurns(int rotationQuarterTurns) {
 CellContextMenuResult showCellContextMenu(QWidget *parent, const QPoint &globalPosition,
                                           const CellContextMenuState &state) {
   QMenu menu(parent);
+  auto *favoriteAction = menu.addAction(QCoreApplication::translate("CellContextMenu", "Favorite"));
+  favoriteAction->setCheckable(true);
+  favoriteAction->setChecked(state.favorite);
+  favoriteAction->setEnabled(state.favoriteAvailable);
+  menu.addSeparator();
 
   auto *backgroundMenu =
       menu.addMenu(QCoreApplication::translate("CellContextMenu", "Transparency background"));
@@ -215,6 +220,10 @@ CellContextMenuResult showCellContextMenu(QWidget *parent, const QPoint &globalP
   }
 
   CellContextMenuResult result;
+  if (selectedAction == favoriteAction) {
+    result.action = CellContextMenuResult::Action::ToggleFavorite;
+    return result;
+  }
   if (selectedAction == solidBackgroundAction || selectedAction == checkerBackgroundAction) {
     result.action = CellContextMenuResult::Action::SetTransparencyPattern;
     result.transparencyPattern = selectedAction == checkerBackgroundAction

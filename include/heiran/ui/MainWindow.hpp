@@ -53,7 +53,7 @@ struct PreparedImageSession;
 
 class MainWindow : public QMainWindow {
 public:
-  explicit MainWindow(QWidget *parent = nullptr);
+  explicit MainWindow(QWidget *parent = nullptr, QString favoritesFile = {});
 
   void setSession(const heiran::domain::SessionModel &session, int initialPage = 0,
                   std::shared_ptr<DecodeScheduler> startupScheduler = {});

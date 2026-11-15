@@ -152,6 +152,7 @@ void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, i
                                   std::shared_ptr<DecodeScheduler> startupScheduler) {
   session_ = session;
   globalState_ = {};
+  pageNavigation_.setPages(std::nullopt);
   globalState_.currentPage =
       std::clamp(initialPage, 0, std::max(0, heiran::domain::totalPageCount(session_) - 1));
   // 作り直しでは先頭のフレームへ戻す。再生の指定は残す。レイアウトの変更やドロップでも
@@ -193,6 +194,7 @@ void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, i
     applyPendingFit();
   }
   updateStatus();
+  Q_EMIT sessionChanged(true);
 }
 
 void ViewerGridWidget::setSessionPreservingView(const heiran::domain::SessionModel &session) {
@@ -215,57 +217,41 @@ void ViewerGridWidget::setSessionPreservingView(const heiran::domain::SessionMod
   }
   updateStatus();
   schedulePrefetchAroundCurrentPage();
+  Q_EMIT sessionChanged(false);
 }
 
 void ViewerGridWidget::nextPage() {
-  const int totalPages = pageCount();
-  if (totalPages <= 0) {
-    return;
-  }
-
-  const int nextPageIndex = std::min(globalState_.currentPage + 1, totalPages - 1);
-  if (nextPageIndex != globalState_.currentPage) {
-    resetSubImage();
-  }
-  globalState_.currentPage = nextPageIndex;
-  if (fitOnPageChange_) {
-    fitPending_ = true;
-  }
-  refreshCellImages();
-  // 読み込み済みのページへ移るときは、読み終えの通知が来ない。ここで合わせる
-  // (読み込み中のセルがあれば、待って、読み終えたときに合わせる)。
-  applyPendingFit();
-  refreshCellViewStates();
-  updateStatus();
-  schedulePrefetchAroundCurrentPage();
-  Q_EMIT viewChanged();
+  stepPages(1);
 }
 
 void ViewerGridWidget::previousPage() {
-  if (pageCount() <= 0) {
-    return;
-  }
-
-  const int previousPageIndex = std::max(globalState_.currentPage - 1, 0);
-  if (previousPageIndex != globalState_.currentPage) {
-    resetSubImage();
-  }
-  globalState_.currentPage = previousPageIndex;
-  if (fitOnPageChange_) {
-    fitPending_ = true;
-  }
-  refreshCellImages();
-  // 読み込み済みのページへ移るときは、読み終えの通知が来ない。ここで合わせる
-  // (読み込み中のセルがあれば、待って、読み終えたときに合わせる)。
-  applyPendingFit();
-  refreshCellViewStates();
-  updateStatus();
-  schedulePrefetchAroundCurrentPage();
-  Q_EMIT viewChanged();
+  stepPages(-1);
 }
 
-void ViewerGridWidget::setCurrentPage(int pageIndex) {
-  const int totalPages = pageCount();
+int ViewerGridWidget::navigationPageCount() const {
+  return pageNavigation_.count(pageCount());
+}
+int ViewerGridWidget::navigationPageIndex() const {
+  return pageNavigation_.indexOf(globalState_.currentPage, pageCount());
+}
+int ViewerGridWidget::navigationPageAt(int index) const {
+  return pageNavigation_.pageAt(index, pageCount());
+}
+void ViewerGridWidget::stepPages(int offset) {
+  if (navigationPageCount() <= 0) {
+    return;
+  }
+  const qint64 target = qint64(navigationPageIndex()) + offset;
+  setCurrentPage(navigationPageAt(
+      static_cast<int>(std::clamp(target, qint64(0), qint64(navigationPageCount() - 1)))));
+}
+void ViewerGridWidget::setPageFilter(std::optional<QVector<int>> pages) {
+  pageNavigation_.setPages(std::move(pages));
+  setCurrentPage(globalState_.currentPage, true);
+}
+
+void ViewerGridWidget::setCurrentPage(int pageIndex, bool forceRefresh) {
+  const int totalPages = navigationPageCount();
   if (totalPages <= 0) {
     globalState_.currentPage = 0;
     refreshCellImages();
@@ -276,8 +262,9 @@ void ViewerGridWidget::setCurrentPage(int pageIndex) {
     return;
   }
 
-  const int clampedPage = std::clamp(pageIndex, 0, totalPages - 1);
-  if (globalState_.currentPage == clampedPage) {
+  const int clampedPage =
+      pageNavigation_.pageAt(pageNavigation_.indexOf(pageIndex, pageCount()), pageCount());
+  if (globalState_.currentPage == clampedPage && !forceRefresh) {
     return;
   }
 
@@ -997,7 +984,7 @@ int ViewerGridWidget::targetCellIndex() const {
 }
 
 QString ViewerGridWidget::targetCellFilePath() const {
-  return currentFilePathForCell(targetCellIndex());
+  return navigationPageCount() > 0 ? currentFilePathForCell(targetCellIndex()) : QString();
 }
 
 QImage ViewerGridWidget::targetCellImage() const {
@@ -1191,6 +1178,8 @@ void ViewerGridWidget::rebuildGrid() {
     view->setExposureStops(exposureStops_);
     view->setFilters(magnifyFilter_, minifyFilter_);
     view->setTransparencyBackground(transparencyBackground_);
+    connect(view, &ImageViewWidget::favoriteToggleRequested, this,
+            &ViewerGridWidget::favoriteToggleRequested);
     connect(view, &ImageViewWidget::transparencyPatternRequested, this,
             &ViewerGridWidget::transparencyPatternRequested);
     view->setBordersVisible(cellBordersVisible_);
@@ -1208,11 +1197,8 @@ void ViewerGridWidget::rebuildGrid() {
                    double anchorImageY) {
               handleZoomRequest(requestedCellIndex, zoomFactor, anchorImageX, anchorImageY);
             });
-    connect(view, &ImageViewWidget::pageScrollRequested, this, [this](int offset) {
-      const qint64 target = qint64(globalState_.currentPage) + offset;
-      setCurrentPage(
-          static_cast<int>(std::clamp(target, qint64(0), qint64(std::max(0, pageCount() - 1)))));
-    });
+    connect(view, &ImageViewWidget::pageScrollRequested, this,
+            [this](int offset) { stepPages(offset); });
     connect(view, &ImageViewWidget::actualSizeToggleRequested, this,
             [this](int requestedCellIndex, double anchorImageX, double anchorImageY) {
               handleActualSizeToggleRequest(requestedCellIndex, anchorImageX, anchorImageY);
@@ -1449,6 +1435,10 @@ void ViewerGridWidget::updateCellImage(int cellIndex, bool countCacheAccess) {
   const auto applyObservation =
       qScopeGuard([&]() { observeStream(cellIndex, std::move(streamToObserve)); });
 
+  if (navigationPageCount() == 0) {
+    view->setDecodedImage({}, {}, CellStatusInfo::empty(tr("No images to display.")));
+    return;
+  }
   if (imageSet == nullptr) {
     if (!showsDiff) {
       view->setDecodedImage({}, QString(), CellStatusInfo::empty(tr("Drop an image here.")));
@@ -1585,6 +1575,9 @@ void ViewerGridWidget::requestDecodeAsync(const QString &filePath, bool honorExi
 
 bool ViewerGridWidget::currentPageUsesFile(const QString &filePath,
                                            bool honorExifOrientation) const {
+  if (navigationPageCount() == 0) {
+    return false;
+  }
   for (int cellIndex = 0; cellIndex < cells_.size(); ++cellIndex) {
     const auto cellPage = heiran::domain::cellPageAt(session_, cellIndex, globalState_.currentPage);
     if (cellPage.hasFile() && cellPage.path == filePath &&
@@ -1667,7 +1660,9 @@ void ViewerGridWidget::prefetchAroundCurrentPage() {
       decodeCache_.entryCount(), decodeCache_.usedBytes(), decodeCache_.budgetBytes(),
       static_cast<int>(session_.images.size()), kPrefetchRadiusPages);
 
-  for (const int targetPage : prefetchPageOrder(globalState_.currentPage, pageCount(), radius)) {
+  for (const int position :
+       prefetchPageOrder(navigationPageIndex(), navigationPageCount(), radius)) {
+    const int targetPage = navigationPageAt(position);
     for (const auto &imageSet : session_.images) {
       const QString path = heiran::domain::pagePathInImageSet(imageSet, targetPage);
       if (path.isEmpty()) {
@@ -1795,13 +1790,13 @@ int ViewerGridWidget::pageCount() const {
 }
 
 void ViewerGridWidget::updateStatus() {
-  const int totalPages = pageCount();
+  const int totalPages = navigationPageCount();
   if (totalPages <= 0) {
     Q_EMIT statusChanged(tr("No images loaded"));
     return;
   }
 
-  const int pageNumber = std::clamp(globalState_.currentPage, 0, totalPages - 1) + 1;
+  const int pageNumber = navigationPageIndex() + 1;
   QString status = tr("Page %1 / %2").arg(pageNumber).arg(totalPages);
   const QString subImageText = subImageStatusText();
   if (!subImageText.isEmpty()) {
@@ -2460,6 +2455,9 @@ void ViewerGridWidget::scheduleDiffRefresh() {
 }
 
 void ViewerGridWidget::refreshDiffCells() {
+  if (navigationPageCount() == 0) {
+    return;
+  }
   for (int cellIndex = 0; cellIndex < cells_.size(); ++cellIndex) {
     if (heiran::domain::cellConfigAt(session_, cellIndex).diff) {
       refreshDiffCell(cellIndex);

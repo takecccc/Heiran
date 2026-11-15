@@ -13,6 +13,7 @@
 #include "heiran/ui/PixelValueFormat.hpp"
 
 #include <QImage>
+#include <QLabel>
 #include <QPointF>
 #include <QRectF>
 #include <QStringList>
@@ -31,6 +32,7 @@ class ImageViewWidget : public QWidget {
 
 public:
   explicit ImageViewWidget(QWidget *parent = nullptr);
+  void setFavorite(bool favorite, bool available);
 
   void setCellInfo(const heiran::domain::ImageSet *imageSet, int imageSetIndex, int cellIndex);
   void setAvailableImageNames(const QStringList &imageNames);
@@ -102,6 +104,7 @@ protected:
   void leaveEvent(QEvent *event) override;
 
 Q_SIGNALS:
+  void favoriteToggleRequested(int cellIndex);
   // セルの大きさが変わった (ウィンドウの大きさ、格子、単独表示の変化)。フィットした状態で見ているなら、フィットし直すために使う。
   void cellResized();
   void panRequested(int cellIndex, double deltaImageX, double deltaImageY);
@@ -230,6 +233,9 @@ private:
   QString diffTitle_;
   CellHeaderWidget *headerWidget_ = nullptr;
   ImageCanvasWidget *canvasWidget_ = nullptr;
+  QLabel *favoriteBadge_ = nullptr;
+  bool favorite_ = false;
+  bool favoriteAvailable_ = false;
 };
 
 }  // namespace ui

@@ -5,12 +5,13 @@
 #include "heiran/domain/SessionModel.hpp"
 #include "heiran/domain/ViewState.hpp"
 #include "heiran/ui/AnalysisSampler.hpp"
-#include "heiran/ui/DiffRenderer.hpp"
 #include "heiran/ui/AppSettings.hpp"
 #include "heiran/ui/ChannelMode.hpp"
 #include "heiran/ui/DecodeCache.hpp"
 #include "heiran/ui/DecodeScheduler.hpp"
+#include "heiran/ui/DiffRenderer.hpp"
 #include "heiran/ui/DisplayProfile.hpp"
+#include "heiran/ui/PageNavigationFilter.hpp"
 #include "heiran/ui/PixelValueFormat.hpp"
 
 #include <QImage>
@@ -177,7 +178,12 @@ public:
   heiran::domain::SessionModel sessionSnapshot() const;
   int currentPage() const;
   int totalPages() const;
-  void setCurrentPage(int pageIndex);
+  void setCurrentPage(int pageIndex, bool forceRefresh = false);
+  void stepPages(int offset);
+  void setPageFilter(std::optional<QVector<int>> pages);
+  int navigationPageCount() const;
+  int navigationPageIndex() const;
+  int navigationPageAt(int index) const;
   QVector<AnalysisImage> currentAnalysisImages() const;
   bool hasCells() const;
   std::optional<ChannelMode> uniformChannelMode() const;
@@ -194,6 +200,8 @@ public:
   double exposureStops() const;
 
 Q_SIGNALS:
+  void sessionChanged(bool reset);
+  void favoriteToggleRequested(int cellIndex);
   void transparencyPatternRequested(TransparencyPattern pattern);
   void statusChanged(const QString &message);
   void pixelInfoChanged(const QStringList &lines);
@@ -347,6 +355,7 @@ private:
   heiran::infra::ImageDecoder imageDecoder_;
   DecodeCache decodeCache_;
   std::shared_ptr<DecodeScheduler> decodeScheduler_;
+  PageNavigationFilter pageNavigation_;
   bool prefetchScheduled_ = false;
   // セルごとの、いま見せているファイルの 0 ページ目の復号結果。
   //

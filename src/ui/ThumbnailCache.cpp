@@ -1,5 +1,6 @@
 #include "heiran/ui/ThumbnailCache.hpp"
 
+#include "heiran/infra/UserDataPaths.hpp"
 #include "heiran/ui/ThumbnailLoader.hpp"
 
 #include <QCryptographicHash>
@@ -10,7 +11,6 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QSaveFile>
-#include <QStandardPaths>
 #include <algorithm>
 #include <vector>
 
@@ -37,7 +37,7 @@ ThumbnailCache::ThumbnailCache(QString directory, qint64 maxBytes)
 
 ThumbnailCache &ThumbnailCache::standard() {
   static ThumbnailCache cache(
-      QDir(QStandardPaths::writableLocation(QStandardPaths::CacheLocation)).filePath("thumbnails"));
+      QDir(heiran::infra::userDataDirectory()).filePath("cache/thumbnails"));
   return cache;
 }
 

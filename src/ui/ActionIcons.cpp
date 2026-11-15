@@ -96,6 +96,9 @@ const QHash<QString, QString> &actionIconNames() {
       {"Rotate Left", "rotate-ccw"},
       {"Invert All Cells", "contrast"},
       {"Copy Image", "copy"},
+      {"Favorite", "star"},
+      {"Favorites Only", "images"},
+      {"Copy Favorites...", "copy"},
       {"Image Info...", "info"},
       {"Channel", "layers"},
       // セルの右クリック。
@@ -120,7 +123,8 @@ const QHash<QString, QString> &actionIconNames() {
     QHash<QString, QString> all = names;
     for (auto it = names.cbegin(); it != names.cend(); ++it) {
       const QByteArray source = it.key().toUtf8();
-      for (const char *context : {"MainWindow", "CellContextMenu"}) {
+      for (const char *context :
+           {"MainWindow", "CellContextMenu", "heiran::ui::FavoritesController"}) {
         all.insert(QCoreApplication::translate(context, source.constData()), it.value());
       }
     }

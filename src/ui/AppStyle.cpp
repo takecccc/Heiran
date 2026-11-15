@@ -65,6 +65,8 @@ QToolTip {
   background-color: %1; color: %2; border: 1px solid %3; padding: 4px 6px;
 }
 
+QLabel#favoriteBadge { color: %11; background-color: %12; border-radius: 4px; font-size: 18px; }
+
 QMenuBar { background-color: %1; color: %2; padding: 2px 6px; border-bottom: 1px solid %3; }
 QMenuBar::item { background: transparent; padding: 4px 10px; border-radius: 4px; }
 QMenuBar::item:selected { background-color: %4; }
@@ -114,16 +116,18 @@ QScrollBar::handle:horizontal:hover { background: %6; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 )")
-      .arg(css(t.panel))       // %1
-      .arg(css(t.text))        // %2
-      .arg(css(t.border))      // %3
-      .arg(css(t.hover))       // %4
-      .arg(css(t.pressed))     // %5
-      .arg(css(t.dimText))     // %6
-      .arg(css(t.accentSoft))  // %7
-      .arg(css(t.accentText))  // %8
-      .arg(css(t.accent))      // %9
-      .arg(css(t.input));      // %10
+      .arg(css(t.panel))                                         // %1
+      .arg(css(t.text))                                          // %2
+      .arg(css(t.border))                                        // %3
+      .arg(css(t.hover))                                         // %4
+      .arg(css(t.pressed))                                       // %5
+      .arg(css(t.dimText))                                       // %6
+      .arg(css(t.accentSoft))                                    // %7
+      .arg(css(t.accentText))                                    // %8
+      .arg(css(t.accent))                                        // %9
+      .arg(css(t.input))                                         // %10
+      .arg(css(AppStyleTokens::forDarkScheme(true).accentText))  // %11
+      .arg(css(AppStyleTokens::viewerBackground()));             // %12
 }
 
 void installAppStyle() {
