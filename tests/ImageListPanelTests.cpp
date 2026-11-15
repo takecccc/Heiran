@@ -10,17 +10,20 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QContextMenuEvent>
 #include <QDockWidget>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
 #include <QListWidget>
 #include <QLocale>
+#include <QMenu>
 #include <QMimeData>
 #include <QPushButton>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QTimer>
 #include <QToolBar>
 #include <QTreeWidget>
 #include <QUrl>
@@ -505,6 +508,79 @@ private Q_SLOTS:
       QVERIFY(!store.contains(paths.at(0)) && !store.contains(paths.at(2)));
       QVERIFY(store.contains(paths.at(3)));
       QVERIFY(!window.isWindowModified());
+    }
+  }
+
+  void editsFavoritesFromTheContextMenuInBothViews() {
+    for (bool details : {false, true}) {
+      QTemporaryDir source, metadata;
+      const auto paths = createImages(source.path(), 4);
+      const auto database = metadata.filePath("favorites.json");
+      heiran::ui::MainWindow window(nullptr, database);
+      window.openImageFiles({paths.first()});
+      window.show();
+      window.findChild<QAction *>("imageListAction")->trigger();
+      auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+      panel->setDetailsVisible(details);
+      auto *list = panel->findChild<QListWidget *>();
+      auto *tree = panel->findChild<QTreeWidget *>();
+      auto *view =
+          details ? static_cast<QAbstractItemView *>(tree) : static_cast<QAbstractItemView *>(list);
+      QCoreApplication::processEvents();
+      auto select = [&](int row) {
+        if (details)
+          tree->topLevelItem(row)->setSelected(true);
+        else
+          list->item(row)->setSelected(true);
+      };
+      auto position = [&](int row) {
+        return details ? tree->visualItemRect(tree->topLevelItem(row)).center()
+                       : list->visualItemRect(list->item(row)).center();
+      };
+      view->clearSelection();
+      auto *add = panel->findChild<QAction *>("addSelectedFavoritesAction");
+      auto *remove = panel->findChild<QAction *>("removeSelectedFavoritesAction");
+      QVERIFY(!add->isEnabled() && !remove->isEnabled());
+      select(0);
+      select(2);
+      QTest::mouseClick(view->viewport(), Qt::RightButton, Qt::NoModifier, position(0));
+      QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(0), paths.at(2)}));
+      const auto blank = view->viewport()->rect().bottomRight() - QPoint(3, 3);
+      QTest::mouseClick(view->viewport(), Qt::RightButton, Qt::NoModifier, blank);
+      QCOMPARE(panel->selectedFilePaths().size(), 2);
+      auto invokeMenu = [&](QAction *action) {
+        bool opened = false;
+        QTimer::singleShot(0, &window, [&]() {
+          auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
+          if (!menu)
+            return;
+          opened = menu->actions().contains(add) && menu->actions().contains(remove);
+          menu->close();
+          action->trigger();
+        });
+        QContextMenuEvent event(QContextMenuEvent::Mouse, position(0),
+                                view->viewport()->mapToGlobal(position(0)));
+        QCoreApplication::sendEvent(view->viewport(), &event);
+        return opened;
+      };
+      QVERIFY(invokeMenu(add));
+      heiran::infra::FavoriteStore saved(database);
+      QVERIFY(saved.load());
+      QVERIFY(saved.contains(paths.at(0)) && saved.contains(paths.at(2)));
+      QVERIFY(!saved.contains(paths.at(1)) && !saved.contains(paths.at(3)));
+      window.findChild<QAction *>("favoritesOnlyAction")->setChecked(true);
+      QCOMPARE(list->count(), 2);
+      select(0);
+      select(1);
+      QVERIFY(invokeMenu(remove));
+      QCOMPARE(list->count(), 0);
+      QVERIFY(saved.load());
+      QVERIFY(!saved.contains(paths.at(0)) && !saved.contains(paths.at(2)));
+      window.findChild<QAction *>("favoritesOnlyAction")->setChecked(false);
+      select(0);
+      select(2);
+      QTest::mouseClick(view->viewport(), Qt::RightButton, Qt::NoModifier, position(1));
+      QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(1)}));
     }
   }
 

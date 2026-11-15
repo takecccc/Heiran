@@ -10,7 +10,7 @@
 //                     [--recent-image path]
 //                     [--favorites-file path]
 //                     [--list-mode thumbnails|details]
-//                     [--list-select 0,2] [--compare-selection]
+//                     [--list-select 0,2] [--compare-selection] [--list-context-menu]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -150,6 +150,7 @@ int main(int argc, char *argv[]) {
   QString listMode = "thumbnails";
   QStringList listSelection;
   bool compareSelection = false;
+  bool listContextMenu = false;
   for (int index = 0; index < arguments.size(); ++index) {
     const QString &argument = arguments.at(index);
     if (argument == "--theme" && index + 1 < arguments.size()) {
@@ -162,6 +163,8 @@ int main(int argc, char *argv[]) {
       listSelection = arguments.at(++index).split(',');
     } else if (argument == "--compare-selection") {
       compareSelection = true;
+    } else if (argument == "--list-context-menu") {
+      listContextMenu = true;
     } else if (argument == "--context-cell" && index + 1 < arguments.size()) {
       contextCell = arguments.at(++index).toInt();
     } else if (argument == "--transparency" && index + 1 < arguments.size()) {
@@ -383,6 +386,24 @@ int main(int argc, char *argv[]) {
       }
     }
     return 8;
+  }
+  if (listContextMenu) {
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *view = panel->detailsVisible()
+                     ? static_cast<QAbstractItemView *>(panel->findChild<QTreeWidget *>())
+                     : static_cast<QAbstractItemView *>(panel->findChild<QListWidget *>());
+    int result = 9;
+    QTimer::singleShot(200, [&]() {
+      if (auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget())) {
+        result = menu->grab().save(outPath) ? 0 : 1;
+        menu->close();
+      }
+    });
+    const QPoint position(20, 20);
+    QContextMenuEvent event(QContextMenuEvent::Mouse, position,
+                            view->viewport()->mapToGlobal(position));
+    QCoreApplication::sendEvent(view->viewport(), &event);
+    return result;
   }
   if (contextCell >= 0) {
     for (auto *cell : window.findChildren<heiran::ui::ImageViewWidget *>()) {

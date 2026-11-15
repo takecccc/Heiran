@@ -16,6 +16,7 @@ class QComboBox;
 class QStackedWidget;
 class QTreeWidget;
 class QPushButton;
+class QAction;
 
 namespace heiran::ui {
 
@@ -59,6 +60,8 @@ private:
   QPushButton *compare_;
   QPushButton *addFavorites_;
   QPushButton *removeFavorites_;
+  QAction *addFavoritesAction_;
+  QAction *removeFavoritesAction_;
   QStringList paths_;
   quint64 generation_ = 0;
   QThreadPool loaderPool_;

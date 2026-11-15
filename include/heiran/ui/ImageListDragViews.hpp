@@ -10,6 +10,7 @@ public:
   using QListWidget::QListWidget;
 
 protected:
+  void mousePressEvent(QMouseEvent *event) override;
   QStringList mimeTypes() const override;
   QMimeData *mimeData(const QList<QListWidgetItem *> &items) const override;
   Qt::DropActions supportedDropActions() const override;
@@ -20,6 +21,7 @@ public:
   using QTreeWidget::QTreeWidget;
 
 protected:
+  void mousePressEvent(QMouseEvent *event) override;
   QStringList mimeTypes() const override;
   QMimeData *mimeData(const QList<QTreeWidgetItem *> &items) const override;
   Qt::DropActions supportedDropActions() const override;

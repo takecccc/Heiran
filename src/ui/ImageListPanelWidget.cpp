@@ -5,6 +5,7 @@
 #include "heiran/ui/SessionLayoutController.hpp"
 #include "heiran/ui/ThumbnailCache.hpp"
 
+#include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFileInfo>
@@ -35,7 +36,9 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
       views_(new QStackedWidget(this)), details_(new ImageFileDetailsWidget(this)),
       compare_(new QPushButton(tr("Compare Selected"), this)),
       addFavorites_(new QPushButton(tr("Add Favorites"), this)),
-      removeFavorites_(new QPushButton(tr("Remove Favorites"), this)) {
+      removeFavorites_(new QPushButton(tr("Remove Favorites"), this)),
+      addFavoritesAction_(new QAction(tr("Add Favorites"), this)),
+      removeFavoritesAction_(new QAction(tr("Remove Favorites"), this)) {
   setObjectName("imageListPanelWidget");
   auto *layout = new QVBoxLayout(this);
   layout->setContentsMargins(6, 6, 6, 6);
@@ -59,9 +62,18 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   removeFavorites_->setObjectName("removeSelectedFavorites");
   addFavorites_->setToolTip(tr("Add selected images to favorites."));
   removeFavorites_->setToolTip(tr("Remove selected images from favorites."));
-  connect(addFavorites_, &QPushButton::clicked, this,
+  addFavoritesAction_->setObjectName("addSelectedFavoritesAction");
+  removeFavoritesAction_->setObjectName("removeSelectedFavoritesAction");
+  for (auto *view :
+       {static_cast<QAbstractItemView *>(list_), static_cast<QAbstractItemView *>(details_)}) {
+    view->setContextMenuPolicy(Qt::ActionsContextMenu);
+    view->addActions({addFavoritesAction_, removeFavoritesAction_});
+  }
+  connect(addFavorites_, &QPushButton::clicked, addFavoritesAction_, &QAction::trigger);
+  connect(removeFavorites_, &QPushButton::clicked, removeFavoritesAction_, &QAction::trigger);
+  connect(addFavoritesAction_, &QAction::triggered, this,
           [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), true); });
-  connect(removeFavorites_, &QPushButton::clicked, this,
+  connect(removeFavoritesAction_, &QAction::triggered, this,
           [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), false); });
   layout->addWidget(compare_);
   compare_->setObjectName("compareSelectedImages");
@@ -290,6 +302,8 @@ void ImageListPanelWidget::updateSelectionActions() {
   compare_->setEnabled(count >= 2 && count <= SessionLayoutController::kMaxCellCount);
   addFavorites_->setEnabled(count > 0);
   removeFavorites_->setEnabled(count > 0);
+  addFavoritesAction_->setEnabled(count > 0);
+  removeFavoritesAction_->setEnabled(count > 0);
 }
 
 void ImageListPanelWidget::startDetailsLoading() {

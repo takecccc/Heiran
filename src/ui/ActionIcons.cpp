@@ -97,6 +97,8 @@ const QHash<QString, QString> &actionIconNames() {
       {"Invert All Cells", "contrast"},
       {"Copy Image", "copy"},
       {"Favorite", "star"},
+      {"Add Favorites", "star"},
+      {"Remove Favorites", "x"},
       {"Favorites Only", "images"},
       {"Image List", "panel-left"},
       {"Copy Favorites...", "copy"},
@@ -126,7 +128,7 @@ const QHash<QString, QString> &actionIconNames() {
       const QByteArray source = it.key().toUtf8();
       for (const char *context :
            {"MainWindow", "CellContextMenu", "heiran::ui::FavoritesController",
-            "heiran::ui::ImageListPanelController"}) {
+            "heiran::ui::ImageListPanelController", "heiran::ui::ImageListPanelWidget"}) {
         all.insert(QCoreApplication::translate(context, source.constData()), it.value());
       }
     }

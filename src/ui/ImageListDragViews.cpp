@@ -4,6 +4,7 @@
 
 #include <QFileInfo>
 #include <QMimeData>
+#include <QMouseEvent>
 #include <QSet>
 #include <QUrl>
 #include <algorithm>
@@ -40,6 +41,15 @@ template <class Item> QMimeData *fileMimeData(QList<Item *> items) {
 
 }  // namespace
 
+void ImageFileListWidget::mousePressEvent(QMouseEvent *event) {
+  const auto *item = itemAt(event->position().toPoint());
+  if (event->button() == Qt::RightButton && (item == nullptr || item->isSelected())) {
+    event->accept();
+    return;
+  }
+  QListWidget::mousePressEvent(event);
+}
+
 QStringList ImageFileListWidget::mimeTypes() const {
   return {"text/uri-list"};
 }
@@ -48,6 +58,15 @@ QMimeData *ImageFileListWidget::mimeData(const QList<QListWidgetItem *> &items) 
 }
 Qt::DropActions ImageFileListWidget::supportedDropActions() const {
   return Qt::CopyAction;
+}
+
+void ImageFileDetailsWidget::mousePressEvent(QMouseEvent *event) {
+  const auto *item = itemAt(event->position().toPoint());
+  if (event->button() == Qt::RightButton && (item == nullptr || item->isSelected())) {
+    event->accept();
+    return;
+  }
+  QTreeWidget::mousePressEvent(event);
 }
 
 QStringList ImageFileDetailsWidget::mimeTypes() const {
