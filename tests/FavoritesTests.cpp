@@ -49,6 +49,25 @@ class FavoritesTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void savesBatchesWithoutChangingOtherFavorites() {
+    QTemporaryDir directory;
+    const auto database = directory.filePath("favorites.json");
+    const auto a = directory.filePath("a.png"), b = directory.filePath("b.png"),
+               c = directory.filePath("c.png");
+    heiran::infra::FavoriteStore first(database), second(database);
+    QVERIFY(first.setFavorites({a, b, a, QString()}, true));
+    QVERIFY(second.setFavorite(c, true));
+    QVERIFY(first.setFavorites({a, b}, false));
+    QVERIFY(second.load());
+    QVERIFY(!second.contains(a));
+    QVERIFY(!second.contains(b));
+    QVERIFY(second.contains(c));
+    const auto corrupt = QByteArray("{broken");
+    QVERIFY(writeFile(database, corrupt));
+    QVERIFY(!first.setFavorites({a, b}, true));
+    QCOMPARE(readFile(database), corrupt);
+  }
+
   void marksTheImageInTheRightClickedCell() {
     QTemporaryDir leftDirectory, rightDirectory, metadata;
     const auto left = createImages(leftDirectory.path(), 1);

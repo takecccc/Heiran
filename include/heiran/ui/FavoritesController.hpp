@@ -25,6 +25,7 @@ public:
   ~FavoritesController() override;
   QStringList favoriteFiles() const { return scopedFavorites_; }
   bool isFavorite(const QString &path) const { return store_.contains(path); }
+  void setFavorites(const QStringList &paths, bool favorite);
 
 Q_SIGNALS:
   void favoritesChanged();

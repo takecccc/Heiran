@@ -72,7 +72,17 @@ bool FavoriteStore::load(QString *error) {
 }
 
 bool FavoriteStore::setFavorite(const QString &path, bool favorite, QString *error) {
-  if (path.isEmpty()) {
+  return setFavorites({path}, favorite, error);
+}
+
+bool FavoriteStore::setFavorites(const QStringList &paths, bool favorite, QString *error) {
+  QSet<QString> keys;
+  for (const auto &path : paths) {
+    if (!path.isEmpty()) {
+      keys.insert(pathKey(path));
+    }
+  }
+  if (keys.isEmpty()) {
     return false;
   }
   if (!QDir().mkpath(QFileInfo(filePath_).absolutePath())) {
@@ -94,10 +104,12 @@ bool FavoriteStore::setFavorite(const QString &path, bool favorite, QString *err
   if (!latest.load(error)) {
     return false;
   }
-  if (favorite) {
-    latest.paths_.insert(pathKey(path));
-  } else {
-    latest.paths_.remove(pathKey(path));
+  for (const auto &key : keys) {
+    if (favorite) {
+      latest.paths_.insert(key);
+    } else {
+      latest.paths_.remove(key);
+    }
   }
   auto sorted = latest.paths_.values();
   std::sort(sorted.begin(), sorted.end());

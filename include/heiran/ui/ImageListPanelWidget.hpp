@@ -39,6 +39,7 @@ Q_SIGNALS:
   void favoritesOnlyRequested(bool enabled);
   void detailsVisibleChanged(bool details);
   void compareRequested(const QStringList &paths);
+  void favoritesRequested(const QStringList &paths, bool favorite);
 
 private:
   void startLoading();
@@ -56,6 +57,8 @@ private:
   QStackedWidget *views_;
   QTreeWidget *details_;
   QPushButton *compare_;
+  QPushButton *addFavorites_;
+  QPushButton *removeFavorites_;
   QStringList paths_;
   quint64 generation_ = 0;
   QThreadPool loaderPool_;

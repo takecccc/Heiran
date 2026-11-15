@@ -33,7 +33,9 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
       empty_(new QLabel(tr("No images to display."), this)),
       favoritesOnly_(new QCheckBox(tr("Favorites only"), this)), viewMode_(new QComboBox(this)),
       views_(new QStackedWidget(this)), details_(new ImageFileDetailsWidget(this)),
-      compare_(new QPushButton(tr("Compare Selected"), this)) {
+      compare_(new QPushButton(tr("Compare Selected"), this)),
+      addFavorites_(new QPushButton(tr("Add Favorites"), this)),
+      removeFavorites_(new QPushButton(tr("Remove Favorites"), this)) {
   setObjectName("imageListPanelWidget");
   auto *layout = new QVBoxLayout(this);
   layout->setContentsMargins(6, 6, 6, 6);
@@ -49,6 +51,18 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   layout->addLayout(modeLayout);
   layout->addWidget(favoritesOnly_);
   layout->addWidget(count_);
+  auto *favoriteActions = new QHBoxLayout;
+  favoriteActions->addWidget(addFavorites_);
+  favoriteActions->addWidget(removeFavorites_);
+  layout->addLayout(favoriteActions);
+  addFavorites_->setObjectName("addSelectedFavorites");
+  removeFavorites_->setObjectName("removeSelectedFavorites");
+  addFavorites_->setToolTip(tr("Add selected images to favorites."));
+  removeFavorites_->setToolTip(tr("Remove selected images from favorites."));
+  connect(addFavorites_, &QPushButton::clicked, this,
+          [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), true); });
+  connect(removeFavorites_, &QPushButton::clicked, this,
+          [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), false); });
   layout->addWidget(compare_);
   compare_->setObjectName("compareSelectedImages");
   compare_->setToolTip(tr("Select 2 to 16 images to view side by side. Ctrl-click or Shift-click "
@@ -274,6 +288,8 @@ void ImageListPanelWidget::updateSelectionActions() {
   const int count = selectedRows(detailsVisible()).size();
   count_->setText(tr("%1 items, %2 selected").arg(paths_.size()).arg(count));
   compare_->setEnabled(count >= 2 && count <= SessionLayoutController::kMaxCellCount);
+  addFavorites_->setEnabled(count > 0);
+  removeFavorites_->setEnabled(count > 0);
 }
 
 void ImageListPanelWidget::startDetailsLoading() {

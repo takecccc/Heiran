@@ -1,5 +1,6 @@
 #include "heiran/infra/FavoriteStore.hpp"
 #include "heiran/infra/ImageFileDetails.hpp"
+#include "heiran/ui/FavoritesController.hpp"
 #include "heiran/ui/ImageListDragViews.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
@@ -450,6 +451,79 @@ private Q_SLOTS:
     std::unique_ptr<QMimeData> mime(
         list->model()->mimeData(list->selectionModel()->selectedIndexes()));
     QCOMPARE(mime->urls().size(), 20);
+  }
+
+  void addsAndRemovesSelectedFavoritesInBothViews() {
+    for (bool details : {false, true}) {
+      QTemporaryDir source, metadata;
+      const auto paths = createImages(source.path(), 4);
+      const auto database = metadata.filePath("favorites.json");
+      heiran::infra::FavoriteStore store(database);
+      QVERIFY(store.setFavorites({paths.at(0), paths.at(3)}, true));
+      heiran::ui::MainWindow window(nullptr, database);
+      window.openImageFiles({paths.first()});
+      window.show();
+      window.findChild<QAction *>("imageListAction")->trigger();
+      auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+      panel->setDetailsVisible(details);
+      auto *list = panel->findChild<QListWidget *>();
+      auto *table = panel->findChild<QTreeWidget *>();
+      auto select = [&](QVector<int> rows) {
+        if (details) {
+          table->clearSelection();
+          for (int row : rows)
+            table->topLevelItem(row)->setSelected(true);
+        } else {
+          list->clearSelection();
+          for (int row : rows)
+            list->item(row)->setSelected(true);
+        }
+      };
+      auto *add = panel->findChild<QPushButton *>("addSelectedFavorites");
+      auto *remove = panel->findChild<QPushButton *>("removeSelectedFavorites");
+      select({});
+      QVERIFY(!add->isEnabled());
+      QVERIFY(!remove->isEnabled());
+      select({0, 2});
+      QSignalSpy updates(window.findChild<heiran::ui::FavoritesController *>(),
+                         &heiran::ui::FavoritesController::favoritesChanged);
+      add->click();
+      QCOMPARE(updates.size(), 1);
+      QVERIFY(store.load());
+      QVERIFY(store.contains(paths.at(0)) && store.contains(paths.at(2)) &&
+              store.contains(paths.at(3)));
+      QVERIFY(!store.contains(paths.at(1)));
+      QCOMPARE(panel->selectedFilePaths().size(), 2);
+      window.findChild<QAction *>("favoritesOnlyAction")->setChecked(true);
+      QCOMPARE(list->count(), 3);
+      select({0, 1});
+      updates.clear();
+      remove->click();
+      QCOMPARE(updates.size(), 1);
+      QCOMPARE(list->count(), 1);
+      QVERIFY(store.load());
+      QVERIFY(!store.contains(paths.at(0)) && !store.contains(paths.at(2)));
+      QVERIFY(store.contains(paths.at(3)));
+      QVERIFY(!window.isWindowModified());
+    }
+  }
+
+  void registersMoreThanSixteenSelectedFavorites() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 20);
+    const auto database = metadata.filePath("favorites.json");
+    heiran::ui::MainWindow window(nullptr, database);
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    window.findChild<QListWidget *>("thumbnailList")->selectAll();
+    auto *add = window.findChild<QPushButton *>("addSelectedFavorites");
+    QVERIFY(add->isEnabled());
+    add->click();
+    heiran::infra::FavoriteStore saved(database);
+    QVERIFY(saved.load());
+    for (const auto &path : paths)
+      QVERIFY(saved.contains(path));
   }
 
   void readsNativeFormatDimensions() {

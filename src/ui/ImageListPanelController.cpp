@@ -80,6 +80,8 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
   });
   connect(panel_, &ImageListPanelWidget::compareRequested, this,
           &ImageListPanelController::compareRequested);
+  connect(panel_, &ImageListPanelWidget::favoritesRequested, favorites_,
+          &FavoritesController::setFavorites);
 }
 
 void ImageListPanelController::invalidate() {

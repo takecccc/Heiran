@@ -163,8 +163,15 @@ void FavoritesController::applyFilter() {
 void FavoritesController::toggle(const QString &path) {
   if (path.isEmpty())
     return;
+  setFavorites({path}, !store_.contains(path));
+}
+
+void FavoritesController::setFavorites(const QStringList &paths, bool favorite) {
+  if (paths.isEmpty()) {
+    return;
+  }
   QString error;
-  if (!store_.setFavorite(path, !store_.contains(path), &error)) {
+  if (!store_.setFavorites(paths, favorite, &error)) {
     QMessageBox::warning(window_, tr("Favorites"), tr("Could not save favorites: %1").arg(error));
   }
   rebuildScope();

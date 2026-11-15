@@ -563,12 +563,12 @@ RMSE=%6  PSNR=%7 (輝度)
         <translation>お気に入りのデータが不正です。</translation>
     </message>
     <message>
-        <location filename="../../src/infra/FavoriteStore.cpp" line="81"/>
+        <location filename="../../src/infra/FavoriteStore.cpp" line="91"/>
         <source>Could not create the favorites directory.</source>
         <translation>お気に入りの保存フォルダーを作成できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/infra/FavoriteStore.cpp" line="88"/>
+        <location filename="../../src/infra/FavoriteStore.cpp" line="98"/>
         <source>Favorites are being updated by another window. Try again.</source>
         <translation>別のウィンドウがお気に入りを更新しています。もう一度お試しください。</translation>
     </message>
@@ -3016,7 +3016,7 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     <name>heiran::ui::FavoritesController</name>
     <message>
         <location filename="../../src/ui/FavoritesController.cpp" line="28"/>
-        <location filename="../../src/ui/FavoritesController.cpp" line="168"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="175"/>
         <source>Favorites</source>
         <translation>お気に入り</translation>
     </message>
@@ -3047,7 +3047,7 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     </message>
     <message>
         <location filename="../../src/ui/FavoritesController.cpp" line="85"/>
-        <location filename="../../src/ui/FavoritesController.cpp" line="177"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="184"/>
         <source>Copy Favorites</source>
         <translation>お気に入りのコピー</translation>
     </message>
@@ -3057,17 +3057,17 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>お気に入りを読み込めませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FavoritesController.cpp" line="168"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="175"/>
         <source>Could not save favorites: %1</source>
         <translation>お気に入りを保存できませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FavoritesController.cpp" line="182"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="189"/>
         <source>Copying favorite images...</source>
         <translation>お気に入りの画像をコピーしています...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FavoritesController.cpp" line="182"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="189"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
@@ -3103,83 +3103,103 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>選択画像を並べる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="41"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="37"/>
+        <source>Add Favorites</source>
+        <translation>お気に入り登録</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="38"/>
+        <source>Remove Favorites</source>
+        <translation>お気に入り解除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="43"/>
         <source>View:</source>
         <translation>表示:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="46"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="48"/>
         <source>View mode</source>
         <translation>表示方法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="47"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="49"/>
         <source>Thumbnails</source>
         <translation>サムネイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="47"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="49"/>
         <source>Details</source>
         <translation>詳細</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="54"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="60"/>
+        <source>Add selected images to favorites.</source>
+        <translation>選択した画像をお気に入りに登録します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="61"/>
+        <source>Remove selected images from favorites.</source>
+        <translation>選択した画像のお気に入りを解除します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="68"/>
         <source>Select 2 to 16 images to view side by side. Ctrl-click or Shift-click to select multiple images.</source>
         <translation>2～16 枚を選んで並べて表示します。Ctrl を押しながらクリックで追加・解除、Shift を押しながらクリックで範囲選択できます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="63"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="77"/>
         <source>Image details</source>
         <translation>画像の詳細一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="64"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="78"/>
         <source>File name</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="64"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="78"/>
         <source>Width (px)</source>
         <translation>幅 (px)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="65"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="79"/>
         <source>Height (px)</source>
         <translation>高さ (px)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="65"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="79"/>
         <source>File size</source>
         <translation>ファイルサイズ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="66"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="321"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="80"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="337"/>
         <source>Favorite</source>
         <translation>お気に入り</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="87"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="101"/>
         <source>Image List</source>
         <translation>画像一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="164"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="178"/>
         <source>%1 items</source>
         <translation>%1 件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="275"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="289"/>
         <source>%1 items, %2 selected</source>
         <translation>%1 件（%2 件選択）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="302"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="318"/>
         <source>%1 bytes</source>
         <translation>%1 バイト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="321"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="337"/>
         <source>Not a favorite</source>
         <translation>お気に入りではありません</translation>
     </message>
