@@ -48,15 +48,17 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   views_->addWidget(details_);
   details_->setObjectName("imageDetailsList");
   details_->setAccessibleName(tr("Image details"));
-  details_->setHeaderLabels(
-      {tr("File name"), tr("Width (px)"), tr("Height (px)"), tr("File size")});
+  details_->setHeaderLabels({QStringLiteral("\u2605"), tr("File name"), tr("Width (px)"),
+                             tr("Height (px)"), tr("File size")});
+  details_->headerItem()->setToolTip(0, tr("Favorite"));
   details_->setRootIsDecorated(false);
   details_->setUniformRowHeights(true);
   details_->setSelectionMode(QAbstractItemView::SingleSelection);
-  details_->setColumnWidth(0, 160);
-  details_->setColumnWidth(1, 80);
+  details_->setColumnWidth(0, 32);
+  details_->setColumnWidth(1, 160);
   details_->setColumnWidth(2, 80);
-  details_->setColumnWidth(3, 120);
+  details_->setColumnWidth(3, 80);
+  details_->setColumnWidth(4, 120);
   details_->header()->setStretchLastSection(false);
   detailsPool_.setMaxThreadCount(1);
   connect(details_, &QTreeWidget::currentItemChanged, this, [this](QTreeWidgetItem *item) {
@@ -155,13 +157,16 @@ void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPag
                                 : QString("%1: %2").arg(index + 1).arg(QFileInfo(path).fileName());
     auto *item = new QListWidgetItem(caption, list_);
     item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
+    item->setData(Qt::UserRole, caption);
     item->setToolTip(path.isEmpty() ? caption : path);
     QPixmap placeholder(kThumbnailSize);
     placeholder.fill(Qt::transparent);
     item->setIcon(QIcon(placeholder));
-    auto *detail = new QTreeWidgetItem(details_, {QFileInfo(path).fileName(), "...", "...", "..."});
-    detail->setToolTip(0, path);
-    for (int column = 1; column < 4; ++column) {
+    auto *detail = new QTreeWidgetItem(
+        details_, {QStringLiteral("\u2014"), QFileInfo(path).fileName(), "...", "...", "..."});
+    detail->setToolTip(1, path);
+    detail->setTextAlignment(0, Qt::AlignCenter);
+    for (int column = 2; column < 5; ++column) {
       detail->setTextAlignment(column, Qt::AlignRight | Qt::AlignVCenter);
     }
   }
@@ -208,24 +213,39 @@ void ImageListPanelWidget::startDetailsLoading() {
         const auto result = watcher->resultAt(index);
         auto *item = details_->topLevelItem(index);
         const QString unknown = QStringLiteral("\u2014");
-        item->setText(1, result.dimensions.isEmpty() ? unknown
-                                                     : QString::number(result.dimensions.width()));
         item->setText(2, result.dimensions.isEmpty() ? unknown
+                                                     : QString::number(result.dimensions.width()));
+        item->setText(3, result.dimensions.isEmpty() ? unknown
                                                      : QString::number(result.dimensions.height()));
-        item->setText(3, result.fileSize < 0 ? unknown
+        item->setText(4, result.fileSize < 0 ? unknown
                                              : QLocale().formattedDataSize(result.fileSize, 1));
         if (result.fileSize >= 0) {
-          item->setToolTip(3, tr("%1 bytes").arg(QLocale().toString(result.fileSize)));
+          item->setToolTip(4, tr("%1 bytes").arg(QLocale().toString(result.fileSize)));
         }
         if (!result.error.isEmpty()) {
-          item->setToolTip(1, result.error);
           item->setToolTip(2, result.error);
+          item->setToolTip(3, result.error);
         }
       });
   connect(watcher, &QFutureWatcher<heiran::infra::ImageFileDetails>::finished, watcher,
           &QObject::deleteLater);
   watcher->setFuture(
       QtConcurrent::mapped(&detailsPool_, paths_, heiran::infra::readImageFileDetails));
+}
+
+void ImageListPanelWidget::setFavoriteStates(const QVector<bool> &states) {
+  for (int index = 0; index < list_->count(); ++index) {
+    const bool favorite = states.value(index, false);
+    auto *item = list_->item(index);
+    const auto caption = item->data(Qt::UserRole).toString();
+    item->setText((favorite ? QStringLiteral("\u2605 ") : QString()) + caption);
+    const auto description = favorite ? tr("Favorite") : tr("Not a favorite");
+    item->setData(Qt::AccessibleDescriptionRole, description);
+    auto *detail = details_->topLevelItem(index);
+    detail->setText(0, favorite ? QStringLiteral("\u2605") : QStringLiteral("\u2014"));
+    detail->setToolTip(0, description);
+    detail->setData(0, Qt::AccessibleDescriptionRole, description);
+  }
 }
 
 void ImageListPanelWidget::startLoading() {

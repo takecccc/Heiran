@@ -122,6 +122,7 @@ void FavoritesController::rebuildScope() {
     }
   }
   std::sort(scopedFavorites_.begin(), scopedFavorites_.end());
+  Q_EMIT favoritesChanged();
 }
 
 void FavoritesController::refresh() {

@@ -8,6 +8,7 @@ class QMainWindow;
 namespace heiran::ui {
 
 class ImageListPanelWidget;
+class FavoritesController;
 class ViewerGridWidget;
 
 class ImageListPanelController final : public QObject {
@@ -19,10 +20,12 @@ public:
 private:
   void refresh();
   void invalidate();
+  void refreshFavoriteStates();
 
   ViewerGridWidget *grid_;
   QDockWidget *dock_;
   ImageListPanelWidget *panel_;
+  FavoritesController *favorites_;
   bool pagesDirty_ = true;
 };
 

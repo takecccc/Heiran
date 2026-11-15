@@ -1,3 +1,4 @@
+#include "heiran/infra/FavoriteStore.hpp"
 #include "heiran/infra/ImageFileDetails.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
@@ -210,12 +211,12 @@ private Q_SLOTS:
     panel.setDetailsVisible(true);
     panel.setPages(paths, 0);
     auto *table = panel.findChild<QTreeWidget *>();
-    QCOMPARE(table->columnCount(), 4);
+    QCOMPARE(table->columnCount(), 5);
     auto *row = table->topLevelItem(0);
-    QCOMPARE(row->text(0), QFileInfo(paths.first()).fileName());
-    QTRY_COMPARE(row->text(1), QString("60"));
-    QCOMPARE(row->text(2), QString("40"));
-    QCOMPARE(row->text(3), QLocale().formattedDataSize(QFileInfo(paths.first()).size(), 1));
+    QCOMPARE(row->text(1), QFileInfo(paths.first()).fileName());
+    QTRY_COMPARE(row->text(2), QString("60"));
+    QCOMPARE(row->text(3), QString("40"));
+    QCOMPARE(row->text(4), QLocale().formattedDataSize(QFileInfo(paths.first()).size(), 1));
     const auto placeholder =
         panel.findChild<QListWidget *>()->item(0)->icon().pixmap(160, 120).toImage();
     QCOMPARE(placeholder.pixelColor(placeholder.width() / 2, placeholder.height() / 2).alpha(), 0);
@@ -245,7 +246,7 @@ private Q_SLOTS:
     panel.setDetailsVisible(true);
     panel.setPages({corrupt.fileName()}, 0);
     auto *table = panel.findChild<QTreeWidget *>();
-    QTRY_COMPARE(table->topLevelItem(0)->text(1), QStringLiteral("\u2014"));
+    QTRY_COMPARE(table->topLevelItem(0)->text(2), QStringLiteral("\u2014"));
   }
 
   void restoresTheDetailsViewMode() {
@@ -255,6 +256,61 @@ private Q_SLOTS:
     }
     heiran::ui::MainWindow reopened;
     QCOMPARE(reopened.findChild<QComboBox *>("imageListViewMode")->currentIndex(), 1);
+  }
+
+  void updatesFavoriteMarkersImmediatelyInBothViews() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 3);
+    QCOMPARE(paths.size(), 3);
+    heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+    window.openImageFiles({paths.first()});
+    window.show();
+    auto *open = window.findChild<QAction *>("imageListAction");
+    open->trigger();
+    auto *list = window.findChild<QListWidget *>("thumbnailList");
+    auto *table = window.findChild<QTreeWidget *>("imageDetailsList");
+    auto *mark = window.findChild<QAction *>("favoriteAction");
+    const auto star = QStringLiteral("\u2605");
+    QVERIFY(!list->item(0)->text().startsWith(star));
+    mark->trigger();
+    QVERIFY(list->item(0)->text().startsWith(star));
+    QCOMPARE(table->topLevelItem(0)->text(0), star);
+    QCOMPARE(list->count(), 3);
+    window.findChild<QComboBox *>("imageListViewMode")->setCurrentIndex(1);
+    QTRY_COMPARE(table->topLevelItem(0)->text(2), QString("60"));
+    QCOMPARE(table->topLevelItem(0)->text(0), star);
+    mark->trigger();
+    QVERIFY(!list->item(0)->text().startsWith(star));
+    QCOMPARE(table->topLevelItem(0)->text(0), QStringLiteral("\u2014"));
+    QCOMPARE(list->count(), 3);
+    mark->trigger();
+    window.findChild<QCheckBox *>("imageListFavoritesOnly")->setChecked(true);
+    QCOMPARE(list->count(), 1);
+    QCOMPARE(table->topLevelItem(0)->text(0), star);
+    mark->trigger();
+    QCOMPARE(list->count(), 0);
+    window.findChild<QCheckBox *>("imageListFavoritesOnly")->setChecked(false);
+    window.findChild<QDockWidget *>("thumbnailDock")->close();
+    mark->trigger();
+    open->trigger();
+    QCOMPARE(table->topLevelItem(0)->text(0), star);
+    QVERIFY(!window.isWindowModified());
+  }
+
+  void marksPagesWithFavoritesInAnotherComparedCell() {
+    QTemporaryDir left, right, metadata;
+    const auto a = createImages(left.path(), 2);
+    const auto b = createImages(right.path(), 2);
+    const auto database = metadata.filePath("favorites.json");
+    heiran::infra::FavoriteStore store(database);
+    QVERIFY(store.setFavorite(b.at(1), true));
+    heiran::ui::MainWindow window(nullptr, database);
+    window.openImageFiles({a.first(), b.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *table = window.findChild<QTreeWidget *>("imageDetailsList");
+    QCOMPARE(table->topLevelItem(1)->text(0), QStringLiteral("\u2605"));
+    QCOMPARE(table->topLevelItem(0)->text(0), QStringLiteral("\u2014"));
   }
 
   void readsNativeFormatDimensions() {
@@ -283,9 +339,9 @@ private Q_SLOTS:
     panel.setPages({newPath}, 0);
     auto *table = panel.findChild<QTreeWidget *>();
     QCOMPARE(table->topLevelItemCount(), 1);
-    QTRY_COMPARE(table->topLevelItem(0)->text(1), QString("120"));
-    QCOMPARE(table->topLevelItem(0)->text(2), QString("90"));
-    QCOMPARE(table->topLevelItem(0)->text(0), QString("new.png"));
+    QTRY_COMPARE(table->topLevelItem(0)->text(2), QString("120"));
+    QCOMPARE(table->topLevelItem(0)->text(3), QString("90"));
+    QCOMPARE(table->topLevelItem(0)->text(1), QString("new.png"));
   }
 };
 

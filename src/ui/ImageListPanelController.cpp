@@ -1,5 +1,7 @@
 #include "heiran/ui/ImageListPanelController.hpp"
 
+#include "heiran/domain/SessionPages.hpp"
+#include "heiran/ui/FavoritesController.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/PageListing.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
@@ -16,7 +18,8 @@ namespace heiran::ui {
 
 ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGridWidget *grid)
     : QObject(window), grid_(grid), dock_(new QDockWidget(tr("Image List"), window)),
-      panel_(new ImageListPanelWidget(dock_)) {
+      panel_(new ImageListPanelWidget(dock_)),
+      favorites_(window->findChild<FavoritesController *>()) {
   dock_->setObjectName("thumbnailDock");
   dock_->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
   dock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
@@ -40,8 +43,8 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
                             "details");
   connect(panel_, &ImageListPanelWidget::detailsVisibleChanged, this, [this, window](bool details) {
     QSettings().setValue("display/imageListMode", details ? "details" : "thumbnails");
-    if (details && dock_->isVisible() && dock_->width() < 460) {
-      window->resizeDocks({dock_}, {480}, Qt::Horizontal);
+    if (details && dock_->isVisible() && dock_->width() < 500) {
+      window->resizeDocks({dock_}, {520}, Qt::Horizontal);
     }
   });
   window->addAction(action);
@@ -67,6 +70,8 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
   connect(grid_, &ViewerGridWidget::sessionChanged, this, &ImageListPanelController::invalidate);
   connect(grid_, &ViewerGridWidget::pageNavigationChanged, this,
           &ImageListPanelController::invalidate);
+  connect(favorites_, &FavoritesController::favoritesChanged, this,
+          &ImageListPanelController::refreshFavoriteStates);
   connect(panel_, &ImageListPanelWidget::pageSelected, this, [this](int row) {
     const int page = grid_->navigationPageAt(row);
     if (page >= 0) {
@@ -91,10 +96,32 @@ void ImageListPanelController::refresh() {
       paths.push_back(PageListing::pagePath(session, grid_->navigationPageAt(index)));
     }
     panel_->setPages(paths, grid_->navigationPageIndex());
+    refreshFavoriteStates();
     pagesDirty_ = false;
   } else {
     panel_->setCurrentPage(grid_->navigationPageIndex());
   }
+}
+
+void ImageListPanelController::refreshFavoriteStates() {
+  if (!dock_->isVisible()) {
+    return;
+  }
+  const auto session = grid_->sessionSnapshot();
+  QVector<bool> states;
+  const int cells = session.viewer.layout.rows * session.viewer.layout.cols;
+  for (int index = 0; index < grid_->navigationPageCount(); ++index) {
+    bool favorite = false;
+    for (int cell = 0; cell < cells; ++cell) {
+      const auto source = heiran::domain::cellPageAt(session, cell, grid_->navigationPageAt(index));
+      if (source.hasFile() && favorites_->isFavorite(source.path)) {
+        favorite = true;
+        break;
+      }
+    }
+    states.push_back(favorite);
+  }
+  panel_->setFavoriteStates(states);
 }
 
 }  // namespace heiran::ui

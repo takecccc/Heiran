@@ -24,6 +24,10 @@ public:
   FavoritesController(QMainWindow *window, ViewerGridWidget *grid, QString storePath = {});
   ~FavoritesController() override;
   QStringList favoriteFiles() const { return scopedFavorites_; }
+  bool isFavorite(const QString &path) const { return store_.contains(path); }
+
+Q_SIGNALS:
+  void favoritesChanged();
 
 private:
   void refresh();

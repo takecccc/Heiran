@@ -30,6 +30,7 @@ public:
   void setFavoritesOnly(bool enabled);
   void setDetailsVisible(bool details);
   bool detailsVisible() const;
+  void setFavoriteStates(const QVector<bool> &states);
 
 Q_SIGNALS:
   void pageSelected(int index);

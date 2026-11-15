@@ -3011,7 +3011,7 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     <name>heiran::ui::FavoritesController</name>
     <message>
         <location filename="../../src/ui/FavoritesController.cpp" line="28"/>
-        <location filename="../../src/ui/FavoritesController.cpp" line="167"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="168"/>
         <source>Favorites</source>
         <translation>お気に入り</translation>
     </message>
@@ -3042,7 +3042,7 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     </message>
     <message>
         <location filename="../../src/ui/FavoritesController.cpp" line="85"/>
-        <location filename="../../src/ui/FavoritesController.cpp" line="176"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="177"/>
         <source>Copy Favorites</source>
         <translation>お気に入りのコピー</translation>
     </message>
@@ -3052,17 +3052,17 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>お気に入りを読み込めませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FavoritesController.cpp" line="167"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="168"/>
         <source>Could not save favorites: %1</source>
         <translation>お気に入りを保存できませんでした: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FavoritesController.cpp" line="181"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="182"/>
         <source>Copying favorite images...</source>
         <translation>お気に入りの画像をコピーしています...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/FavoritesController.cpp" line="181"/>
+        <location filename="../../src/ui/FavoritesController.cpp" line="182"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
@@ -3070,12 +3070,12 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
 <context>
     <name>heiran::ui::ImageListPanelController</name>
     <message>
-        <location filename="../../src/ui/ImageListPanelController.cpp" line="18"/>
+        <location filename="../../src/ui/ImageListPanelController.cpp" line="20"/>
         <source>Image List</source>
         <translation>画像一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelController.cpp" line="33"/>
+        <location filename="../../src/ui/ImageListPanelController.cpp" line="36"/>
         <source>Show or hide the image list.</source>
         <translation>画像一覧の表示を切り替えます。</translation>
     </message>
@@ -3118,12 +3118,12 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>画像の詳細一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="52"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="51"/>
         <source>File name</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="52"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="51"/>
         <source>Width (px)</source>
         <translation>幅 (px)</translation>
     </message>
@@ -3138,19 +3138,30 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>ファイルサイズ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="72"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="53"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="242"/>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="74"/>
         <source>Image List</source>
         <translation>画像一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="148"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="150"/>
         <source>%1 items</source>
         <translation>%1 件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="218"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="223"/>
         <source>%1 bytes</source>
         <translation>%1 バイト</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="242"/>
+        <source>Not a favorite</source>
+        <translation>お気に入りではありません</translation>
     </message>
 </context>
 <context>

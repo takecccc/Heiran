@@ -253,7 +253,7 @@ int main(int argc, char *argv[]) {
   }
   window.show();
   if (listMode == "details") {
-    window.resizeDocks({window.findChild<QDockWidget *>("thumbnailDock")}, {480}, Qt::Horizontal);
+    window.resizeDocks({window.findChild<QDockWidget *>("thumbnailDock")}, {520}, Qt::Horizontal);
   }
 
   QElapsedTimer timer;
