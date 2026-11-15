@@ -190,7 +190,7 @@ makensis "/DHEIRAN_PREVIEW_OUTPUT=$preview" resources/nsis/preview.nsi
 `/DHEIRAN_PREVIEW_FINISH` を `makensis` に追加します。
 起動時の旧版削除の確認は `/DHEIRAN_PREVIEW_UPGRADE` で表示できます。プレビューでは、どのボタンでも削除は実行しません。
 関連付けのページだけを確認する場合は `/DHEIRAN_PREVIEW_ASSOCIATIONS` を追加します。
-プレビューにはインストール処理がなく、歓迎、ライセンス、コンポーネント、保存先、完了画面の配置を確認できます。
+プレビューにはインストール処理がなく、歓迎、ライセンス、関連付け、保存先、完了画面の配置を確認できます。
 実際の配布物は `./scripts/package.ps1 -Fast -Generator NSIS` で生成し、最終確認は上記の通常手順に従います。
 
 インストーラー独自の文言は `resources/nsis/strings_en.nsh` と `strings_ja.nsh` で管理します。
@@ -198,6 +198,10 @@ makensis "/DHEIRAN_PREVIEW_OUTPUT=$preview" resources/nsis/preview.nsi
 `cmake/InstallerLocalization.cmake` は、利用中の CPack テンプレートの確認文・対応言語・関連付けページの案内を調整します。
 CPack の該当部分が変わった場合は configure を失敗させるため、CMake 更新時にテンプレートの差分を確認してください。
 関連付けページの見出しと案内は `resources/nsis/association_page.nsh` で設定します。
+カテゴリと拡張子は `association_sections.nsh`、共通の拡張子一覧は `association_formats.nsh` にあります。
+`.hrn`、一般画像、高精度画像の順で表示し、すべて既定で選択します。画像はカテゴリ単位でも拡張子単位でも切り替えられます。
+関連付けには CPack のコンポーネントや配布用のダミーファイルを使いません。
+`heiran_installer_association_selection_tests` は実際の選択判定を使い、登録先をテスト用ファイルに置き換えて検証します (makensis がある環境だけで登録)。
 
 ## リリース
 

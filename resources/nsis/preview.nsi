@@ -34,19 +34,8 @@ BrandingText "Heiran - design preview"
 Section "-Heiran" Application
   SectionIn RO
 SectionEnd
-Section "$(HeiranAssociationHrnName)" AssociationHrn
-SectionEnd
-Section /o "$(HeiranAssociationImageName)" AssociationImage
-SectionEnd
-Section "$(HeiranAssociationHdrName)" AssociationHdr
-SectionEnd
-
-!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${Application} "$(HeiranApplicationDescription)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${AssociationHrn} "$(HeiranAssociationHrnDescription)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${AssociationImage} "$(HeiranAssociationImageDescription)"
-  !insertmacro MUI_DESCRIPTION_TEXT ${AssociationHdr} "$(HeiranAssociationHdrDescription)"
-!insertmacro MUI_FUNCTION_DESCRIPTION_END
+!include "association_sections.nsh"
+!include "association_descriptions.nsh"
 
 Function .onInit
   !ifdef HEIRAN_PREVIEW_ENGLISH

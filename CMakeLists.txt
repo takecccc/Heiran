@@ -1125,18 +1125,6 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/NOTICE" DESTINATION . COMPONENT appli
 install(DIRECTORY "${CMAKE_BINARY_DIR}/manual/" DESTINATION doc/manual COMPONENT application OPTIONAL)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.txt" DESTINATION . COMPONENT application)
 
-# Each association option needs at least one installed file. CPack only emits an
-# NSIS section for a component that has content, and without a section there is
-# nothing to tick on the component page and no flag to read back.
-# The files describe what the option registered, which is worth having anyway:
-# months later it answers "why does Heiran show up for .png".
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/associations/hrn.txt"
-  DESTINATION share/associations COMPONENT association_hrn)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/associations/image.txt"
-  DESTINATION share/associations COMPONENT association_image)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/associations/hdr.txt"
-  DESTINATION share/associations COMPONENT association_hdr)
-
 set(CPACK_PACKAGE_NAME "Heiran")
 set(CPACK_PACKAGE_VENDOR "Heiran")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Image viewer that shows several images in sync.")
@@ -1157,6 +1145,15 @@ if(WIN32)
       "-DHEIRAN_CPACK_TEMPLATE=${heiran_cpack_template_dir}/NSIS.template.in"
       "-DHEIRAN_CPACK_CONFIG=${CMAKE_CURRENT_BINARY_DIR}/CPackConfig.cmake"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/InstallerLocalizationTests.cmake")
+  find_program(HEIRAN_MAKENSIS_EXECUTABLE NAMES makensis)
+  if(HEIRAN_MAKENSIS_EXECUTABLE)
+    add_test(NAME heiran_installer_association_selection_tests
+      COMMAND ${CMAKE_COMMAND}
+        "-DHEIRAN_MAKENSIS=${HEIRAN_MAKENSIS_EXECUTABLE}"
+        "-DHEIRAN_NSIS_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis"
+        "-DHEIRAN_ASSOCIATION_TEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/association-selection-test"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/InstallerAssociationSelectionTests.cmake")
+  endif()
   set(CPACK_NSIS_PACKAGE_NAME "Heiran")
   set(CPACK_NSIS_DISPLAY_NAME "Heiran")
   # The installer, the uninstaller and the entry in the installed programs list.
@@ -1176,9 +1173,7 @@ if(WIN32)
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
   set(CPACK_NSIS_MODIFY_PATH OFF)
 
-  # The association components install no files. They exist so the component
-  # page of the installer offers the choice, and the sections below read back
-  # what was ticked. Component names become the NSIS section identifiers.
+  # Association-only sections and categories are shared with the design preview.
   # The VC++ runtime is not shipped. The installer checks for a runtime at least as new as the toolset
   # used to build Heiran. Read the CRT headers because Clang's version is unrelated to the runtime.
   find_file(HEIRAN_CRT_VERSION_HEADER crtversion.h
@@ -1202,7 +1197,7 @@ else()
   set(CPACK_GENERATOR "TGZ")
 endif()
 
-set(CPACK_COMPONENTS_ALL application association_hrn association_image association_hdr)
+set(CPACK_COMPONENTS_ALL application)
 include(CPack)
 
 cpack_add_component(application
@@ -1211,22 +1206,6 @@ cpack_add_component(application
   REQUIRED
   HIDDEN
 )
-cpack_add_component(association_hrn
-  DISPLAY_NAME "$(HeiranAssociationHrnName)"
-  DESCRIPTION "$(HeiranAssociationHrnDescription)"
-)
-# A semicolon starts a comment in NSIS, so descriptions must not contain one.
-# The generated script silently loses everything after it.
-cpack_add_component(association_image
-  DISPLAY_NAME "$(HeiranAssociationImageName)"
-  DESCRIPTION "$(HeiranAssociationImageDescription)"
-  DISABLED
-)
-cpack_add_component(association_hdr
-  DISPLAY_NAME "$(HeiranAssociationHdrName)"
-  DESCRIPTION "$(HeiranAssociationHdrDescription)"
-)
-
 add_executable(heiran_page_listing_tests
   tests/PageListingTests.cpp
 )

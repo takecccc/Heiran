@@ -19,10 +19,11 @@ Windows 用のインストーラ (`Heiran-<版>-win64.exe`) を実行します�
 ここで選択しなくても、対応する画像形式はすべて開けます。
 
 - **.hrn の関連付け** (Associate .hrn sessions): 比較の状態を保存した `.hrn` ファイルを Heiran で開きます。
-- **一般画像の関連付け** (Associate common images): PNG、JPEG などの「プログラムから開く」の候補に Heiran を追加します。
-- **高精度画像の関連付け** (Associate HDR images): EXR、HDR、DPX、TGA の「プログラムから開く」の候補に Heiran を追加します。
+- **一般画像** (Common images): PNG、JPEG などの「プログラムから開く」の候補に Heiran を追加します。
+- **高精度画像** (High precision): EXR、HDR、DPX、TGA の「プログラムから開く」の候補に Heiran を追加します。
 
-画像ファイルの既定のアプリは変更しません。
+すべて既定で選択されています。カテゴリのチェックで一括選択・解除でき、左側の展開ボタンから各拡張子を個別に選べます。
+画像ファイルの既定のアプリは変更しません。このページではインストール容量を表示しません。
 
 ## 動作環境
 

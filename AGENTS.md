@@ -471,17 +471,15 @@ py tools/generate_app_icon.py --preview
 
 ### ファイル関連付け
 
-インストーラのコンポーネント選択で、`.hrn` / 一般的な画像形式 / 高精度形式の
-3 つを個別に選べる。レジストリへ書く内容は
+インストーラの関連付け画面は、`.hrn`、一般画像、高精度画像の順に並べる。
+画像はカテゴリで一括、配下の拡張子で個別に選べる。すべて既定で ON。レジストリへ書く内容は
 [resources/nsis/associations_install.nsh](./resources/nsis/associations_install.nsh) と
 [resources/nsis/associations_uninstall.nsh](./resources/nsis/associations_uninstall.nsh) にある。
 
-- コンポーネント名がそのまま NSIS のセクション識別子になる。
-  `.nsh` 側は `SectionGetFlags ${<component>}` で選択状態を読む。
-- ファイルを持たないコンポーネントにはセクションが生成されない。
-  そのため各コンポーネントは `resources/associations/*.txt` を 1 つ持つ。
-- コンポーネントの説明文に `;` を書かない。NSIS のコメント開始と解釈され、
-  生成されたスクリプトでそれ以降が黙って消える。
+- 拡張子一覧は `resources/nsis/association_formats.nsh` を正とし、選択肢、選択状態の判定、削除対象で共有する。
+- 関連付けは CPack のインストールコンポーネントではなく NSIS のセクションとグループを使い、容量を表示しない。
+  `association_selection.nsh` が、拡張子ごとの `SectionGetFlags` を見て選ばれたものだけを登録処理へ渡す。
+- 選択判定のテストは、実際の登録処理と同じマクロを使い、レジストリではなくテスト用ファイルへ結果を書く。
 - 生成された NSIS は `build/_CPack_Packages/win64/NSIS/project.nsi` で確認できる。
   レジストリへの書き込みを含むため、実際のインストールでの確認は人手で行う。
 

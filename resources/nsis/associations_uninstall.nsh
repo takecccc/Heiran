@@ -4,21 +4,11 @@
 ; deleting the extension keys. Those keys belong to whatever else handles the
 ; format, and deleting them would break the other application.
 
-  DeleteRegValue SHCTX "Software\Classes\.png\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.jpg\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.jpeg\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.bmp\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.gif\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.webp\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.tif\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.tiff\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.avif\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.jxl\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.psd\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.exr\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.hdr\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.dpx\OpenWithProgids" "Heiran.Image"
-  DeleteRegValue SHCTX "Software\Classes\.tga\OpenWithProgids" "Heiran.Image"
+!include "${HEIRAN_NSIS_ASSET_DIR}\association_formats.nsh"
+!macro HeiranUnregisterImage EXT
+  DeleteRegValue SHCTX "Software\Classes\.${EXT}\OpenWithProgids" "Heiran.Image"
+!macroend
+!insertmacro HeiranImageFormats HeiranUnregisterImage
 
   ; .hrn is only ours, so the whole entry goes, but only while it still points
   ; at Heiran. Another application may have taken it over in the meantime.
