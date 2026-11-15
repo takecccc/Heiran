@@ -20,6 +20,7 @@
 #include <QSettings>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QTemporaryDir>
 #include <QTimer>
 #include <QtTest>
 
@@ -29,11 +30,16 @@ using heiran::ui::PixelValueFormat;
 class AppSettingsTests : public QObject {
   Q_OBJECT
 
+  QTemporaryDir settingsDirectory_;
+
 private Q_SLOTS:
   void initTestCase() {
     // 利用者の設定を書き換えないよう、テスト専用の保存先を使う。
     QCoreApplication::setOrganizationName("HeiranTests");
     QCoreApplication::setApplicationName("AppSettingsTests");
+    QVERIFY(settingsDirectory_.isValid());
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsDirectory_.path());
     QSettings().clear();
   }
 

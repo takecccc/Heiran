@@ -18,11 +18,12 @@
 #include <QIcon>
 #include <QMessageBox>
 #include <QOpenGLWidget>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QTimer>
 #include <QtConcurrentRun>
 
 #ifdef HEIRAN_STARTUP_BENCHMARK
-#include <QSettings>
 #include <QTemporaryDir>
 #endif
 
@@ -50,6 +51,9 @@ int main(int argc, char *argv[]) {
   recordStartup("application");
   QCoreApplication::setOrganizationName(QCoreApplication::translate("main", "Heiran"));
   QCoreApplication::setApplicationName(QCoreApplication::translate("main", "Heiran"));
+  QSettings::setDefaultFormat(QSettings::IniFormat);
+  QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                     QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation));
 #ifdef HEIRAN_STARTUP_BENCHMARK
   QTemporaryDir benchmarkSettings;
   if (!benchmarkSettings.isValid()) {

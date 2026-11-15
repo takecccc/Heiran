@@ -58,6 +58,7 @@
 #include <QMouseEvent>
 #include <QRegularExpression>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QSize>
 #include <QStringList>
 #include <QTabWidget>
@@ -107,6 +108,9 @@ int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
   QCoreApplication::setOrganizationName("HeiranScreenshot");
   QCoreApplication::setApplicationName("HeiranScreenshot");
+  QSettings::setDefaultFormat(QSettings::IniFormat);
+  QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
+                     QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation));
 
   const QStringList arguments = app.arguments().mid(1);
   QString outPath;
