@@ -1,3 +1,5 @@
+#include "heiran/ui/DecodeCache.hpp"
+#include "heiran/ui/DecodeScheduler.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
 
 #include <QDir>
@@ -12,6 +14,32 @@ class StartupPreparationTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void queuesOnlyTheInitialPageAndDeduplicatesCells() {
+    QTemporaryDir directory;
+    QFile first(directory.filePath("image1.png"));
+    QVERIFY(first.open(QIODevice::WriteOnly));
+    first.close();
+    QFile second(directory.filePath("image2.png"));
+    QVERIFY(second.open(QIODevice::WriteOnly));
+    second.close();
+    StartupPreparationController preparation(std::nullopt, {second.fileName(), second.fileName()},
+                                             directory.path());
+    const auto prepared = preparation.takeResult();
+    auto scheduler = preparation.takeDecodeScheduler();
+    QVERIFY(scheduler != nullptr);
+    auto ready = scheduler->activate();
+    if (ready.isEmpty()) {
+      const auto key = heiran::ui::DecodeCache::makeKey(second.fileName(), true);
+      std::optional<heiran::ui::DecodeCompletion> received;
+      QTRY_VERIFY(received.has_value() || (received = scheduler->takeCompleted(key)).has_value());
+      QCOMPARE(received->filePath, second.fileName());
+    } else {
+      QCOMPARE(ready.size(), 1);
+      QCOMPARE(ready.first().filePath, second.fileName());
+    }
+    QCOMPARE(prepared.images->initialPage, 1);
+  }
+
   void initTestCase() {
     QVERIFY(settingsDirectory_.isValid());
     QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -103,6 +131,7 @@ private Q_SLOTS:
     QVERIFY(!prepared.startup.loadFailed);
     QVERIFY(prepared.startup.session.images.isEmpty());
     QCOMPARE(prepared.startup.session.cells.size(), 1);
+    QVERIFY(!preparation.takeDecodeScheduler());
   }
 
   void reportsMalformedSessionIssuesFromTheWorker() {

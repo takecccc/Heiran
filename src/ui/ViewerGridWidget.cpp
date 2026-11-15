@@ -96,7 +96,7 @@ ViewerGridWidget::ViewerGridWidget(QWidget *parent) : QWidget(parent), layout_(n
   playbackTimer_.setSingleShot(true);
   playbackTimer_.setTimerType(Qt::PreciseTimer);
   connect(&playbackTimer_, &QTimer::timeout, this, [this]() { advanceFrame(); });
-  decodeScheduler_ = std::make_unique<DecodeScheduler>();
+  decodeScheduler_ = std::make_shared<DecodeScheduler>();
   connect(decodeScheduler_.get(), &DecodeScheduler::decodeCompleted, this,
           &ViewerGridWidget::handleDecodeCompleted);
 }
@@ -106,7 +106,12 @@ ViewerGridWidget::~ViewerGridWidget() {
   releaseObservedStreams();
 }
 
-void ViewerGridWidget::handleDecodeCompleted(const DecodeCompletion &completion) {
+void ViewerGridWidget::handleDecodeCompleted(const DecodeCompletion &notification) {
+  const auto ready = decodeScheduler_->takeCompleted(notification.cacheKey);
+  if (!ready) {
+    return;
+  }
+  const auto &completion = *ready;
   QElapsedTimer totalTimer;
   QElapsedTimer timer;
   if (loadProfilingEnabled()) {
@@ -143,9 +148,12 @@ void ViewerGridWidget::handleDecodeCompleted(const DecodeCompletion &completion)
   schedulePrefetchAroundCurrentPage();
 }
 
-void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session) {
+void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, int initialPage,
+                                  std::shared_ptr<DecodeScheduler> startupScheduler) {
   session_ = session;
   globalState_ = {};
+  globalState_.currentPage =
+      std::clamp(initialPage, 0, std::max(0, heiran::domain::totalPageCount(session_) - 1));
   // 作り直しでは先頭のフレームへ戻す。再生の指定は残す。レイアウトの変更やドロップでも
   // 呼ばれるため、ここで止めると画像を直接開いた後の編集で再生が止まる。
   // 新しいセッションを止めた状態で始める方針は、開く側 (MainWindow) が持つ。
@@ -160,6 +168,15 @@ void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session) {
   hoverCursorPosition_.reset();
   hoverReferenceCellIndex_ = -1;
   clearDecodeCache();
+  if (startupScheduler) {
+    disconnect(decodeScheduler_.get(), nullptr, this, nullptr);
+    decodeScheduler_ = std::move(startupScheduler);
+    connect(decodeScheduler_.get(), &DecodeScheduler::decodeCompleted, this,
+            &ViewerGridWidget::handleDecodeCompleted);
+    for (const auto &completion : decodeScheduler_->activate()) {
+      decodeCache_.insert(completion.cacheKey, completion.result);
+    }
+  }
   rebuildCellStates();
   // 作り直すと、セルは新しくなる。単独表示は、いったん抜ける
   // (ファイルを開く、格子の変更、画像セットの編集)。

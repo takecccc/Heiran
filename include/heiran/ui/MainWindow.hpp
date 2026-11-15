@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <QVector>
 #include <functional>
+#include <memory>
 #include <optional>
 
 QT_BEGIN_NAMESPACE
@@ -46,6 +47,7 @@ class TransientMessageWidget;
 class ViewerGridWidget;
 class WelcomeWidget;
 class ViewerChromeController;
+class DecodeScheduler;
 struct LoupePreview;
 struct PreparedImageSession;
 
@@ -53,7 +55,8 @@ class MainWindow : public QMainWindow {
 public:
   explicit MainWindow(QWidget *parent = nullptr);
 
-  void setSession(const heiran::domain::SessionModel &session);
+  void setSession(const heiran::domain::SessionModel &session, int initialPage = 0,
+                  std::shared_ptr<DecodeScheduler> startupScheduler = {});
   void setStartupMessage(const QString &message);
   void setOpenSessionHandler(std::function<void(const QString &)> handler);
   void setSaveSessionHandler(
@@ -64,7 +67,8 @@ public:
   // 画像を渡された場合に使う。枚数に合う格子へ切り替えてから割り当てる。
   // その場限りのセッションのため、未保存の印は付けない。
   void openImageFiles(const QStringList &paths);
-  void openPreparedImages(const PreparedImageSession &prepared);
+  void openPreparedImages(const PreparedImageSession &prepared,
+                          std::shared_ptr<DecodeScheduler> startupScheduler = {});
 
   // 画像セットのファイル一覧を読み直す。フォルダへファイルが増減したときや、ファイルの
   // 名前を変えたり消したりしたときに使う。表示中のページはそのままにする。

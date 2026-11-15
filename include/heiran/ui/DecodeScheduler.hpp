@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <deque>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -31,15 +32,18 @@ class DecodeScheduler : public QObject {
   Q_OBJECT
 
 public:
-  explicit DecodeScheduler(QObject *parent = nullptr);
+  explicit DecodeScheduler(QObject *parent = nullptr, bool bufferCompletions = false);
   ~DecodeScheduler() override;
 
   void reset();
   void request(const QString &filePath, bool honorExifOrientation, bool prefetchRequest,
                int subImageIndex = 0);
+  QVector<DecodeCompletion> activate();
+  std::optional<DecodeCompletion> takeCompleted(const QString &cacheKey);
 
 Q_SIGNALS:
   void decodeCompleted(const heiran::ui::DecodeCompletion &completion);
+  void completionBuffered();
 
 private:
   struct DecodeJob {
@@ -66,6 +70,8 @@ private:
   std::condition_variable cv_;
   std::deque<DecodeJob> queue_;
   QHash<QString, PendingDecodeState> pending_;
+  QHash<QString, DecodeCompletion> completed_;
+  bool bufferCompletions_ = false;
   std::vector<std::thread> workers_;
   bool stop_ = false;
   quint64 generation_ = 0;

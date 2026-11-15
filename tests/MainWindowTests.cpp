@@ -25,6 +25,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QScopeGuard>
+#include <QSignalSpy>
 #include <QSlider>
 #include <QStatusBar>
 #include <QTemporaryDir>
@@ -78,6 +79,48 @@ class MainWindowTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void handsOffAlreadyDecodedImagesWithoutDecodingThemAgain() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto paths = writeImageFiles(directory.path(), 3);
+    QCOMPARE(paths.size(), 3);
+    const auto selected =
+        heiran::ui::StartupPreparationController::prepareImages({paths.last()}, directory.path());
+    auto scheduler = std::make_shared<heiran::ui::DecodeScheduler>(nullptr, true);
+    QSignalSpy buffered(scheduler.get(), &heiran::ui::DecodeScheduler::completionBuffered);
+    scheduler->request(paths.last(), true, false);
+    QTRY_COMPARE(buffered.count(), 1);
+    QVERIFY(QFile::remove(paths.last()));
+    heiran::ui::MainWindow window;
+    window.openPreparedImages(selected, std::move(scheduler));
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    QCOMPARE(grid->currentPage(), 2);
+    auto *cell = window.findChild<heiran::ui::ImageViewWidget *>();
+    QCOMPARE(cell->cellStatus(), heiran::ui::CellStatus::Ready);
+    QVERIFY(cell->hasImage());
+    QCOMPARE(grid->decodeCacheMissCount(), 0);
+  }
+
+  void handsOffDecodeErrorsWithoutRetryingTheFile() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto paths = writeImageFiles(directory.path(), 1);
+    QCOMPARE(paths.size(), 1);
+    const auto prepared =
+        heiran::ui::StartupPreparationController::prepareImages(paths, directory.path());
+    QVERIFY(QFile::remove(paths.first()));
+    auto scheduler = std::make_shared<heiran::ui::DecodeScheduler>(nullptr, true);
+    QSignalSpy buffered(scheduler.get(), &heiran::ui::DecodeScheduler::completionBuffered);
+    scheduler->request(paths.first(), true, false);
+    QTRY_COMPARE(buffered.count(), 1);
+    heiran::ui::MainWindow window;
+    window.openPreparedImages(prepared, std::move(scheduler));
+    const auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    const auto *cell = window.findChild<heiran::ui::ImageViewWidget *>();
+    QCOMPARE(cell->cellStatus(), heiran::ui::CellStatus::Failed);
+    QCOMPARE(grid->decodeCacheMissCount(), 0);
+  }
+
   void opensPreparedImagesWithoutRescanningTheDirectory() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
@@ -166,15 +209,21 @@ private Q_SLOTS:
   void fitsImagesOpenedBeforeShowingTheWindow_data() {
     QTest::addColumn<int>("imageCount");
     QTest::addColumn<bool>("decodeBeforeShow");
-    QTest::newRow("single-async") << 1 << false;
-    QTest::newRow("multiple-async") << 2 << false;
-    QTest::newRow("single-decoded-before-show") << 1 << true;
-    QTest::newRow("multiple-decoded-before-show") << 2 << true;
+    QTest::addColumn<bool>("handoff");
+    QTest::newRow("single-async") << 1 << false << false;
+    QTest::newRow("multiple-async") << 2 << false << false;
+    QTest::newRow("single-decoded-before-show") << 1 << true << false;
+    QTest::newRow("multiple-decoded-before-show") << 2 << true << false;
+    QTest::newRow("single-handoff-pending") << 1 << false << true;
+    QTest::newRow("multiple-handoff-pending") << 2 << false << true;
+    QTest::newRow("single-handoff-completed") << 1 << true << true;
+    QTest::newRow("multiple-handoff-completed") << 2 << true << true;
   }
 
   void fitsImagesOpenedBeforeShowingTheWindow() {
     QFETCH(int, imageCount);
     QFETCH(bool, decodeBeforeShow);
+    QFETCH(bool, handoff);
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     QStringList paths;
@@ -187,7 +236,21 @@ private Q_SLOTS:
     }
     heiran::ui::MainWindow window;
     window.resize(900, 600);
-    window.openImageFiles(paths);
+    if (handoff) {
+      const auto prepared =
+          heiran::ui::StartupPreparationController::prepareImages(paths, directory.path());
+      auto scheduler = std::make_shared<heiran::ui::DecodeScheduler>(nullptr, true);
+      QSignalSpy buffered(scheduler.get(), &heiran::ui::DecodeScheduler::completionBuffered);
+      for (const auto &path : paths) {
+        scheduler->request(path, true, false);
+      }
+      if (decodeBeforeShow) {
+        QTRY_COMPARE(buffered.count(), imageCount);
+      }
+      window.openPreparedImages(prepared, std::move(scheduler));
+    } else {
+      window.openImageFiles(paths);
+    }
     auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
     QVERIFY(grid != nullptr);
     const auto cells = grid->findChildren<heiran::ui::ImageViewWidget *>();

@@ -8,7 +8,8 @@
 
 namespace heiran::ui {
 
-DecodeScheduler::DecodeScheduler(QObject *parent) : QObject(parent) {
+DecodeScheduler::DecodeScheduler(QObject *parent, bool bufferCompletions)
+    : QObject(parent), bufferCompletions_(bufferCompletions) {
   qRegisterMetaType<heiran::ui::DecodeCompletion>();
   startWorkers();
 }
@@ -21,6 +22,7 @@ void DecodeScheduler::reset() {
   std::lock_guard lock(mutex_);
   queue_.clear();
   pending_.clear();
+  completed_.clear();
   ++generation_;
 }
 
@@ -34,6 +36,9 @@ void DecodeScheduler::request(const QString &filePath, bool honorExifOrientation
   bool notifyWorker = false;
   {
     std::lock_guard lock(mutex_);
+    if (completed_.contains(cacheKey)) {
+      return;
+    }
     auto pendingIt = pending_.find(cacheKey);
     if (pendingIt != pending_.end()) {
       if (!prefetchRequest && pendingIt->prefetchOnly) {
@@ -72,6 +77,25 @@ void DecodeScheduler::request(const QString &filePath, bool honorExifOrientation
   if (notifyWorker) {
     cv_.notify_one();
   }
+}
+
+QVector<DecodeCompletion> DecodeScheduler::activate() {
+  std::lock_guard lock(mutex_);
+  bufferCompletions_ = false;
+  const auto completed = completed_.values();
+  completed_.clear();
+  return completed;
+}
+
+std::optional<DecodeCompletion> DecodeScheduler::takeCompleted(const QString &cacheKey) {
+  std::lock_guard lock(mutex_);
+  const auto found = completed_.find(cacheKey);
+  if (found == completed_.end()) {
+    return std::nullopt;
+  }
+  auto completion = found.value();
+  completed_.erase(found);
+  return completion;
 }
 
 void DecodeScheduler::startWorkers() {
@@ -143,6 +167,7 @@ void DecodeScheduler::workerLoop() {
         .decodeDurationNs = timer.nsecsElapsed()};
 
     bool stale = false;
+    bool buffered = false;
     {
       std::lock_guard lock(mutex_);
       auto pendingIt = pending_.find(job.cacheKey);
@@ -155,9 +180,15 @@ void DecodeScheduler::workerLoop() {
       if (job.generation != generation_) {
         stale = true;
       }
+      if (!stale) {
+        completed_.insert(job.cacheKey, completion);
+        buffered = bufferCompletions_;
+      }
     }
 
-    if (!stale) {
+    if (buffered) {
+      Q_EMIT completionBuffered();
+    } else if (!stale) {
       // 受け側が別スレッドにいるため queued connection になる。
       Q_EMIT decodeCompleted(completion);
     }

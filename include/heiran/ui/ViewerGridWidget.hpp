@@ -63,7 +63,8 @@ public:
   explicit ViewerGridWidget(QWidget *parent = nullptr);
   ~ViewerGridWidget() override;
 
-  void setSession(const heiran::domain::SessionModel &session);
+  void setSession(const heiran::domain::SessionModel &session, int initialPage = 0,
+                  std::shared_ptr<DecodeScheduler> startupScheduler = {});
   void setSessionPreservingView(const heiran::domain::SessionModel &session);
   void nextPage();
   void previousPage();
@@ -345,7 +346,7 @@ private:
   int hoverReferenceCellIndex_ = -1;
   heiran::infra::ImageDecoder imageDecoder_;
   DecodeCache decodeCache_;
-  std::unique_ptr<DecodeScheduler> decodeScheduler_;
+  std::shared_ptr<DecodeScheduler> decodeScheduler_;
   bool prefetchScheduled_ = false;
   // セルごとの、いま見せているファイルの 0 ページ目の復号結果。
   //

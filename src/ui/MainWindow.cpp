@@ -978,7 +978,8 @@ void MainWindow::applyInitialState() {
   statusBar()->showMessage(QCoreApplication::translate("MainWindow", "Ready"));
 }
 
-void MainWindow::setSession(const heiran::domain::SessionModel &session) {
+void MainWindow::setSession(const heiran::domain::SessionModel &session, int initialPage,
+                            std::shared_ptr<DecodeScheduler> startupScheduler) {
   // 別のセッションを開いたら、前の変更は、戻せない。
   clearUndoHistory();
   // 前のセッションが直接開いたものでも、次へは持ち越さない。
@@ -990,7 +991,7 @@ void MainWindow::setSession(const heiran::domain::SessionModel &session) {
   // .hrn を開いていない (保存先が無い) セッションは、画像を直接開いた、またはドロップした
   // 「普通に見る」使い方で、動くものは動かす。ドロップは開く側を通らないため、ここで決める。
   viewerGrid_->setAnimationPlaying(session.sessionFilePath.isEmpty());
-  viewerGrid_->setSession(session);
+  viewerGrid_->setSession(session, initialPage, std::move(startupScheduler));
   updateAnimationActions();
   dirtyStateController_.setSessionFilePath(currentSession_.sessionFilePath);
   dirtyStateController_.setDirty(false);
@@ -1199,11 +1200,12 @@ void MainWindow::openImageFiles(const QStringList &paths) {
   openPreparedImages(StartupPreparationController::prepareImages(paths, QDir::currentPath()));
 }
 
-void MainWindow::openPreparedImages(const PreparedImageSession &prepared) {
+void MainWindow::openPreparedImages(const PreparedImageSession &prepared,
+                                    std::shared_ptr<DecodeScheduler> startupScheduler) {
   if (prepared.sourcePaths.isEmpty()) {
     return;
   }
-  setSession(prepared.session);
+  setSession(prepared.session, prepared.initialPage, std::move(startupScheduler));
   fitOnPageChangeOverride_ = true;
   updateFitOnPageChange();
   // 直接開いた画像は「普通に見る」使い方で、アニメーションは動くものと思って開く。

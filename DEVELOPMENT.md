@@ -140,25 +140,29 @@ Release 構成でビルドし、Qt の DLL を探索できる状態で実行し�
 $env:PATH = "$env:Qt6_ROOT/bin;$env:PATH"
 py tools/benchmark_startup.py --compare --runs 6 --output build/startup-results.json
 py tools/benchmark_startup.py --compare-inputs --runs 4 examples/sample.hrn
+py tools/benchmark_startup.py --compare-decode --runs 6 path/to/large-image.png
 py tools/benchmark_startup.py examples/images/d/0001.png
 py tools/benchmark_startup.py examples/sample.hrn
 ```
 
-`heiran_startup_benchmark` は通常アプリと同じ `main.cpp` を使い、初回フレームの表示までを測ります。
+`heiran_startup_benchmark` は通常アプリと同じ `main.cpp` を使い、初回フレームと画像反映済みフレームまでを測ります。
 設定は既存値を一時 INI へコピーして使うため、計測で実環境の設定や履歴を変更しません。
-窓をアクティブにせず、表示後 250 ms で自動終了します。描画が必要なため `offscreen` では実行しません。
-初回フレームが出なかった実行は失敗として扱います。画像の復号完了までの時間とは別です。
+窓をアクティブにせず、表示対象の読み込み状態を反映したフレームが出たら自動終了します。描画が必要なため `offscreen` では実行しません。
+10 秒以内にそのフレームが出なければ失敗として扱います。失敗した画像はセルの失敗表示を完了状態として扱います。
 
 Python 側の `process_ms` はプロセス作成から初回フレームのログを受信するまでで、DLL 読み込みも含みます。
 `main_ms` は `main()` の開始から初回フレームまでです。初回を除外し、最小・中央値・最大を表示します。
+`images_ms` / `main_images_ms` は、全表示セルの読み込み中が解消した後のフレームまでの値です。
+最初のフレームが読み込み表示の場合でも、画像を反映するまで待って計測します。
 `--compare` ではフォントの並行初期化を無効にした比較用実行と交互に測ります。
 `--compare-inputs` では起動引数の準備だけを直列にした実行と交互に測り、フォントの並行初期化は両方で有効にします。
+`--compare-decode` では OpenGL 確認中の先行復号を無効にした実行と比較します。窓だけの表示時間ではなく `images_ms` を比較してください。
 画像数が多いフォルダー内の画像、または複数の画像セットを持つ `.hrn` を渡すと、一覧作成の待ちを比較できます。
-ベンチマークだけが `HEIRAN_BENCHMARK_SEQUENTIAL_FONTS` / `HEIRAN_BENCHMARK_SEQUENTIAL_INPUTS` を認識します。
+ベンチマークだけが `HEIRAN_BENCHMARK_SEQUENTIAL_FONTS` / `HEIRAN_BENCHMARK_SEQUENTIAL_INPUTS` / `HEIRAN_BENCHMARK_SEQUENTIAL_DECODE` を認識します。
 通常アプリでは並行初期化・並行準備を使い、引数がない場合は入力準備用ワーカーを起動しません。
 
 通常アプリの内訳を調べる場合は `HEIRAN_PROFILE_STARTUP=1` と `QT_ASSUME_STDERR_HAS_CONSOLE=1` を設定します。
-`startup <区間>: stage=... ms total=... ms` を標準エラーへ出し、初回描画は `first-frame` で示します。
+`startup <区間>: stage=... ms total=... ms` を標準エラーへ出し、初回描画は `first-frame`、画像反映済みの描画は `images-frame` で示します。
 `session-load` は準備結果を受け取る際の残りの待ちと履歴反映の区間で、ワーカー全体の所要時間ではありません。
 表示先への出力タイミングを測るため、`frameSwapped` はディスプレイへの物理的な表示完了を保証しません。
 

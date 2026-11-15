@@ -2,7 +2,9 @@
 #include "heiran/app/CrashReporter.hpp"
 #include "heiran/app/Localization.hpp"
 #include "heiran/app/OpenGlCheck.hpp"
+#include "heiran/infra/ImageDecoder.hpp"
 #include "heiran/ui/AppSettings.hpp"
+#include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
 
@@ -64,8 +66,13 @@ int main(int argc, char *argv[]) {
 
   // 表示言語。名前の設定より後に読む (設定の保存先が、組織名とアプリ名から決まる)。
   // HEIRAN_LANGUAGE (auto / en / ja) は、設定より優先する (確認用)。
+  const auto startupSettings = heiran::ui::AppSettings::load();
   heiran::app::installTranslators(
-      app, qEnvironmentVariable("HEIRAN_LANGUAGE", heiran::ui::AppSettings::load().language));
+      app, qEnvironmentVariable("HEIRAN_LANGUAGE", startupSettings.language));
+  heiran::infra::setAnimationStreamingThresholdBytes(
+      heiran::ui::resolveAnimationStreamingThresholdBytes(
+          startupSettings.animationStreamingThresholdMib,
+          qEnvironmentVariableIntValue("HEIRAN_ANIMATION_STREAMING_THRESHOLD_MB")));
 
   // 落ちたときの状態を残す。まれに 0xC0000005 で落ちる事象を追っており、
   // 再現手順が無いため、起きたときの記録だけが手掛かりになる。
@@ -86,11 +93,13 @@ int main(int argc, char *argv[]) {
   }
 
   bool parallelInputs = true;
+  bool decodeAhead = true;
 #ifdef HEIRAN_STARTUP_BENCHMARK
   parallelInputs = !qEnvironmentVariableIsSet("HEIRAN_BENCHMARK_SEQUENTIAL_INPUTS");
+  decodeAhead = !qEnvironmentVariableIsSet("HEIRAN_BENCHMARK_SEQUENTIAL_DECODE");
 #endif
-  heiran::ui::StartupPreparationController inputPreparation(sessionPath, imagePaths,
-                                                            QDir::currentPath(), parallelInputs);
+  heiran::ui::StartupPreparationController inputPreparation(
+      sessionPath, imagePaths, QDir::currentPath(), parallelInputs, decodeAhead);
 
   QFutureSynchronizer<int> fontWarmup;
   bool parallelFonts = true;
@@ -118,6 +127,7 @@ int main(int argc, char *argv[]) {
   heiran::ui::MainWindow mainWindow;
   recordStartup("window-construction");
   auto prepared = inputPreparation.takeResult();
+  auto startupScheduler = inputPreparation.takeDecodeScheduler();
   const auto &startupResult = prepared.startup;
   applicationController.completeStartup(startupResult);
   recordStartup("session-load");
@@ -177,7 +187,7 @@ int main(int argc, char *argv[]) {
                                  QCoreApplication::translate("main", "Saved %1.").arg(path));
       });
   if (!prepared.images) {
-    mainWindow.setSession(startupResult.session);
+    mainWindow.setSession(startupResult.session, 0, std::move(startupScheduler));
   }
   mainWindow.setStartupMessage(startupResult.startupMessage);
   mainWindow.setRecentSessions(applicationController.recentSessionPaths());
@@ -203,17 +213,31 @@ int main(int argc, char *argv[]) {
          .fatal = false});
   }
   if (prepared.images) {
-    mainWindow.openPreparedImages(*prepared.images);
+    mainWindow.openPreparedImages(*prepared.images, std::move(startupScheduler));
   }
   prepared = {};
   recordStartup("session-apply");
   bool firstFrameRecorded = false;
+  bool imageFrameRecorded = false;
   const auto *canvas = mainWindow.findChild<QOpenGLWidget *>();
   if (profileStartup && canvas != nullptr) {
     QObject::connect(canvas, &QOpenGLWidget::frameSwapped, &mainWindow, [&]() {
       if (!firstFrameRecorded) {
         firstFrameRecorded = true;
         recordStartup("first-frame");
+      }
+      if (!imageFrameRecorded) {
+        bool loading = false;
+        for (const auto *cell : mainWindow.findChildren<heiran::ui::ImageViewWidget *>()) {
+          loading = loading || cell->cellStatus() == heiran::ui::CellStatus::Loading;
+        }
+        if (!loading) {
+          imageFrameRecorded = true;
+          recordStartup("images-frame");
+#ifdef HEIRAN_STARTUP_BENCHMARK
+          QTimer::singleShot(0, &app, &QCoreApplication::quit);
+#endif
+        }
       }
     });
   }
@@ -226,13 +250,13 @@ int main(int argc, char *argv[]) {
     QTimer::singleShot(0, &app, [&]() { recordStartup("event-loop"); });
   }
 #ifdef HEIRAN_STARTUP_BENCHMARK
-  QTimer::singleShot(250, &app, &QCoreApplication::quit);
+  QTimer::singleShot(10000, &app, &QCoreApplication::quit);
 #endif
 
   const int result = app.exec();
 #ifdef HEIRAN_STARTUP_BENCHMARK
-  if (!firstFrameRecorded) {
-    qWarning("The first frame was not presented; the startup measurement is incomplete.");
+  if (!firstFrameRecorded || !imageFrameRecorded) {
+    qWarning("The initial image frame was not presented; the startup measurement is incomplete.");
     return 1;
   }
 #endif

@@ -1240,6 +1240,10 @@ add_executable(heiran_startup_preparation_tests tests/StartupPreparationTests.cp
 target_link_libraries(heiran_startup_preparation_tests PRIVATE heiran_core Qt6::Test)
 add_test(NAME heiran_startup_preparation_tests COMMAND heiran_startup_preparation_tests)
 
+add_executable(heiran_decode_scheduler_tests tests/DecodeSchedulerTests.cpp)
+target_link_libraries(heiran_decode_scheduler_tests PRIVATE heiran_core Qt6::Test)
+add_test(NAME heiran_decode_scheduler_tests COMMAND heiran_decode_scheduler_tests)
+
 add_executable(heiran_session_pages_tests
   tests/SessionPagesTests.cpp
 )
