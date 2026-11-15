@@ -224,7 +224,7 @@ if ($SkipSmokeTest) {
 
     # Qt and vcpkg DLLs on PATH would hide DLLs missing from the package.
     $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
-    $process = Start-Process -FilePath $exe.FullName -WorkingDirectory $smokeDir -PassThru
+    $process = Start-Process -FilePath $exe.FullName -WorkingDirectory $smokeDir -PassThru -WindowStyle Hidden
     Start-Sleep -Seconds 8
     if ($process.HasExited) {
       throw "heiran.exe exited within 8 seconds (exit code $($process.ExitCode))."
