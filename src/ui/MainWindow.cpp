@@ -20,7 +20,6 @@
 #include "heiran/ui/LoupeWidget.hpp"
 #include "heiran/ui/ManualLocator.hpp"
 #include "heiran/ui/PageListing.hpp"
-#include "heiran/ui/PageThumbnailDialog.hpp"
 #include "heiran/ui/PixelInfoWidget.hpp"
 #include "heiran/ui/RecentImages.hpp"
 #include "heiran/ui/ScopeWindows.hpp"
@@ -30,6 +29,7 @@
 #include "heiran/ui/SettingsDialog.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
 #include "heiran/ui/TextureBudgetLedger.hpp"
+#include "heiran/ui/ThumbnailPanelController.hpp"
 #include "heiran/ui/TransientMessageWidget.hpp"
 #include "heiran/ui/ViewerChromeController.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
@@ -124,6 +124,7 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   createNavigationToolBar();
   createGlobalShortcuts();
   applyInitialState();
+  new ThumbnailPanelController(this, viewerGrid_);
   new FavoritesController(this, viewerGrid_, std::move(favoritesFile));
   addShortcutsToToolTips();
   // 役割が文字から明らかな項目は、アイコンで出す。文字は、ツールチップとメニューに残る。
@@ -630,12 +631,6 @@ void MainWindow::createViewMenu() {
   addAction(copyImageAction);
   connect(copyImageAction, &QAction::triggered, this,
           [this]() { viewerGrid_->copyActiveCellImage(); });
-
-  auto *pageThumbnailsAction =
-      viewMenu->addAction(QCoreApplication::translate("MainWindow", "Pages..."));
-  // Ctrl+P は印刷の標準のキーのため譲る。単独のキーは他の閲覧操作 (F, R, 1, 0) と揃う。
-  pageThumbnailsAction->setShortcut(QKeySequence(Qt::Key_T));
-  connect(pageThumbnailsAction, &QAction::triggered, this, [this]() { openPageThumbnails(); });
 
   // 画像の情報 (ファイル、画素の形式、色、EXIF)。セルを列にして並べる。
   auto *imageInfoAction =
@@ -2113,28 +2108,6 @@ void MainWindow::applyAppSettings() {
       QSignalBlocker blocker(action);
       action->setChecked(appSettings_.animationSyncMode == mode);
     }
-  }
-}
-
-// ページのサムネイル一覧。選んだページへ飛ぶ。
-void MainWindow::openPageThumbnails() {
-  const int totalPages = viewerGrid_->navigationPageCount();
-  if (totalPages <= 0) {
-    statusBar()->showMessage(QCoreApplication::translate("MainWindow", "No pages to show."), 3000);
-    return;
-  }
-
-  PageThumbnailDialog dialog(this);
-  QStringList paths;
-  for (int index = 0; index < viewerGrid_->navigationPageCount(); ++index) {
-    paths.push_back(PageListing::pagePath(currentSession_, viewerGrid_->navigationPageAt(index)));
-  }
-  dialog.setPages(paths, viewerGrid_->navigationPageIndex());
-  if (dialog.exec() != QDialog::Accepted) {
-    return;
-  }
-  if (dialog.selectedPage() >= 0) {
-    viewerGrid_->setCurrentPage(viewerGrid_->navigationPageAt(dialog.selectedPage()));
   }
 }
 

@@ -83,9 +83,10 @@ bool sameName(const QString &shown, const QString &english) {
   // (&File)。印のない名前でも、引けるようにする。
   for (const QString &candidate : {english, "&" + english}) {
     const QByteArray source = candidate.toUtf8();
-    for (const char *context : {"MainWindow", "ImageSetManagerDialog", "SettingsDialog",
-                                "CellContextMenu", "HistogramWindow", "ViewerChromeController",
-                                "heiran::ui::DiffBarWidget", "heiran::ui::FavoritesController"}) {
+    for (const char *context :
+         {"MainWindow", "ImageSetManagerDialog", "SettingsDialog", "CellContextMenu",
+          "HistogramWindow", "ViewerChromeController", "heiran::ui::DiffBarWidget",
+          "heiran::ui::FavoritesController", "heiran::ui::ThumbnailPanelController"}) {
       if (target == normalize(QCoreApplication::translate(context, source.constData()))) {
         return true;
       }

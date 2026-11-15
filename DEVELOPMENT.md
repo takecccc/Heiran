@@ -193,6 +193,7 @@ uv run python tools/generate_example_images.py
 `heiran_screenshot` の `--favorites-file <JSON>` で、確認用のお気に入りファイルを指定できます。
 `--action "Favorites Only"` や `--action "Cell Headers"` と組み合わせ、絞り込みとマークの表示を確認します。
 確認用ツールの設定とキャッシュは、通常のアプリとは別の `HeiranScreenshot` フォルダーへ保存します。
+サムネイルのサイドパネルは `--action "Thumbnails"` で開き、メイン画面と一緒に撮影できます。
 
 ## 配布物の作成
 

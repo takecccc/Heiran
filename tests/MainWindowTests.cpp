@@ -3,9 +3,9 @@
 #include "heiran/ui/CellStatus.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
-#include "heiran/ui/PageThumbnailDialog.hpp"
 #include "heiran/ui/SessionLayoutController.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
+#include "heiran/ui/ThumbnailPanelWidget.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QAbstractSpinBox>
@@ -1319,7 +1319,7 @@ private Q_SLOTS:
 
   // ページのサムネイル一覧が中身を持って開くこと。
   // 読み込みは別スレッドで走るため、届くまで待ってから見る。
-  void fillsThePageThumbnailDialog() {
+  void fillsTheThumbnailPanel() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
 
@@ -1332,7 +1332,7 @@ private Q_SLOTS:
       paths.push_back(path);
     }
 
-    heiran::ui::PageThumbnailDialog dialog;
+    heiran::ui::ThumbnailPanelWidget dialog;
     dialog.setPages(paths, 1);
 
     auto *list = dialog.findChild<QListWidget *>();
@@ -1351,13 +1351,15 @@ private Q_SLOTS:
       QVERIFY2(!thumbnail.isNull(), qPrintable(QString("page %1 has no thumbnail").arg(index)));
     }
 
-    // 選ぶまでは何も選ばれていない扱いにする。
-    QCOMPARE(dialog.selectedPage(), -1);
+    QSignalSpy selected(&dialog, &heiran::ui::ThumbnailPanelWidget::pageSelected);
+    list->setCurrentRow(2);
+    QCOMPARE(selected.size(), 1);
+    QCOMPARE(selected.first().at(0).toInt(), 2);
   }
 
   // 読めないページが混ざっていても開けること。
   void toleratesUnreadablePages() {
-    heiran::ui::PageThumbnailDialog dialog;
+    heiran::ui::ThumbnailPanelWidget dialog;
     dialog.setPages({QString(), "does-not-exist.png"}, 0);
 
     auto *list = dialog.findChild<QListWidget *>();
@@ -1768,7 +1770,7 @@ private Q_SLOTS:
     QCOMPARE(shortcutOf("Rename..."), QKeySequence(Qt::Key_F2));
     QCOMPARE(shortcutOf("Move to Recycle Bin..."), QKeySequence(QKeySequence::Delete));
     QCOMPARE(shortcutOf("Print..."), QKeySequence(QKeySequence::Print));
-    QCOMPARE(shortcutOf("Pages..."), QKeySequence(Qt::Key_T));
+    QCOMPARE(shortcutOf("Thumbnails"), QKeySequence(Qt::Key_T));
     QVERIFY(!shortcutOf("Copy File Path").isEmpty());
     QVERIFY(!shortcutOf("Show in Folder").isEmpty());
   }

@@ -131,7 +131,6 @@ private:
   void updateViewerStatus(const QString &message);
   void updatePixelInfoPanel(const QStringList &lines);
   void updateLoupePanel(const LoupePreview &preview);
-  void openPageThumbnails();
   void updatePageControls();
   // コンストラクタの段階分け。いずれも private メンバへ触れるため、別クラスへは
   // 出さずにメンバ関数のままにしてある。渡す依存が多すぎて、外へ出すと

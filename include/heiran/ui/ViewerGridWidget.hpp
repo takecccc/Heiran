@@ -200,6 +200,7 @@ public:
   double exposureStops() const;
 
 Q_SIGNALS:
+  void pageNavigationChanged();
   void sessionChanged(bool reset);
   void favoriteToggleRequested(int cellIndex);
   void transparencyPatternRequested(TransparencyPattern pattern);

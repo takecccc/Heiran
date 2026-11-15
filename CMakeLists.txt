@@ -217,7 +217,8 @@ add_library(heiran_core
   src/ui/LoupeWidget.cpp
   src/ui/MainWindow.cpp
   src/ui/PixelInfoWidget.cpp
-  src/ui/PageThumbnailDialog.cpp
+  src/ui/ThumbnailPanelWidget.cpp
+  src/ui/ThumbnailPanelController.cpp
   src/ui/PixelInfoText.cpp
   src/ui/PixelValueFormat.cpp
   src/ui/ProfileAccumulator.cpp
@@ -328,7 +329,8 @@ target_sources(heiran_core
     include/heiran/ui/LoupeWidget.hpp
     include/heiran/ui/MainWindow.hpp
     include/heiran/ui/PixelInfoWidget.hpp
-    include/heiran/ui/PageThumbnailDialog.hpp
+    include/heiran/ui/ThumbnailPanelWidget.hpp
+    include/heiran/ui/ThumbnailPanelController.hpp
     include/heiran/ui/PixelInfoText.hpp
     include/heiran/ui/PixelValueFormat.hpp
     include/heiran/ui/ProfileAccumulator.hpp
@@ -401,6 +403,7 @@ qt_add_resources(heiran_core heiran_icons
     resources/icons/image.svg
     resources/icons/info.svg
     resources/icons/images.svg
+    resources/icons/panel-left.svg
     resources/icons/layers.svg
     resources/icons/link.svg
     resources/icons/pencil.svg
@@ -1031,6 +1034,10 @@ add_test(NAME heiran_app_settings_tests COMMAND heiran_app_settings_tests)
 add_executable(heiran_user_data_paths_tests tests/UserDataPathsTests.cpp)
 target_link_libraries(heiran_user_data_paths_tests PRIVATE heiran_core Qt6::Test)
 add_test(NAME heiran_user_data_paths_tests COMMAND heiran_user_data_paths_tests)
+
+add_executable(heiran_thumbnail_panel_tests tests/ThumbnailPanelTests.cpp)
+target_link_libraries(heiran_thumbnail_panel_tests PRIVATE heiran_core Qt6::Test)
+add_test(NAME heiran_thumbnail_panel_tests COMMAND heiran_thumbnail_panel_tests)
 
 add_executable(heiran_file_drag_tests tests/FileDragTests.cpp)
 target_link_libraries(heiran_file_drag_tests PRIVATE heiran_core Qt6::Test)

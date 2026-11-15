@@ -248,6 +248,7 @@ void ViewerGridWidget::stepPages(int offset) {
 void ViewerGridWidget::setPageFilter(std::optional<QVector<int>> pages) {
   pageNavigation_.setPages(std::move(pages));
   setCurrentPage(globalState_.currentPage, true);
+  Q_EMIT pageNavigationChanged();
 }
 
 void ViewerGridWidget::setCurrentPage(int pageIndex, bool forceRefresh) {

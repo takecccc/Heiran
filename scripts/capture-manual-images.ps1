@@ -60,7 +60,7 @@ try {
     @("diff-cell", @("--size", "1300x640", "--diff-cell", "--hover-cell", "2", $a, $b)),
     @("diff-delta-e", @("--size", "1300x640", "--hrn", "DRIVE_SESSION", "--action", "Fit", "--hover-cell", "2")),
     @("diff-settings", @("--size", "1300x640", "--hrn", "DRIVE_SESSION", "--action", "Fit", "--hover-cell", "2", "--diff-popup")),
-    @("pages", @("--dialog", "Pages...", "--dialog-wait", "3000", $a, $b)),
+    @("pages", @("--size", "1100x640", "--action", "Thumbnails", $a, $b)),
     @("image-sets", @("--size", "1100x700", "--dialog", "Manage Image Sets...", $a, $b, $c, $d)),
     @("image-set-cells", @("--size", "1100x700", "--dialog", "Manage Image Sets...", "--dialog-tab", "Cells", $a, $b, $c, $d)),
     @("animation", @("--size", "900x560", $gif)),
