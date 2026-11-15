@@ -1,11 +1,11 @@
 #include "MultiFrameFixtures.hpp"
 #include "heiran/ui/AppSettings.hpp"
 #include "heiran/ui/CellStatus.hpp"
+#include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
 #include "heiran/ui/SessionLayoutController.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
-#include "heiran/ui/ThumbnailPanelWidget.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QAbstractSpinBox>
@@ -1319,7 +1319,7 @@ private Q_SLOTS:
 
   // ページのサムネイル一覧が中身を持って開くこと。
   // 読み込みは別スレッドで走るため、届くまで待ってから見る。
-  void fillsTheThumbnailPanel() {
+  void fillsTheImageListPanel() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
 
@@ -1332,7 +1332,7 @@ private Q_SLOTS:
       paths.push_back(path);
     }
 
-    heiran::ui::ThumbnailPanelWidget dialog;
+    heiran::ui::ImageListPanelWidget dialog;
     dialog.setPages(paths, 1);
 
     auto *list = dialog.findChild<QListWidget *>();
@@ -1351,7 +1351,7 @@ private Q_SLOTS:
       QVERIFY2(!thumbnail.isNull(), qPrintable(QString("page %1 has no thumbnail").arg(index)));
     }
 
-    QSignalSpy selected(&dialog, &heiran::ui::ThumbnailPanelWidget::pageSelected);
+    QSignalSpy selected(&dialog, &heiran::ui::ImageListPanelWidget::pageSelected);
     list->setCurrentRow(2);
     QCOMPARE(selected.size(), 1);
     QCOMPARE(selected.first().at(0).toInt(), 2);
@@ -1359,7 +1359,7 @@ private Q_SLOTS:
 
   // 読めないページが混ざっていても開けること。
   void toleratesUnreadablePages() {
-    heiran::ui::ThumbnailPanelWidget dialog;
+    heiran::ui::ImageListPanelWidget dialog;
     dialog.setPages({QString(), "does-not-exist.png"}, 0);
 
     auto *list = dialog.findChild<QListWidget *>();
@@ -1386,9 +1386,11 @@ private Q_SLOTS:
       QVERIFY2(!(spinBox->focusPolicy() & Qt::TabFocus),
                qPrintable(QString("%1 takes tab focus").arg(spinBox->objectName())));
     }
-    for (const auto *comboBox : window.findChildren<QComboBox *>()) {
-      QVERIFY2(!(comboBox->focusPolicy() & Qt::TabFocus),
-               qPrintable(QString("%1 takes tab focus").arg(comboBox->objectName())));
+    for (const auto *toolbar : window.findChildren<QToolBar *>()) {
+      for (const auto *comboBox : toolbar->findChildren<QComboBox *>()) {
+        QVERIFY2(!(comboBox->focusPolicy() & Qt::TabFocus),
+                 qPrintable(QString("%1 takes tab focus").arg(comboBox->objectName())));
+      }
     }
 
     // タブを何度押してもビューアから離れないこと。
@@ -1770,7 +1772,7 @@ private Q_SLOTS:
     QCOMPARE(shortcutOf("Rename..."), QKeySequence(Qt::Key_F2));
     QCOMPARE(shortcutOf("Move to Recycle Bin..."), QKeySequence(QKeySequence::Delete));
     QCOMPARE(shortcutOf("Print..."), QKeySequence(QKeySequence::Print));
-    QCOMPARE(shortcutOf("Thumbnails"), QKeySequence(Qt::Key_T));
+    QCOMPARE(shortcutOf("Image List"), QKeySequence(Qt::Key_T));
     QVERIFY(!shortcutOf("Copy File Path").isEmpty());
     QVERIFY(!shortcutOf("Show in Folder").isEmpty());
   }

@@ -98,7 +98,7 @@ const QHash<QString, QString> &actionIconNames() {
       {"Copy Image", "copy"},
       {"Favorite", "star"},
       {"Favorites Only", "images"},
-      {"Thumbnails", "panel-left"},
+      {"Image List", "panel-left"},
       {"Copy Favorites...", "copy"},
       {"Image Info...", "info"},
       {"Channel", "layers"},
@@ -126,7 +126,7 @@ const QHash<QString, QString> &actionIconNames() {
       const QByteArray source = it.key().toUtf8();
       for (const char *context :
            {"MainWindow", "CellContextMenu", "heiran::ui::FavoritesController",
-            "heiran::ui::ThumbnailPanelController"}) {
+            "heiran::ui::ImageListPanelController"}) {
         all.insert(QCoreApplication::translate(context, source.constData()), it.value());
       }
     }

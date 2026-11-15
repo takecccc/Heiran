@@ -15,6 +15,7 @@
 #include "heiran/ui/Histogram3DWindow.hpp"
 #include "heiran/ui/HistogramWindow.hpp"
 #include "heiran/ui/ImageInfoWindow.hpp"
+#include "heiran/ui/ImageListPanelController.hpp"
 #include "heiran/ui/ImagePrinter.hpp"
 #include "heiran/ui/ImageSetManagerDialog.hpp"
 #include "heiran/ui/LoupeWidget.hpp"
@@ -29,7 +30,6 @@
 #include "heiran/ui/SettingsDialog.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
 #include "heiran/ui/TextureBudgetLedger.hpp"
-#include "heiran/ui/ThumbnailPanelController.hpp"
 #include "heiran/ui/TransientMessageWidget.hpp"
 #include "heiran/ui/ViewerChromeController.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
@@ -124,8 +124,8 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   createNavigationToolBar();
   createGlobalShortcuts();
   applyInitialState();
-  new ThumbnailPanelController(this, viewerGrid_);
   new FavoritesController(this, viewerGrid_, std::move(favoritesFile));
+  new ImageListPanelController(this, viewerGrid_);
   addShortcutsToToolTips();
   // 役割が文字から明らかな項目は、アイコンで出す。文字は、ツールチップとメニューに残る。
   applyActionIcons(this);

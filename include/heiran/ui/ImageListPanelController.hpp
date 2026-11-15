@@ -7,14 +7,14 @@ class QMainWindow;
 
 namespace heiran::ui {
 
-class ThumbnailPanelWidget;
+class ImageListPanelWidget;
 class ViewerGridWidget;
 
-class ThumbnailPanelController final : public QObject {
+class ImageListPanelController final : public QObject {
   Q_OBJECT
 
 public:
-  ThumbnailPanelController(QMainWindow *window, ViewerGridWidget *grid);
+  ImageListPanelController(QMainWindow *window, ViewerGridWidget *grid);
 
 private:
   void refresh();
@@ -22,7 +22,7 @@ private:
 
   ViewerGridWidget *grid_;
   QDockWidget *dock_;
-  ThumbnailPanelWidget *panel_;
+  ImageListPanelWidget *panel_;
   bool pagesDirty_ = true;
 };
 

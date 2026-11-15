@@ -3068,42 +3068,97 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     </message>
 </context>
 <context>
+    <name>heiran::ui::ImageListPanelController</name>
+    <message>
+        <location filename="../../src/ui/ImageListPanelController.cpp" line="18"/>
+        <source>Image List</source>
+        <translation>画像一覧</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelController.cpp" line="33"/>
+        <source>Show or hide the image list.</source>
+        <translation>画像一覧の表示を切り替えます。</translation>
+    </message>
+</context>
+<context>
+    <name>heiran::ui::ImageListPanelWidget</name>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="27"/>
+        <source>No images to display.</source>
+        <translation>表示する画像がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="28"/>
+        <source>Favorites only</source>
+        <translation>お気に入りのみ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="34"/>
+        <source>View:</source>
+        <translation>表示:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="39"/>
+        <source>View mode</source>
+        <translation>表示方法</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="40"/>
+        <source>Thumbnails</source>
+        <translation>サムネイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="40"/>
+        <source>Details</source>
+        <translation>詳細</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="50"/>
+        <source>Image details</source>
+        <translation>画像の詳細一覧</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="52"/>
+        <source>File name</source>
+        <translation>ファイル名</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="52"/>
+        <source>Width (px)</source>
+        <translation>幅 (px)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="52"/>
+        <source>Height (px)</source>
+        <translation>高さ (px)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="52"/>
+        <source>File size</source>
+        <translation>ファイルサイズ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="72"/>
+        <source>Image List</source>
+        <translation>画像一覧</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="148"/>
+        <source>%1 items</source>
+        <translation>%1 件</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="218"/>
+        <source>%1 bytes</source>
+        <translation>%1 バイト</translation>
+    </message>
+</context>
+<context>
     <name>heiran::ui::ImageViewWidget</name>
     <message>
         <location filename="../../src/ui/ImageViewWidget.cpp" line="1005"/>
         <source>Favorite</source>
         <translation>お気に入り</translation>
-    </message>
-</context>
-<context>
-    <name>heiran::ui::ThumbnailPanelController</name>
-    <message>
-        <location filename="../../src/ui/ThumbnailPanelController.cpp" line="17"/>
-        <source>Thumbnails</source>
-        <translation>サムネイル一覧</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ThumbnailPanelController.cpp" line="32"/>
-        <source>Show or hide the thumbnail list.</source>
-        <translation>サムネイル一覧の表示を切り替えます。</translation>
-    </message>
-</context>
-<context>
-    <name>heiran::ui::ThumbnailPanelWidget</name>
-    <message>
-        <location filename="../../src/ui/ThumbnailPanelWidget.cpp" line="20"/>
-        <source>No images to display.</source>
-        <translation>表示する画像がありません。</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ThumbnailPanelWidget.cpp" line="30"/>
-        <source>Thumbnails</source>
-        <translation>サムネイル一覧</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ThumbnailPanelWidget.cpp" line="71"/>
-        <source>%1 items</source>
-        <translation>%1 件</translation>
     </message>
 </context>
 <context>

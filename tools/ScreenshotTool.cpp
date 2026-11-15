@@ -9,6 +9,7 @@
 //                     [--dialog-focus magnifyFilter]
 //                     [--recent-image path]
 //                     [--favorites-file path]
+//                     [--list-mode thumbnails|details]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -48,6 +49,7 @@
 #include <QCheckBox>
 #include <QContextMenuEvent>
 #include <QDialog>
+#include <QDockWidget>
 #include <QElapsedTimer>
 #include <QEnterEvent>
 #include <QEventLoop>
@@ -59,8 +61,8 @@
 #include <QMouseEvent>
 #include <QRegularExpression>
 #include <QSettings>
-#include <QStandardPaths>
 #include <QSize>
+#include <QStandardPaths>
 #include <QStringList>
 #include <QTabWidget>
 #include <QTimer>
@@ -86,7 +88,7 @@ bool sameName(const QString &shown, const QString &english) {
     for (const char *context :
          {"MainWindow", "ImageSetManagerDialog", "SettingsDialog", "CellContextMenu",
           "HistogramWindow", "ViewerChromeController", "heiran::ui::DiffBarWidget",
-          "heiran::ui::FavoritesController", "heiran::ui::ThumbnailPanelController"}) {
+          "heiran::ui::FavoritesController", "heiran::ui::ImageListPanelController"}) {
       if (target == normalize(QCoreApplication::translate(context, source.constData()))) {
         return true;
       }
@@ -141,12 +143,15 @@ int main(int argc, char *argv[]) {
   QString checkText;
   QStringList images;
   QString favoritesFile;
+  QString listMode = "thumbnails";
   for (int index = 0; index < arguments.size(); ++index) {
     const QString &argument = arguments.at(index);
     if (argument == "--theme" && index + 1 < arguments.size()) {
       theme = arguments.at(++index);
     } else if (argument == "--favorites-file" && index + 1 < arguments.size()) {
       favoritesFile = arguments.at(++index);
+    } else if (argument == "--list-mode" && index + 1 < arguments.size()) {
+      listMode = arguments.at(++index);
     } else if (argument == "--context-cell" && index + 1 < arguments.size()) {
       contextCell = arguments.at(++index).toInt();
     } else if (argument == "--transparency" && index + 1 < arguments.size()) {
@@ -224,6 +229,7 @@ int main(int argc, char *argv[]) {
   }
   settings.save();
   QSettings().setValue("display/showCellHeaders", true);
+  QSettings().setValue("display/imageListMode", listMode);
   if (!recentImages.isEmpty()) {
     heiran::ui::RecentImages::save(recentImages);
   }
@@ -246,6 +252,9 @@ int main(int argc, char *argv[]) {
     window.setStartupMessage(started.startupMessage);
   }
   window.show();
+  if (listMode == "details") {
+    window.resizeDocks({window.findChild<QDockWidget *>("thumbnailDock")}, {480}, Qt::Horizontal);
+  }
 
   QElapsedTimer timer;
   timer.start();

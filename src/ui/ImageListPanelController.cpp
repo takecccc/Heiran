@@ -1,7 +1,7 @@
-#include "heiran/ui/ThumbnailPanelController.hpp"
+#include "heiran/ui/ImageListPanelController.hpp"
 
+#include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/PageListing.hpp"
-#include "heiran/ui/ThumbnailPanelWidget.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QAction>
@@ -9,13 +9,14 @@
 #include <QDockWidget>
 #include <QMainWindow>
 #include <QMenu>
+#include <QSettings>
 #include <QToolBar>
 
 namespace heiran::ui {
 
-ThumbnailPanelController::ThumbnailPanelController(QMainWindow *window, ViewerGridWidget *grid)
-    : QObject(window), grid_(grid), dock_(new QDockWidget(tr("Thumbnails"), window)),
-      panel_(new ThumbnailPanelWidget(dock_)) {
+ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGridWidget *grid)
+    : QObject(window), grid_(grid), dock_(new QDockWidget(tr("Image List"), window)),
+      panel_(new ImageListPanelWidget(dock_)) {
   dock_->setObjectName("thumbnailDock");
   dock_->setFeatures(QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable);
   dock_->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
@@ -27,9 +28,22 @@ ThumbnailPanelController::ThumbnailPanelController(QMainWindow *window, ViewerGr
     window->resizeDocks({dock_}, {240}, Qt::Horizontal);
   }
   auto *action = dock_->toggleViewAction();
-  action->setObjectName("thumbnailsAction");
+  action->setObjectName("imageListAction");
   action->setShortcut(QKeySequence(Qt::Key_T));
-  action->setToolTip(tr("Show or hide the thumbnail list."));
+  action->setToolTip(tr("Show or hide the image list."));
+  auto *favoritesFilter = window->findChild<QAction *>("favoritesOnlyAction");
+  panel_->setFavoritesOnly(favoritesFilter->isChecked());
+  connect(panel_, &ImageListPanelWidget::favoritesOnlyRequested, favoritesFilter,
+          &QAction::setChecked);
+  connect(favoritesFilter, &QAction::toggled, panel_, &ImageListPanelWidget::setFavoritesOnly);
+  panel_->setDetailsVisible(QSettings().value("display/imageListMode", "thumbnails").toString() ==
+                            "details");
+  connect(panel_, &ImageListPanelWidget::detailsVisibleChanged, this, [this, window](bool details) {
+    QSettings().setValue("display/imageListMode", details ? "details" : "thumbnails");
+    if (details && dock_->isVisible() && dock_->width() < 460) {
+      window->resizeDocks({dock_}, {480}, Qt::Horizontal);
+    }
+  });
   window->addAction(action);
   window->findChild<QMenu *>("viewMenu")->addAction(action);
   auto *toolbar = window->findChild<QToolBar *>("navigationToolBar");
@@ -49,11 +63,11 @@ ThumbnailPanelController::ThumbnailPanelController(QMainWindow *window, ViewerGr
       pagesDirty_ = true;
     }
   });
-  connect(grid_, &ViewerGridWidget::viewChanged, this, &ThumbnailPanelController::refresh);
-  connect(grid_, &ViewerGridWidget::sessionChanged, this, &ThumbnailPanelController::invalidate);
+  connect(grid_, &ViewerGridWidget::viewChanged, this, &ImageListPanelController::refresh);
+  connect(grid_, &ViewerGridWidget::sessionChanged, this, &ImageListPanelController::invalidate);
   connect(grid_, &ViewerGridWidget::pageNavigationChanged, this,
-          &ThumbnailPanelController::invalidate);
-  connect(panel_, &ThumbnailPanelWidget::pageSelected, this, [this](int row) {
+          &ImageListPanelController::invalidate);
+  connect(panel_, &ImageListPanelWidget::pageSelected, this, [this](int row) {
     const int page = grid_->navigationPageAt(row);
     if (page >= 0) {
       grid_->setCurrentPage(page);
@@ -61,12 +75,12 @@ ThumbnailPanelController::ThumbnailPanelController(QMainWindow *window, ViewerGr
   });
 }
 
-void ThumbnailPanelController::invalidate() {
+void ImageListPanelController::invalidate() {
   pagesDirty_ = true;
   refresh();
 }
 
-void ThumbnailPanelController::refresh() {
+void ImageListPanelController::refresh() {
   if (!dock_->isVisible()) {
     return;
   }
