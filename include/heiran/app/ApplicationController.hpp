@@ -35,6 +35,8 @@ public:
   };
 
   StartupResult startup(const std::optional<QString> &sessionPath);
+  StartupResult prepareStartup(const std::optional<QString> &sessionPath) const;
+  void completeStartup(const StartupResult &result);
   OpenSessionResult openSession(const QString &sessionPath);
   SaveSessionResult saveSession(const heiran::domain::SessionModel &session,
                                 const QString &sessionPath);

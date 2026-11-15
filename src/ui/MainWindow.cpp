@@ -27,6 +27,7 @@
 #include "heiran/ui/SessionLayoutController.hpp"
 #include "heiran/ui/SessionMutationController.hpp"
 #include "heiran/ui/SettingsDialog.hpp"
+#include "heiran/ui/StartupPreparationController.hpp"
 #include "heiran/ui/TextureBudgetLedger.hpp"
 #include "heiran/ui/TransientMessageWidget.hpp"
 #include "heiran/ui/ViewerChromeController.hpp"
@@ -1195,12 +1196,14 @@ void MainWindow::openImageFiles(const QStringList &paths) {
 
   // 既定セッションの上へ載せると、使わない画像セットとその名前が残る。
   // 画像を直接開く場合は空のセッションから始める。
-  const auto layout = SessionLayoutController::layoutForImageCount(static_cast<int>(paths.size()));
-  heiran::domain::SessionModel session;
-  session.sessionDirectory = QDir::currentPath();
-  session.viewer.layout = layout;
-  session.cells.resize(layout.rows * layout.cols);
-  setSession(session);
+  openPreparedImages(StartupPreparationController::prepareImages(paths, QDir::currentPath()));
+}
+
+void MainWindow::openPreparedImages(const PreparedImageSession &prepared) {
+  if (prepared.sourcePaths.isEmpty()) {
+    return;
+  }
+  setSession(prepared.session);
   fitOnPageChangeOverride_ = true;
   updateFitOnPageChange();
   // 直接開いた画像は「普通に見る」使い方で、アニメーションは動くものと思って開く。
@@ -1209,13 +1212,16 @@ void MainWindow::openImageFiles(const QStringList &paths) {
   viewerGrid_->setAnimationPlaying(true);
   updateAnimationActions();
 
-  applyDroppedItems(0, paths);
+  viewerGrid_->setCurrentPage(prepared.initialPage);
+  if (!prepared.statusMessage.isEmpty()) {
+    statusBar()->showMessage(prepared.statusMessage);
+  }
   // 開いたこと自体は、戻せる変更ではない (開く前の状態は、もう無い)。
   clearUndoHistory();
   // 画像を直接開いた場合は必ず全体を出す。4K を等倍で出すと隅しか見えない。
   viewerGrid_->requestFitToCells();
 
-  rememberRecentImages(paths);
+  rememberRecentImages(prepared.sourcePaths);
 
   // 起動時に開いただけの状態を未保存扱いにすると、閉じるたびに保存を聞かれる。
   // .hrn として残したい場合は Save As を使う。

@@ -47,6 +47,7 @@ class ViewerGridWidget;
 class WelcomeWidget;
 class ViewerChromeController;
 struct LoupePreview;
+struct PreparedImageSession;
 
 class MainWindow : public QMainWindow {
 public:
@@ -63,6 +64,7 @@ public:
   // 画像を渡された場合に使う。枚数に合う格子へ切り替えてから割り当てる。
   // その場限りのセッションのため、未保存の印は付けない。
   void openImageFiles(const QStringList &paths);
+  void openPreparedImages(const PreparedImageSession &prepared);
 
   // 画像セットのファイル一覧を読み直す。フォルダへファイルが増減したときや、ファイルの
   // 名前を変えたり消したりしたときに使う。表示中のページはそのままにする。

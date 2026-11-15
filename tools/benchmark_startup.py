@@ -11,11 +11,14 @@ import threading
 import time
 
 
-def measure(executable, inputs, sequential):
+def measure(executable, inputs, sequential, sequential_inputs=False):
     environment = dict(os.environ, QT_ASSUME_STDERR_HAS_CONSOLE="1")
     environment.pop("HEIRAN_BENCHMARK_SEQUENTIAL_FONTS", None)
+    environment.pop("HEIRAN_BENCHMARK_SEQUENTIAL_INPUTS", None)
     if sequential:
         environment["HEIRAN_BENCHMARK_SEQUENTIAL_FONTS"] = "1"
+    if sequential_inputs:
+        environment["HEIRAN_BENCHMARK_SEQUENTIAL_INPUTS"] = "1"
     started = time.perf_counter()
     process = subprocess.Popen(
         [str(executable), *inputs],
@@ -59,7 +62,9 @@ def main():
     parser.add_argument("inputs", nargs="*", help="Image files or one .hrn file")
     parser.add_argument("--exe", type=Path, default=Path("build/heiran_startup_benchmark.exe"))
     parser.add_argument("--runs", type=int, default=5)
-    parser.add_argument("--compare", action="store_true", help="Also measure sequential initialization")
+    comparison = parser.add_mutually_exclusive_group()
+    comparison.add_argument("--compare", action="store_true", help="Also measure sequential fonts")
+    comparison.add_argument("--compare-inputs", action="store_true", help="Also measure sequential input preparation")
     parser.add_argument("--output", type=Path, help="Save individual samples as JSON")
     arguments = parser.parse_args()
     if arguments.runs < 1:
@@ -68,12 +73,15 @@ def main():
     samples = {"parallel": []}
     if arguments.compare:
         samples["sequential"] = []
+    if arguments.compare_inputs:
+        samples["sequential-inputs"] = []
     for iteration in range(arguments.runs + 1):
         modes = list(samples)
         if iteration % 2:
             modes.reverse()
         for mode in modes:
-            sample = measure(executable, arguments.inputs, mode == "sequential")
+            sample = measure(executable, arguments.inputs, mode == "sequential",
+                             mode == "sequential-inputs")
             if iteration:
                 samples[mode].append(sample)
     for mode, values in samples.items():

@@ -231,6 +231,7 @@ add_library(heiran_core
   src/ui/ScopeWindows.cpp
   src/ui/SessionLayoutController.cpp
   src/ui/SessionMutationController.cpp
+  src/ui/StartupPreparationController.cpp
   src/ui/ThumbnailCache.cpp
   src/ui/ThumbnailLoader.cpp
   src/ui/ViewerGridWidget.cpp
@@ -338,6 +339,7 @@ target_sources(heiran_core
     include/heiran/ui/PageWheelController.hpp
     include/heiran/ui/FileDragController.hpp
     include/heiran/ui/SessionMutationController.hpp
+    include/heiran/ui/StartupPreparationController.hpp
     include/heiran/ui/ThumbnailCache.hpp
     include/heiran/ui/ThumbnailLoader.hpp
     include/heiran/ui/ViewerGridWidget.hpp
@@ -1233,6 +1235,10 @@ target_link_libraries(heiran_session_mutation_controller_tests
 )
 
 add_test(NAME heiran_session_mutation_controller_tests COMMAND heiran_session_mutation_controller_tests)
+
+add_executable(heiran_startup_preparation_tests tests/StartupPreparationTests.cpp)
+target_link_libraries(heiran_startup_preparation_tests PRIVATE heiran_core Qt6::Test)
+add_test(NAME heiran_startup_preparation_tests COMMAND heiran_startup_preparation_tests)
 
 add_executable(heiran_session_pages_tests
   tests/SessionPagesTests.cpp

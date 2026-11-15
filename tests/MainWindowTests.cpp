@@ -5,6 +5,7 @@
 #include "heiran/ui/MainWindow.hpp"
 #include "heiran/ui/PageThumbnailDialog.hpp"
 #include "heiran/ui/SessionLayoutController.hpp"
+#include "heiran/ui/StartupPreparationController.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QAbstractSpinBox>
@@ -77,6 +78,24 @@ class MainWindowTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void opensPreparedImagesWithoutRescanningTheDirectory() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto paths = writeImageFiles(directory.path(), 3);
+    const auto prepared =
+        heiran::ui::StartupPreparationController::prepareImages({paths.last()}, directory.path());
+    QVERIFY(QFile::remove(paths.first()));
+    heiran::ui::MainWindow window;
+    window.openPreparedImages(prepared);
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(grid != nullptr);
+    QCOMPARE(grid->currentPage(), 2);
+    QCOMPARE(grid->totalPages(), 3);
+    QCOMPARE(grid->sessionSnapshot().images.first().resolvedPaths, paths);
+    QCOMPARE(grid->targetCellFilePath(), paths.last());
+    QVERIFY(!window.isWindowModified());
+  }
+
   void keepsPageControlsAvailableWhenNavigationIsHidden() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());

@@ -19,16 +19,30 @@ QString normalizeSessionPath(const QString &sessionPath) {
 
 ApplicationController::StartupResult ApplicationController::startup(
     const std::optional<QString> &sessionPath) {
+  auto result = prepareStartup(sessionPath);
+  completeStartup(result);
+  return result;
+}
+
+void ApplicationController::completeStartup(const StartupResult &result) {
+  if (!result.loadFailed && !result.session.sessionFilePath.isEmpty()) {
+    rememberRecentSession(result.session.sessionFilePath);
+  }
+}
+
+ApplicationController::StartupResult ApplicationController::prepareStartup(
+    const std::optional<QString> &sessionPath) const {
   if (!sessionPath.has_value()) {
     return {sessionController_.createDefaultSession(),
             QCoreApplication::translate("ApplicationController",
                                         "Drop an image here, or use File > Open Image...")};
   }
 
-  const auto openResult = openSession(*sessionPath);
+  const auto openResult = sessionController_.loadSession(*sessionPath);
   if (openResult.ok) {
     return {.session = openResult.session,
-            .startupMessage = openResult.userMessage,
+            .startupMessage = QCoreApplication::translate("ApplicationController", "Loaded %1")
+                                  .arg(normalizeSessionPath(*sessionPath)),
             .issues = openResult.issues,
             .issuesTruncated = openResult.issuesTruncated};
   }
@@ -36,7 +50,7 @@ ApplicationController::StartupResult ApplicationController::startup(
   return {.session = sessionController_.createDefaultSession(),
           .startupMessage =
               QCoreApplication::translate("ApplicationController", "Failed to load %1: %2")
-                  .arg(*sessionPath, openResult.userMessage),
+                  .arg(*sessionPath, openResult.errorMessage),
           .issues = openResult.issues,
           .issuesTruncated = openResult.issuesTruncated,
           .loadFailed = true};

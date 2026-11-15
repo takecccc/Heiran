@@ -4,10 +4,12 @@
 #include "heiran/app/OpenGlCheck.hpp"
 #include "heiran/ui/AppSettings.hpp"
 #include "heiran/ui/MainWindow.hpp"
+#include "heiran/ui/StartupPreparationController.hpp"
 
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QFontMetrics>
 #include <QFutureSynchronizer>
@@ -72,6 +74,24 @@ int main(int argc, char *argv[]) {
   QApplication::setWindowIcon(QIcon(":/heiran-256.png"));
   recordStartup("settings-and-localization");
 
+  // .hrn を 1 つ渡された場合はセッションとして開く。それ以外は画像として開く。
+  // 関連付けから複数選択で起動された場合は引数が複数並ぶ。
+  std::optional<QString> sessionPath;
+  QStringList imagePaths;
+  const QStringList arguments = QCoreApplication::arguments();
+  if (arguments.size() == 2 && arguments.at(1).endsWith(".hrn", Qt::CaseInsensitive)) {
+    sessionPath = arguments.at(1);
+  } else {
+    imagePaths = arguments.mid(1);
+  }
+
+  bool parallelInputs = true;
+#ifdef HEIRAN_STARTUP_BENCHMARK
+  parallelInputs = !qEnvironmentVariableIsSet("HEIRAN_BENCHMARK_SEQUENTIAL_INPUTS");
+#endif
+  heiran::ui::StartupPreparationController inputPreparation(sessionPath, imagePaths,
+                                                            QDir::currentPath(), parallelInputs);
+
   QFutureSynchronizer<int> fontWarmup;
   bool parallelFonts = true;
 #ifdef HEIRAN_STARTUP_BENCHMARK
@@ -94,23 +114,13 @@ int main(int argc, char *argv[]) {
   fontWarmup.waitForFinished();
   recordStartup("font-ready");
 
-  // .hrn を 1 つ渡された場合はセッションとして開く。それ以外は画像として開く。
-  // 関連付けから複数選択で起動された場合は引数が複数並ぶ。
-  std::optional<QString> sessionPath;
-  QStringList imagePaths;
-  const QStringList arguments = QCoreApplication::arguments();
-  if (arguments.size() == 2 && arguments.at(1).endsWith(".hrn", Qt::CaseInsensitive)) {
-    sessionPath = arguments.at(1);
-  } else {
-    imagePaths = arguments.mid(1);
-  }
-
   heiran::app::ApplicationController applicationController;
-  const auto startupResult = applicationController.startup(sessionPath);
-  recordStartup("session-load");
-
   heiran::ui::MainWindow mainWindow;
   recordStartup("window-construction");
+  auto prepared = inputPreparation.takeResult();
+  const auto &startupResult = prepared.startup;
+  applicationController.completeStartup(startupResult);
+  recordStartup("session-load");
   mainWindow.setOpenSessionHandler([&applicationController, &mainWindow](const QString &path) {
     const auto openResult = applicationController.openSession(path);
     if (!openResult.ok) {
@@ -166,7 +176,9 @@ int main(int argc, char *argv[]) {
         QMessageBox::information(&mainWindow, QCoreApplication::translate("main", "Save Complete"),
                                  QCoreApplication::translate("main", "Saved %1.").arg(path));
       });
-  mainWindow.setSession(startupResult.session);
+  if (!prepared.images) {
+    mainWindow.setSession(startupResult.session);
+  }
   mainWindow.setStartupMessage(startupResult.startupMessage);
   mainWindow.setRecentSessions(applicationController.recentSessionPaths());
   if (startupResult.loadFailed) {
@@ -190,9 +202,10 @@ int main(int argc, char *argv[]) {
          .truncated = startupResult.issuesTruncated,
          .fatal = false});
   }
-  if (!imagePaths.isEmpty()) {
-    mainWindow.openImageFiles(imagePaths);
+  if (prepared.images) {
+    mainWindow.openPreparedImages(*prepared.images);
   }
+  prepared = {};
   recordStartup("session-apply");
   bool firstFrameRecorded = false;
   const auto *canvas = mainWindow.findChild<QOpenGLWidget *>();

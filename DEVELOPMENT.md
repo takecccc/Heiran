@@ -139,6 +139,7 @@ Release 構成でビルドし、Qt の DLL を探索できる状態で実行し�
 ```powershell
 $env:PATH = "$env:Qt6_ROOT/bin;$env:PATH"
 py tools/benchmark_startup.py --compare --runs 6 --output build/startup-results.json
+py tools/benchmark_startup.py --compare-inputs --runs 4 examples/sample.hrn
 py tools/benchmark_startup.py examples/images/d/0001.png
 py tools/benchmark_startup.py examples/sample.hrn
 ```
@@ -151,10 +152,14 @@ py tools/benchmark_startup.py examples/sample.hrn
 Python 側の `process_ms` はプロセス作成から初回フレームのログを受信するまでで、DLL 読み込みも含みます。
 `main_ms` は `main()` の開始から初回フレームまでです。初回を除外し、最小・中央値・最大を表示します。
 `--compare` ではフォントの並行初期化を無効にした比較用実行と交互に測ります。
-ベンチマークだけが `HEIRAN_BENCHMARK_SEQUENTIAL_FONTS` を認識します。通常アプリでは並行初期化を使います。
+`--compare-inputs` では起動引数の準備だけを直列にした実行と交互に測り、フォントの並行初期化は両方で有効にします。
+画像数が多いフォルダー内の画像、または複数の画像セットを持つ `.hrn` を渡すと、一覧作成の待ちを比較できます。
+ベンチマークだけが `HEIRAN_BENCHMARK_SEQUENTIAL_FONTS` / `HEIRAN_BENCHMARK_SEQUENTIAL_INPUTS` を認識します。
+通常アプリでは並行初期化・並行準備を使い、引数がない場合は入力準備用ワーカーを起動しません。
 
 通常アプリの内訳を調べる場合は `HEIRAN_PROFILE_STARTUP=1` と `QT_ASSUME_STDERR_HAS_CONSOLE=1` を設定します。
 `startup <区間>: stage=... ms total=... ms` を標準エラーへ出し、初回描画は `first-frame` で示します。
+`session-load` は準備結果を受け取る際の残りの待ちと履歴反映の区間で、ワーカー全体の所要時間ではありません。
 表示先への出力タイミングを測るため、`frameSwapped` はディスプレイへの物理的な表示完了を保証しません。
 
 ## サンプル画像
