@@ -1,3 +1,5 @@
+#include "heiran/app/SessionPathResolver.hpp"
+#include "heiran/domain/SessionPages.hpp"
 #include "heiran/infra/FavoriteStore.hpp"
 #include "heiran/infra/ImageFileDetails.hpp"
 #include "heiran/ui/FavoritesController.hpp"
@@ -15,6 +17,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
+#include <QLabel>
 #include <QListWidget>
 #include <QLocale>
 #include <QMenu>
@@ -437,8 +440,8 @@ private Q_SLOTS:
     grid->previousPage();
     QCOMPARE(list->count(), paths.size());
     list->clearSelection();
-    list->item(3)->setSelected(true);
-    QCOMPARE(grid->currentFilePathForCell(0), paths.at(3));
+    list->item(2)->setSelected(true);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
     list->clearSelection();
     list->item(1)->setSelected(true);
     list->item(4)->setSelected(true);
@@ -474,6 +477,133 @@ private Q_SLOTS:
     window.openImageFiles({next.first()});
     QCOMPARE(list->count(), next.size());
     QCOMPARE(list->item(0)->data(Qt::UserRole + 2).toString(), next.first());
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), next.at(1));
+  }
+
+  void stepsEachComparedImageThroughTheFilteredSource() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 7);
+    const auto database = metadata.filePath("favorites.json");
+    heiran::infra::FavoriteStore store(database);
+    QVERIFY(store.setFavorites({paths.at(0), paths.at(2), paths.at(4), paths.at(6)}, true));
+    heiran::ui::MainWindow window(nullptr, database);
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    window.compareSelectedImages({paths.at(0), paths.at(2)});
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *list = window.findChild<QListWidget *>("thumbnailList");
+    auto *filter = window.findChild<QAction *>("favoritesOnlyAction");
+    filter->setChecked(true);
+    QCOMPARE(list->count(), 4);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(2));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(4));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(6));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(4));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(6));
+    grid->setCurrentPage(0);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(2));
+    grid->stepPages(9);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(4));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(6));
+    grid->stepPages(-9);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(2));
+    auto *selector = window.findChild<QComboBox *>("pageSelector");
+    QCOMPARE(selector->count(), 3);
+    QVERIFY(selector->itemText(2).contains(QFileInfo(paths.at(4)).fileName()));
+    window.compareSelectedImages({paths.at(0), paths.at(6)});
+    QCOMPARE(grid->navigationPageCount(), 1);
+    QCOMPARE(window.findChild<heiran::ui::FavoritesController *>()->favoriteFiles().size(), 4);
+    filter->setChecked(false);
+    window.compareSelectedImages({paths.at(0), paths.at(2), paths.at(4)});
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(1));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(3));
+    QCOMPARE(grid->currentFilePathForCell(2), paths.at(5));
+    QVERIFY(grid->currentFilePathForCell(3).isEmpty());
+    auto saved = grid->sessionSnapshot();
+    heiran::app::SessionPathResolver::resolveImagePaths(&saved);
+    for (int cell = 0; cell < 3; ++cell)
+      QCOMPARE(heiran::domain::cellPageAt(saved, cell, 0).path, grid->currentFilePathForCell(cell));
+  }
+
+  void retainsExcludedComparedImagesUntilNavigation() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 7);
+    const auto database = metadata.filePath("favorites.json");
+    heiran::infra::FavoriteStore store(database);
+    const QStringList marked{paths.at(0), paths.at(2), paths.at(4), paths.at(6)};
+    QVERIFY(store.setFavorites(marked, true));
+    heiran::ui::MainWindow window(nullptr, database);
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    window.compareSelectedImages({paths.at(1), paths.at(3)});
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *filter = window.findChild<QAction *>("favoritesOnlyAction");
+    auto *favorites = window.findChild<heiran::ui::FavoritesController *>();
+    auto *excluded = window.findChild<QLabel *>("excludedDisplayedFiles");
+    auto *list = window.findChild<QListWidget *>("thumbnailList");
+    grid->zoomBy(1.5);
+    const auto view = grid->globalViewState();
+    filter->setChecked(true);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(1));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(3));
+    QCOMPARE(grid->globalViewState().baseScale, view.baseScale);
+    QCOMPARE(grid->globalViewState().baseOffsetX, view.baseOffsetX);
+    QCOMPARE(grid->globalViewState().baseOffsetY, view.baseOffsetY);
+    QVERIFY(excluded->isVisible());
+    QVERIFY(excluded->text().contains(QFileInfo(paths.at(1)).fileName()));
+    QVERIFY(excluded->text().contains(QFileInfo(paths.at(3)).fileName()));
+    QCOMPARE(list->count(), 4);
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    QVERIFY(!excluded->isVisible());
+    grid->previousPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(2));
+    grid->nextPage();
+    favorites->setFavorites({paths.at(2)}, false);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    QVERIFY(excluded->isVisible());
+    favorites->setFavorites({paths.at(2)}, true);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    QVERIFY(!excluded->isVisible());
+    favorites->setFavorites(marked, false);
+    QCOMPARE(list->count(), 0);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    QVERIFY(excluded->isVisible());
+    grid->nextPage();
+    grid->previousPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    QVERIFY(window.findChild<QAction *>("favoriteAction")->isEnabled());
+    favorites->setFavorites({paths.at(3), paths.at(5)}, true);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(3));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(5));
+    QVERIFY(!excluded->isVisible());
+    filter->setChecked(false);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(3));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(5));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(4));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(6));
   }
 
   void preservesFilteredSourceWhenComparing() {

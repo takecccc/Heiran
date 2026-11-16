@@ -9,6 +9,7 @@
 #include "heiran/ui/ActionIcons.hpp"
 #include "heiran/ui/ChangeGraphWindow.hpp"
 #include "heiran/ui/ColorTheme.hpp"
+#include "heiran/ui/ComparisonNavigationController.hpp"
 #include "heiran/ui/DiffWindow.hpp"
 #include "heiran/ui/FavoritesController.hpp"
 #include "heiran/ui/FileOperations.hpp"
@@ -126,6 +127,7 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   applyInitialState();
   new FavoritesController(this, viewerGrid_, std::move(favoritesFile));
   auto *imageList = new ImageListPanelController(this, viewerGrid_);
+  new ComparisonNavigationController(this, viewerGrid_, imageList);
   connect(imageList, &ImageListPanelController::compareRequested, this,
           &MainWindow::compareSelectedImages);
   addShortcutsToToolTips();
@@ -1461,7 +1463,8 @@ void MainWindow::updatePageControls() {
   }
 
   const int available = viewerGrid_->navigationPageCount();
-  const auto allTexts = PageListing::displayTexts(currentSession_, viewerGrid_->totalPages());
+  const auto allTexts =
+      PageListing::displayTexts(viewerGrid_->sessionSnapshot(), viewerGrid_->totalPages());
   pageComboBox_->blockSignals(true);
   pageComboBox_->clear();
   for (int index = 0; index < available; ++index) {

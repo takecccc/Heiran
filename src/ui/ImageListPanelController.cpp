@@ -41,6 +41,10 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
   connect(panel_, &ImageListPanelWidget::favoritesOnlyRequested, favoritesFilter,
           &QAction::setChecked);
   connect(favoritesFilter, &QAction::toggled, panel_, &ImageListPanelWidget::setFavoritesOnly);
+  connect(favoritesFilter, &QAction::toggled, this, [this]() {
+    if (sourceSession_)
+      invalidate();
+  });
   panel_->setDetailsVisible(QSettings().value("display/imageListMode", "thumbnails").toString() ==
                             "details");
   connect(panel_, &ImageListPanelWidget::detailsVisibleChanged, this, [this, window](bool details) {
@@ -69,7 +73,18 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
     }
   });
   connect(grid_, &ViewerGridWidget::viewChanged, this, &ImageListPanelController::refresh);
+  connect(grid_, &ViewerGridWidget::sessionAboutToChange, this, [this]() {
+    if (!changingSession_) {
+      beginSessionChange(std::nullopt);
+      automaticSessionChange_ = true;
+    }
+  });
   connect(grid_, &ViewerGridWidget::sessionChanged, this, [this](bool reset) {
+    if (reset && automaticSessionChange_) {
+      automaticSessionChange_ = false;
+      endSessionChange();
+      return;
+    }
     if (reset && !changingSession_) {
       sourceSession_.reset();
     }
@@ -104,10 +119,13 @@ void ImageListPanelController::beginSessionChange(
   changingSession_ = true;
   sourceSession_ = std::move(sourceSession);
   pagesDirty_ = true;
+  Q_EMIT sourceSessionChanging();
 }
 
 void ImageListPanelController::endSessionChange() {
+  Q_EMIT sourceSessionChanged();
   changingSession_ = false;
+  panel_->setFavoritesOnly(favoritesFilter_->isChecked());
   invalidate();
 }
 
@@ -131,11 +149,11 @@ void ImageListPanelController::refresh() {
         sourceSession_ ? heiran::domain::totalPageCount(session) : grid_->navigationPageCount();
     for (int index = 0; index < count; ++index) {
       const int page = sourceSession_ ? index : grid_->navigationPageAt(index);
-      if (sourceSession_ && favoritesOnly && !pageHasFavorite(session, page))
+      const auto path = PageListing::pagePath(session, page);
+      if (sourceSession_ && favoritesOnly && !favorites_->isFavorite(path))
         continue;
       listedPages_.push_back(page);
-      listedPaths_.push_back(PageListing::pagePath(session, page));
-      const auto &path = listedPaths_.last();
+      listedPaths_.push_back(path);
       if (!path.isEmpty()) {
         const auto key = heiran::infra::FavoriteStore::pathKey(path);
         if (!listedRowsByPath_.contains(key))
@@ -167,7 +185,8 @@ void ImageListPanelController::refreshFavoriteStates() {
   const auto session = sourceSession_.value_or(grid_->sessionSnapshot());
   QVector<bool> states;
   for (int page : listedPages_) {
-    states.push_back(pageHasFavorite(session, page));
+    states.push_back(sourceSession_ ? favorites_->isFavorite(PageListing::pagePath(session, page))
+                                    : pageHasFavorite(session, page));
   }
   panel_->setFavoriteStates(states);
 }

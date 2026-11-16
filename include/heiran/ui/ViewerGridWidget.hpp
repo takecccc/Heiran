@@ -66,7 +66,8 @@ public:
 
   void setSession(const heiran::domain::SessionModel &session, int initialPage = 0,
                   std::shared_ptr<DecodeScheduler> startupScheduler = {});
-  void setSessionPreservingView(const heiran::domain::SessionModel &session);
+  void setSessionPreservingView(const heiran::domain::SessionModel &session, int page = -1,
+                                bool refit = true);
   void nextPage();
   void previousPage();
   void resetView();
@@ -200,6 +201,7 @@ public:
   double exposureStops() const;
 
 Q_SIGNALS:
+  void sessionAboutToChange();
   void pageNavigationChanged();
   void sessionChanged(bool reset);
   void favoriteToggleRequested(int cellIndex);

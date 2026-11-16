@@ -105,7 +105,7 @@ FavoritesController::~FavoritesController() {
 void FavoritesController::rebuildScope() {
   scopedFavorites_.clear();
   QSet<QString> seen;
-  const auto session = grid_->sessionSnapshot();
+  const auto session = navigationSource_.value_or(grid_->sessionSnapshot());
   const int cells = session.viewer.layout.rows * session.viewer.layout.cols;
   QSet<int> sets;
   for (int cell = 0; cell < cells && cell < session.cells.size(); ++cell)
@@ -140,6 +140,10 @@ void FavoritesController::refresh() {
 }
 
 void FavoritesController::applyFilter() {
+  if (navigationSource_) {
+    refresh();
+    return;
+  }
   if (!filterAction_->isChecked()) {
     grid_->setPageFilter(std::nullopt);
   } else {
@@ -157,6 +161,12 @@ void FavoritesController::applyFilter() {
     }
     grid_->setPageFilter(std::move(pages));
   }
+  refresh();
+}
+
+void FavoritesController::setNavigationSource(std::optional<heiran::domain::SessionModel> source) {
+  navigationSource_ = std::move(source);
+  rebuildScope();
   refresh();
 }
 

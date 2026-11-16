@@ -28,6 +28,8 @@ public:
 
 Q_SIGNALS:
   void compareRequested(const QStringList &paths);
+  void sourceSessionChanging();
+  void sourceSessionChanged();
 
 private:
   void refresh();
@@ -47,6 +49,7 @@ private:
   QVector<int> listedPages_;
   std::optional<heiran::domain::SessionModel> sourceSession_;
   bool changingSession_ = false;
+  bool automaticSessionChange_ = false;
   bool pagesDirty_ = true;
 };
 

@@ -150,6 +150,7 @@ void ViewerGridWidget::handleDecodeCompleted(const DecodeCompletion &notificatio
 
 void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, int initialPage,
                                   std::shared_ptr<DecodeScheduler> startupScheduler) {
+  Q_EMIT sessionAboutToChange();
   session_ = session;
   globalState_ = {};
   pageNavigation_.setPages(std::nullopt);
@@ -197,27 +198,34 @@ void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, i
   Q_EMIT sessionChanged(true);
 }
 
-void ViewerGridWidget::setSessionPreservingView(const heiran::domain::SessionModel &session) {
+void ViewerGridWidget::setSessionPreservingView(const heiran::domain::SessionModel &session,
+                                                int page, bool refit) {
   const bool layoutChanged = session_.viewer.layout.rows != session.viewer.layout.rows ||
                              session_.viewer.layout.cols != session.viewer.layout.cols ||
                              session_.viewer.layout.order != session.viewer.layout.order;
   if (layoutChanged || cells_.size() != session.viewer.layout.rows * session.viewer.layout.cols) {
-    setSession(session);
+    setSession(session, std::max(0, page));
     return;
   }
 
   session_ = session;
+  if (page >= 0)
+    globalState_.currentPage = std::clamp(page, 0, std::max(0, pageCount() - 1));
   refreshCellStatesFromSession();
   refreshCellImages();
   refreshCellViewStates();
   refreshSelectionOverlays();
-  if (fitOnPageChange_) {
+  if (refit && fitOnPageChange_) {
     fitPending_ = true;
     applyPendingFit();
   }
   updateStatus();
   schedulePrefetchAroundCurrentPage();
   Q_EMIT sessionChanged(false);
+  if (page >= 0) {
+    Q_EMIT pageNavigationChanged();
+    Q_EMIT viewChanged();
+  }
 }
 
 void ViewerGridWidget::nextPage() {

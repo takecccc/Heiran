@@ -9,6 +9,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFileInfo>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -32,6 +33,8 @@ constexpr QSize kThumbnailSize(160, 120);
 ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
     : QWidget(parent), list_(new ImageFileListWidget(this)), count_(new QLabel(this)),
       empty_(new QLabel(tr("No images to display."), this)),
+      excludedGroup_(new QGroupBox(tr("Displayed outside filter"), this)),
+      excludedFiles_(new QLabel(excludedGroup_)),
       favoritesOnly_(new QCheckBox(tr("Favorites only"), this)), viewMode_(new QComboBox(this)),
       views_(new QStackedWidget(this)), details_(new ImageFileDetailsWidget(this)),
       compare_(new QPushButton(tr("Compare Selected"), this)),
@@ -53,6 +56,14 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   favoritesOnly_->setObjectName("imageListFavoritesOnly");
   layout->addLayout(modeLayout);
   layout->addWidget(favoritesOnly_);
+  auto *excludedLayout = new QVBoxLayout(excludedGroup_);
+  excludedFiles_->setObjectName("excludedDisplayedFiles");
+  excludedFiles_->setTextFormat(Qt::PlainText);
+  excludedFiles_->setWordWrap(true);
+  excludedFiles_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+  excludedLayout->addWidget(excludedFiles_);
+  excludedGroup_->hide();
+  layout->addWidget(excludedGroup_);
   layout->addWidget(count_);
   auto *favoriteActions = new QHBoxLayout;
   favoriteActions->addWidget(addFavorites_);
@@ -377,6 +388,20 @@ void ImageListPanelWidget::setDisplayedFiles(const QStringList &cellPaths) {
     updateItemCaption(index);
     details_->topLevelItem(index)->setText(5, cells.join(", "));
   }
+}
+
+void ImageListPanelWidget::setExcludedDisplayedFiles(const QStringList &cellPaths) {
+  QStringList labels, descriptions;
+  for (int cell = 0; cell < cellPaths.size(); ++cell) {
+    const auto &path = cellPaths.at(cell);
+    if (path.isEmpty())
+      continue;
+    labels.push_back(tr("Cell %1: %2").arg(cell + 1).arg(QFileInfo(path).fileName()));
+    descriptions.push_back(tr("Cell %1: %2").arg(cell + 1).arg(path));
+  }
+  excludedFiles_->setText(labels.join("\n"));
+  excludedFiles_->setToolTip(descriptions.join("\n"));
+  excludedGroup_->setVisible(!labels.isEmpty());
 }
 
 void ImageListPanelWidget::updateItemCaption(int index) {

@@ -17,6 +17,7 @@ class QStackedWidget;
 class QTreeWidget;
 class QPushButton;
 class QAction;
+class QGroupBox;
 
 namespace heiran::ui {
 
@@ -34,6 +35,7 @@ public:
   bool detailsVisible() const;
   void setFavoriteStates(const QVector<bool> &states);
   void setDisplayedFiles(const QStringList &cellPaths);
+  void setExcludedDisplayedFiles(const QStringList &cellPaths);
   QStringList selectedFilePaths() const;
 
 Q_SIGNALS:
@@ -55,6 +57,8 @@ private:
   QListWidget *list_;
   QLabel *count_;
   QLabel *empty_;
+  QGroupBox *excludedGroup_;
+  QLabel *excludedFiles_;
   QCheckBox *favoritesOnly_;
   QComboBox *viewMode_;
   QStackedWidget *views_;

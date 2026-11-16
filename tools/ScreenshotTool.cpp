@@ -11,6 +11,7 @@
 //                     [--favorites-file path]
 //                     [--list-mode thumbnails|details]
 //                     [--list-select 0,2] [--compare-selection] [--list-context-menu]
+//                     [--favorites-only-after-comparison]
 //                     <画像ファイル...>
 //
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
@@ -150,6 +151,7 @@ int main(int argc, char *argv[]) {
   QString listMode = "thumbnails";
   QStringList listSelection;
   bool compareSelection = false;
+  bool favoritesAfterComparison = false;
   bool listContextMenu = false;
   for (int index = 0; index < arguments.size(); ++index) {
     const QString &argument = arguments.at(index);
@@ -163,6 +165,8 @@ int main(int argc, char *argv[]) {
       listSelection = arguments.at(++index).split(',');
     } else if (argument == "--compare-selection") {
       compareSelection = true;
+    } else if (argument == "--favorites-only-after-comparison") {
+      favoritesAfterComparison = true;
     } else if (argument == "--list-context-menu") {
       listContextMenu = true;
     } else if (argument == "--context-cell" && index + 1 < arguments.size()) {
@@ -322,6 +326,8 @@ int main(int argc, char *argv[]) {
     }
     if (compareSelection)
       panel->findChild<QPushButton *>("compareSelectedImages")->click();
+    if (favoritesAfterComparison)
+      window.findChild<QAction *>("favoritesOnlyAction")->setChecked(true);
     QElapsedTimer selectionTimer;
     selectionTimer.start();
     while (selectionTimer.elapsed() < 2000)

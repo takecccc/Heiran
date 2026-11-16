@@ -220,6 +220,7 @@ add_library(heiran_core
   src/ui/ImageListPanelWidget.cpp
   src/ui/ImageListDragViews.cpp
   src/ui/ImageListPanelController.cpp
+  src/ui/ComparisonNavigationController.cpp
   src/ui/PixelInfoText.cpp
   src/ui/PixelValueFormat.cpp
   src/ui/ProfileAccumulator.cpp
@@ -334,6 +335,7 @@ target_sources(heiran_core
     include/heiran/ui/ImageListPanelWidget.hpp
     include/heiran/ui/ImageListDragViews.hpp
     include/heiran/ui/ImageListPanelController.hpp
+    include/heiran/ui/ComparisonNavigationController.hpp
     include/heiran/ui/PixelInfoText.hpp
     include/heiran/ui/PixelValueFormat.hpp
     include/heiran/ui/ProfileAccumulator.hpp
