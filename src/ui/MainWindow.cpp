@@ -1208,11 +1208,19 @@ void MainWindow::compareSelectedImages(const QStringList &paths) {
   const auto prepared =
       StartupPreparationController::prepareImages(paths, currentSession_.sessionDirectory);
   pushUndo(captureUndoRecord(QCoreApplication::translate("MainWindow", "Compare selected images")));
+  auto *imageList = findChild<ImageListPanelController *>();
+  auto source = imageList->sourceSession();
+  if (!source)
+    source = currentSession_;
+  const bool favoritesOnly = findChild<QAction *>("favoritesOnlyAction")->isChecked();
+  imageList->beginSessionChange(std::move(source));
   currentSession_.viewer.layout = prepared.session.viewer.layout;
   currentSession_.images = prepared.session.images;
   currentSession_.cells = prepared.session.cells;
   cellLayoutCache_ = currentSession_.cells;
   viewerGrid_->setSession(currentSession_, prepared.initialPage);
+  findChild<QAction *>("favoritesOnlyAction")->setChecked(favoritesOnly);
+  imageList->endSessionChange();
   refreshSessionDependentUi();
   viewerGrid_->requestFitToCells();
   dirtyStateController_.setDirty(true);
@@ -1598,11 +1606,15 @@ heiran::domain::SessionModel MainWindow::normalizedSessionForSave() const {
 }
 
 MainWindow::UndoRecord MainWindow::captureUndoRecord(const QString &label) const {
+  const auto *imageList = findChild<ImageListPanelController *>();
+  const auto *favoritesOnly = findChild<QAction *>("favoritesOnlyAction");
   return {.label = label,
           .session = currentSession_,
           .cellLayoutCache = cellLayoutCache_,
           .page = viewerGrid_ != nullptr ? viewerGrid_->currentPage() : 0,
-          .dirty = dirtyStateController_.isDirty()};
+          .dirty = dirtyStateController_.isDirty(),
+          .imageListSource = imageList ? imageList->sourceSession() : std::nullopt,
+          .favoritesOnly = favoritesOnly && favoritesOnly->isChecked()};
 }
 
 void MainWindow::pushUndo(UndoRecord record) {
@@ -1619,9 +1631,13 @@ void MainWindow::pushUndo(UndoRecord record) {
 }
 
 void MainWindow::restoreUndoRecord(const UndoRecord &record) {
+  auto *imageList = findChild<ImageListPanelController *>();
+  imageList->beginSessionChange(record.imageListSource);
   currentSession_ = record.session;
   cellLayoutCache_ = record.cellLayoutCache;
   applyCurrentSessionToUiPreservingView(record.page);
+  findChild<QAction *>("favoritesOnlyAction")->setChecked(record.favoritesOnly);
+  imageList->endSessionChange();
   dirtyStateController_.setDirty(record.dirty);
 }
 

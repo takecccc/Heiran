@@ -254,6 +254,8 @@ private:
     QVector<heiran::domain::CellConfig> cellLayoutCache;
     int page = 0;
     bool dirty = false;
+    std::optional<heiran::domain::SessionModel> imageListSource;
+    bool favoritesOnly = false;
   };
   static constexpr int kMaxUndoRecords = 30;
   // 変更の前の状態を控える (syncCurrentSessionFromViewer() のあとで呼ぶ)。変更が済んだら、pushUndo() へ渡す。

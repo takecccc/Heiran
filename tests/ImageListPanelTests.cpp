@@ -414,6 +414,114 @@ private Q_SLOTS:
     QVERIFY(!window.isWindowModified());
   }
 
+  void preservesSourceListWhenComparingAndPaging() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 6);
+    heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *list = panel->findChild<QListWidget *>();
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    list->clearSelection();
+    list->item(1)->setSelected(true);
+    list->item(4)->setSelected(true);
+    panel->findChild<QPushButton *>("compareSelectedImages")->click();
+    QCOMPARE(list->count(), paths.size());
+    for (int row = 0; row < paths.size(); ++row)
+      QCOMPARE(list->item(row)->data(Qt::UserRole + 2).toString(), paths.at(row));
+    QCOMPARE(panel->selectedFilePaths(), QStringList({paths.at(1), paths.at(4)}));
+    grid->nextPage();
+    QCOMPARE(list->count(), paths.size());
+    grid->previousPage();
+    QCOMPARE(list->count(), paths.size());
+    list->clearSelection();
+    list->item(3)->setSelected(true);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(3));
+    list->clearSelection();
+    list->item(1)->setSelected(true);
+    list->item(4)->setSelected(true);
+    panel->findChild<QPushButton *>("compareSelectedImages")->click();
+    QCOMPARE(list->count(), paths.size());
+    window.findChild<QDockWidget *>("thumbnailDock")->hide();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    QCOMPARE(list->count(), paths.size());
+    panel->setDetailsVisible(true);
+    auto *table = panel->findChild<QTreeWidget *>();
+    QCOMPARE(table->topLevelItemCount(), paths.size());
+    QCOMPARE(table->topLevelItem(1)->text(5), QString("1"));
+    QCOMPARE(table->topLevelItem(4)->text(5), QString("2"));
+    QAction *undo = nullptr, *redo = nullptr;
+    for (auto *action : window.findChildren<QAction *>()) {
+      if (action->shortcut() == QKeySequence::Undo)
+        undo = action;
+      if (action->shortcut() == QKeySequence::Redo)
+        redo = action;
+    }
+    QVERIFY(undo && redo);
+    undo->trigger();
+    undo->trigger();
+    QCOMPARE(list->count(), paths.size());
+    redo->trigger();
+    QCOMPARE(list->count(), paths.size());
+    redo->trigger();
+    QCOMPARE(list->count(), paths.size());
+    for (int row = 0; row < paths.size(); ++row)
+      QCOMPARE(list->item(row)->data(Qt::UserRole + 2).toString(), paths.at(row));
+    QTemporaryDir replacement;
+    const auto next = createImages(replacement.path(), 2);
+    window.openImageFiles({next.first()});
+    QCOMPARE(list->count(), next.size());
+    QCOMPARE(list->item(0)->data(Qt::UserRole + 2).toString(), next.first());
+  }
+
+  void preservesFilteredSourceWhenComparing() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 6);
+    const auto database = metadata.filePath("favorites.json");
+    heiran::infra::FavoriteStore store(database);
+    QVERIFY(store.setFavorites({paths.at(0), paths.at(2), paths.at(5)}, true));
+    heiran::ui::MainWindow window(nullptr, database);
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *list = panel->findChild<QListWidget *>();
+    auto *filter = window.findChild<QAction *>("favoritesOnlyAction");
+    filter->setChecked(true);
+    QCOMPARE(list->count(), 3);
+    list->clearSelection();
+    list->item(0)->setSelected(true);
+    list->item(2)->setSelected(true);
+    panel->findChild<QPushButton *>("compareSelectedImages")->click();
+    QVERIFY(filter->isChecked());
+    QCOMPARE(list->count(), 3);
+    QCOMPARE(list->item(0)->data(Qt::UserRole + 2).toString(), paths.at(0));
+    QCOMPARE(list->item(1)->data(Qt::UserRole + 2).toString(), paths.at(2));
+    QCOMPARE(list->item(2)->data(Qt::UserRole + 2).toString(), paths.at(5));
+    window.findChild<heiran::ui::FavoritesController *>()->setFavorites({paths.at(5)}, false);
+    QCOMPARE(list->count(), 2);
+    filter->setChecked(false);
+    QCOMPARE(list->count(), paths.size());
+    filter->setChecked(true);
+    QCOMPARE(list->count(), 2);
+  }
+
+  void preservesSourceWhileThePanelIsHidden() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 5);
+    heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.compareSelectedImages({paths.at(1), paths.at(4)});
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *list = window.findChild<QListWidget *>("thumbnailList");
+    QCOMPARE(list->count(), paths.size());
+    for (int row = 0; row < paths.size(); ++row)
+      QCOMPARE(list->item(row)->data(Qt::UserRole + 2).toString(), paths.at(row));
+  }
+
   void exportsSelectedOriginalFilesAsCopyOnlyUrls() {
     QTemporaryDir source;
     auto paths = createImages(source.path(), 3);

@@ -1,6 +1,7 @@
 #include "heiran/ui/ImageListPanelController.hpp"
 
 #include "heiran/domain/SessionPages.hpp"
+#include "heiran/infra/FavoriteStore.hpp"
 #include "heiran/ui/FavoritesController.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/PageListing.hpp"
@@ -35,6 +36,7 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
   action->setShortcut(QKeySequence(Qt::Key_T));
   action->setToolTip(tr("Show or hide the image list."));
   auto *favoritesFilter = window->findChild<QAction *>("favoritesOnlyAction");
+  favoritesFilter_ = favoritesFilter;
   panel_->setFavoritesOnly(favoritesFilter->isChecked());
   connect(panel_, &ImageListPanelWidget::favoritesOnlyRequested, favoritesFilter,
           &QAction::setChecked);
@@ -67,13 +69,26 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
     }
   });
   connect(grid_, &ViewerGridWidget::viewChanged, this, &ImageListPanelController::refresh);
-  connect(grid_, &ViewerGridWidget::sessionChanged, this, &ImageListPanelController::invalidate);
+  connect(grid_, &ViewerGridWidget::sessionChanged, this, [this](bool reset) {
+    if (reset && !changingSession_) {
+      sourceSession_.reset();
+    }
+    invalidate();
+  });
   connect(grid_, &ViewerGridWidget::pageNavigationChanged, this,
           &ImageListPanelController::invalidate);
-  connect(favorites_, &FavoritesController::favoritesChanged, this,
-          &ImageListPanelController::refreshFavoriteStates);
+  connect(favorites_, &FavoritesController::favoritesChanged, this, [this, favoritesFilter]() {
+    if (sourceSession_ && favoritesFilter->isChecked())
+      invalidate();
+    else
+      refreshFavoriteStates();
+  });
   connect(panel_, &ImageListPanelWidget::pageSelected, this, [this](int row) {
-    const int page = grid_->navigationPageAt(row);
+    int page = grid_->navigationPageAt(row);
+    if (sourceSession_) {
+      const auto session = grid_->sessionSnapshot();
+      page = heiran::domain::pageOfFile(session, 0, listedPaths_.value(row));
+    }
     if (page >= 0) {
       grid_->setCurrentPage(page);
     }
@@ -84,27 +99,54 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
           &FavoritesController::setFavorites);
 }
 
+void ImageListPanelController::beginSessionChange(
+    std::optional<heiran::domain::SessionModel> sourceSession) {
+  changingSession_ = true;
+  sourceSession_ = std::move(sourceSession);
+  pagesDirty_ = true;
+}
+
+void ImageListPanelController::endSessionChange() {
+  changingSession_ = false;
+  invalidate();
+}
+
 void ImageListPanelController::invalidate() {
   pagesDirty_ = true;
   refresh();
 }
 
 void ImageListPanelController::refresh() {
-  if (!dock_->isVisible()) {
+  if (changingSession_ || !dock_->isVisible()) {
     return;
   }
   const bool pagesChanged = pagesDirty_;
   if (pagesDirty_) {
-    const auto session = grid_->sessionSnapshot();
-    QStringList paths;
-    for (int index = 0; index < grid_->navigationPageCount(); ++index) {
-      paths.push_back(PageListing::pagePath(session, grid_->navigationPageAt(index)));
+    const auto session = sourceSession_.value_or(grid_->sessionSnapshot());
+    listedPages_.clear();
+    listedPaths_.clear();
+    listedRowsByPath_.clear();
+    const bool favoritesOnly = favoritesFilter_->isChecked();
+    const int count =
+        sourceSession_ ? heiran::domain::totalPageCount(session) : grid_->navigationPageCount();
+    for (int index = 0; index < count; ++index) {
+      const int page = sourceSession_ ? index : grid_->navigationPageAt(index);
+      if (sourceSession_ && favoritesOnly && !pageHasFavorite(session, page))
+        continue;
+      listedPages_.push_back(page);
+      listedPaths_.push_back(PageListing::pagePath(session, page));
+      const auto &path = listedPaths_.last();
+      if (!path.isEmpty()) {
+        const auto key = heiran::infra::FavoriteStore::pathKey(path);
+        if (!listedRowsByPath_.contains(key))
+          listedRowsByPath_.insert(key, listedPaths_.size() - 1);
+      }
     }
-    panel_->setPages(paths, grid_->navigationPageIndex());
+    panel_->setPages(listedPaths_, currentListRow());
     refreshFavoriteStates();
     pagesDirty_ = false;
   } else {
-    panel_->setCurrentPage(grid_->navigationPageIndex());
+    panel_->setCurrentPage(currentListRow());
   }
   QStringList displayed;
   const auto session = grid_->sessionSnapshot();
@@ -119,24 +161,36 @@ void ImageListPanelController::refresh() {
 }
 
 void ImageListPanelController::refreshFavoriteStates() {
-  if (!dock_->isVisible()) {
+  if (changingSession_ || !dock_->isVisible()) {
     return;
   }
-  const auto session = grid_->sessionSnapshot();
+  const auto session = sourceSession_.value_or(grid_->sessionSnapshot());
   QVector<bool> states;
-  const int cells = session.viewer.layout.rows * session.viewer.layout.cols;
-  for (int index = 0; index < grid_->navigationPageCount(); ++index) {
-    bool favorite = false;
-    for (int cell = 0; cell < cells; ++cell) {
-      const auto source = heiran::domain::cellPageAt(session, cell, grid_->navigationPageAt(index));
-      if (source.hasFile() && favorites_->isFavorite(source.path)) {
-        favorite = true;
-        break;
-      }
-    }
-    states.push_back(favorite);
+  for (int page : listedPages_) {
+    states.push_back(pageHasFavorite(session, page));
   }
   panel_->setFavoriteStates(states);
+}
+
+int ImageListPanelController::currentListRow() const {
+  if (!sourceSession_)
+    return grid_->navigationPageIndex();
+  const auto path = grid_->currentFilePathForCell(0);
+  if (path.isEmpty())
+    return -1;
+  const auto key = heiran::infra::FavoriteStore::pathKey(path);
+  return listedRowsByPath_.value(key, -1);
+}
+
+bool ImageListPanelController::pageHasFavorite(const heiran::domain::SessionModel &session,
+                                               int page) const {
+  const int cells = session.viewer.layout.rows * session.viewer.layout.cols;
+  for (int cell = 0; cell < cells; ++cell) {
+    const auto source = heiran::domain::cellPageAt(session, cell, page);
+    if (source.hasFile() && favorites_->isFavorite(source.path))
+      return true;
+  }
+  return false;
 }
 
 }  // namespace heiran::ui
