@@ -74,6 +74,7 @@ private:
   QAction *detailsAction_;
   QWidget *thumbnailSizeControls_;
   QButtonGroup *thumbnailSizeButtons_;
+  QLabel *thumbnailSizeLabel_;
   int thumbnailWidth_ = 160;
   int thumbnailWheelRemainder_ = 0;
   QStackedWidget *views_;

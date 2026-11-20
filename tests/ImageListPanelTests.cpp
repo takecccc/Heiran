@@ -304,11 +304,17 @@ private Q_SLOTS:
     wheel(60, Qt::ControlModifier);
     QCOMPARE(panel.thumbnailWidth(), 224);
     wheel(60, Qt::ControlModifier);
-    QVERIFY(extraLarge->isChecked() && !largePreset->isChecked());
-    wheel(120, Qt::ControlModifier);
+    QCOMPARE(panel.thumbnailWidth(), 240);
+    QVERIFY(!small->isChecked() && !medium->isChecked() && !largePreset->isChecked() &&
+            !extraLarge->isChecked());
+    QTRY_COMPARE(list->item(0)->icon().actualSize(QSize(512, 512)), QSize(240, 180));
+    wheel(1200, Qt::ControlModifier);
     QCOMPARE(panel.thumbnailWidth(), 320);
-    wheel(-240, Qt::ControlModifier);
-    QVERIFY(medium->isChecked());
+    QVERIFY(extraLarge->isChecked());
+    wheel(-720, Qt::ControlModifier);
+    QVERIFY(largePreset->isChecked());
+    medium->click();
+    QCOMPARE(panel.thumbnailWidth(), 160);
     QCOMPARE(panel.selectedFilePaths(), QStringList({paths.first(), paths.at(2)}));
     QVERIFY(list->item(0)->data(heiran::ui::ThumbnailFavoriteRole).toBool());
     QCOMPARE(list->item(0)->data(heiran::ui::ThumbnailCellsRole).toStringList(),
@@ -318,9 +324,9 @@ private Q_SLOTS:
     QVERIFY(!small->isVisible());
     panel.setThumbnailWidth(80);
     thumbnails->click();
-    QVERIFY(small->isVisible() && small->isChecked());
+    QVERIFY(small->isVisible() && !small->isChecked());
     QCOMPARE(panel.selectedFilePaths().size(), 2);
-    QTRY_COMPARE(list->item(0)->icon().actualSize(QSize(512, 512)), QSize(64, 48));
+    QTRY_COMPARE(list->item(0)->icon().actualSize(QSize(512, 512)), QSize(80, 60));
     panel.setThumbnailWidth(9999);
     QCOMPARE(panel.thumbnailWidth(), 320);
     panel.setThumbnailWidth(-1);
@@ -328,14 +334,16 @@ private Q_SLOTS:
   }
 
   void restoresThumbnailSize() {
-    QSettings().setValue("display/thumbnailWidth", 256);
+    QSettings().setValue("display/thumbnailWidth", 259);
     {
       heiran::ui::MainWindow window;
-      QCOMPARE(window.findChild<heiran::ui::ImageListPanelWidget *>()->thumbnailWidth(), 224);
+      auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+      QCOMPARE(panel->thumbnailWidth(), 256);
       window.findChild<QToolButton *>("thumbnailWidth320")->click();
+      panel->setThumbnailWidth(304);
     }
     heiran::ui::MainWindow reopened;
-    QCOMPARE(reopened.findChild<heiran::ui::ImageListPanelWidget *>()->thumbnailWidth(), 320);
+    QCOMPARE(reopened.findChild<heiran::ui::ImageListPanelWidget *>()->thumbnailWidth(), 304);
   }
 
   void restoresTheDetailsViewMode() {

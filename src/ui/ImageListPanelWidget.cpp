@@ -33,7 +33,8 @@ namespace heiran::ui {
 
 namespace {
 constexpr std::array kThumbnailWidths{64, 160, 224, 320};
-}
+constexpr int kThumbnailWidthStep = 16;
+}  // namespace
 
 ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
     : QWidget(parent), list_(new ImageFileListWidget(this)), count_(new QLabel(this)),
@@ -42,7 +43,8 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
       excludedFiles_(new QLabel(excludedGroup_)), favoritesOnly_(new QToolButton(this)),
       thumbnailsAction_(new QAction(tr("Thumbnails"), this)),
       detailsAction_(new QAction(tr("Details"), this)), thumbnailSizeControls_(new QWidget(this)),
-      thumbnailSizeButtons_(new QButtonGroup(this)), views_(new QStackedWidget(this)),
+      thumbnailSizeButtons_(new QButtonGroup(this)),
+      thumbnailSizeLabel_(new QLabel(thumbnailSizeControls_)), views_(new QStackedWidget(this)),
       details_(new ImageFileDetailsWidget(this)),
       compare_(new QPushButton(tr("Compare Selected"), this)),
       finishComparison_(new QPushButton(tr("End Comparison"), this)),
@@ -87,6 +89,7 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   }
   thumbnailSizeButtons_->button(thumbnailWidth_)->setChecked(true);
   sizeLayout->addStretch();
+  sizeLayout->addWidget(thumbnailSizeLabel_);
   list_->viewport()->installEventFilter(this);
   favoritesOnly_->setObjectName("imageListFavoritesOnly");
   favoritesOnly_->setText(tr("Favorites only"));
@@ -264,16 +267,22 @@ void ImageListPanelWidget::updateThumbnailGeometry() {
   list_->setGridSize(size + QSize(24, 44));
   for (int row = 0; row < list_->count(); ++row)
     list_->item(row)->setSizeHint(size + QSize(24, 40));
+  thumbnailSizeLabel_->setText(tr("%1 px").arg(thumbnailWidth_));
 }
 
 void ImageListPanelWidget::setThumbnailWidth(int width) {
-  width = *std::ranges::min_element(kThumbnailWidths, {}, [width](int preset) {
-    return std::abs(static_cast<qint64>(width) - preset);
-  });
+  width = std::clamp(width, kThumbnailWidths.front(), kThumbnailWidths.back());
+  width = (width + (kThumbnailWidthStep - 1) / 2) / kThumbnailWidthStep * kThumbnailWidthStep;
   if (width == thumbnailWidth_)
     return;
   thumbnailWidth_ = width;
-  thumbnailSizeButtons_->button(width)->setChecked(true);
+  if (auto *button = thumbnailSizeButtons_->button(width)) {
+    button->setChecked(true);
+  } else if (auto *checked = thumbnailSizeButtons_->checkedButton()) {
+    thumbnailSizeButtons_->setExclusive(false);
+    checked->setChecked(false);
+    thumbnailSizeButtons_->setExclusive(true);
+  }
   updateThumbnailGeometry();
   if (!detailsVisible()) {
     cancelLoading();
@@ -300,10 +309,9 @@ bool ImageListPanelWidget::eventFilter(QObject *watched, QEvent *event) {
   const auto steps = angle / 120;
   thumbnailWheelRemainder_ = wheel->phase() == Qt::ScrollEnd ? 0 : static_cast<int>(angle % 120);
   if (steps != 0) {
-    const auto current = std::ranges::find(kThumbnailWidths, thumbnailWidth_);
-    const auto index = std::clamp<qint64>(current - kThumbnailWidths.begin() + steps, 0,
-                                          kThumbnailWidths.size() - 1);
-    setThumbnailWidth(kThumbnailWidths.at(index));
+    const auto width = std::clamp<qint64>(thumbnailWidth_ + steps * kThumbnailWidthStep,
+                                          kThumbnailWidths.front(), kThumbnailWidths.back());
+    setThumbnailWidth(static_cast<int>(width));
   }
   wheel->accept();
   return true;
