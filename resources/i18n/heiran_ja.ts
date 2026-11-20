@@ -1404,13 +1404,13 @@ Click to follow the other cells again.</source>
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="224"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1040"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1039"/>
         <source>Open .hrn</source>
         <translation>.hrn を開く</translation>
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="225"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1322"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1321"/>
         <source>Heiran Config (*.hrn)</source>
         <translation>Heiran の設定 (*.hrn)</translation>
     </message>
@@ -1471,19 +1471,19 @@ Click to follow the other cells again.</source>
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="283"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1737"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1738"/>
         <source>Undo</source>
         <translation>元に戻す</translation>
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="287"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1742"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1743"/>
         <source>Redo</source>
         <translation>やり直す</translation>
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="295"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1833"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1834"/>
         <source>Clear All Cells</source>
         <translation>すべてのセルを空にする</translation>
     </message>
@@ -1723,7 +1723,7 @@ Click to follow the other cells again.</source>
     </message>
     <message>
         <location filename="../../src/ui/MainWindow.cpp" line="585"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1954"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1955"/>
         <source>Cell %1</source>
         <translation>セル %1</translation>
     </message>
@@ -1899,328 +1899,328 @@ Click to follow the other cells again.</source>
         <translation>ページ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="848"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="847"/>
         <source> EV</source>
         <translation> EV</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="850"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="849"/>
         <source>Exposure in stops. The displayed value is multiplied by 2^EV before clipping.</source>
         <translation>露出 (段数)。表示する値に、クリップの前に 2^EV を掛けます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="863"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="862"/>
         <source>Reset exposure to 0 EV (\)</source>
         <translation>露出を 0 EV に戻します (\)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="885"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="884"/>
         <source>Exposure</source>
         <translation>露出</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="901"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="900"/>
         <source>%1 EV</source>
         <translation>%1 EV</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="909"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="908"/>
         <source>Exposure %1 EV</source>
         <translation>露出 %1 EV</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="917"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="916"/>
         <source>Fit</source>
         <translation>フィット</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="919"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="918"/>
         <source>Fit the images into their cells.</source>
         <translation>画像をセルに収めます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="928"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="927"/>
         <source>Show at 100%.</source>
         <translation>等倍 (100%) で表示します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="934"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="933"/>
         <source>Reset View</source>
         <translation>表示のリセット</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="936"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="935"/>
         <source>Reset the view (pan and zoom)</source>
         <translation>表示 (パンとズーム) を戻します</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="951"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="950"/>
         <source>Zoom In</source>
         <translation>拡大</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="958"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="957"/>
         <source>Zoom Out</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="965"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="964"/>
         <source>Full Screen</source>
         <translation>全画面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="971"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="970"/>
         <source>Clear Selection</source>
         <translation>選択範囲を解除</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="990"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1005"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="989"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1004"/>
         <source>Ready</source>
         <translation>準備完了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1041"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1040"/>
         <source>Heiran session (*.hrn);;All files (*)</source>
         <translation>Heiran のセッション (*.hrn);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1067"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1066"/>
         <source>Open Image</source>
         <translation>画像を開く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1068"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1067"/>
         <source>Images (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.avif *.jxl *.tif *.tiff *.exr *.hdr *.dpx *.psd *.tga);;All Files (*)</source>
         <translation>画像 (*.png *.jpg *.jpeg *.bmp *.gif *.webp *.avif *.jxl *.tif *.tiff *.exr *.hdr *.dpx *.psd *.tga);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1096"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1095"/>
         <source>Full screen: press Esc or F11 to exit</source>
         <translation>全画面: Esc か F11 で戻ります</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1239"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1238"/>
         <source>Compare selected images</source>
         <translation>選択画像を並べる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1271"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1270"/>
         <source>End Comparison</source>
         <translation>比較終了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1319"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1318"/>
         <source>Save .hrn</source>
         <translation>.hrn を保存</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1362"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1361"/>
         <source>Confirm Overwrite</source>
         <translation>上書きの確認</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1363"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1362"/>
         <source>%1 already exists. Overwrite it?</source>
         <translation>%1 は、すでにあります。上書きしますか?</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1386"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1385"/>
         <source>%1 no longer exists.</source>
         <translation>%1 が見つかりません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1427"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1458"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1426"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1457"/>
         <source>(empty)</source>
         <translation>(空)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1442"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1441"/>
         <source>Clear Recent Images</source>
         <translation>履歴を消去</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1714"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1715"/>
         <source>Undid: %1</source>
         <translation>元に戻しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1727"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1728"/>
         <source>Redid: %1</source>
         <translation>やり直しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1738"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1739"/>
         <source>Undo %1</source>
         <translation>元に戻す: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1743"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1744"/>
         <source>Redo %1</source>
         <translation>やり直す: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1755"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1756"/>
         <source>Drop Images</source>
         <translation>画像のドロップ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1777"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1778"/>
         <source>Show Label</source>
         <translation>ラベルを表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1778"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1779"/>
         <source>Hide Label</source>
         <translation>ラベルを隠す</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1798"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1802"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1799"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1803"/>
         <source>Edit Label</source>
         <translation>ラベルの編集</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1803"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1804"/>
         <source>Label template</source>
         <translation>ラベルのひな形</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1820"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1821"/>
         <source>Clear Cell</source>
         <translation>セルを空にする</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1821"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1822"/>
         <source>Assign Image</source>
         <translation>画像を割り当て</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1835"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1836"/>
         <source>There is nothing to clear.</source>
         <translation>空にするものがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1842"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1843"/>
         <source>Cleared all cells. (Ctrl+Z to undo)</source>
         <translation>すべてのセルを空にしました。(Ctrl+Z で戻せます)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1847"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1848"/>
         <source>Edit Image Sets</source>
         <translation>画像セットの編集</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1866"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1867"/>
         <source>Change Layout</source>
         <translation>レイアウトの変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1880"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1881"/>
         <source>Add Wipe Cell</source>
         <translation>ワイプセルの追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1881"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1882"/>
         <source>Add Difference Cell</source>
         <translation>差分セルの追加</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1886"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1887"/>
         <source>No room for a difference cell. Empty a cell first.</source>
         <translation>差分セルを置く場所がありません。先にセルを空にしてください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1902"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1903"/>
         <source>A wipe needs two cells with images.</source>
         <translation>ワイプには、画像のあるセルが 2 つ必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1903"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1904"/>
         <source>A difference needs two cells with images.</source>
         <translation>差分には、画像のあるセルが 2 つ必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1918"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1919"/>
         <source>Change Fill Order</source>
         <translation>並べる順序の変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1929"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="1994"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1930"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1995"/>
         <source>Reorder Images</source>
         <translation>画像の並べ替え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1936"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1937"/>
         <source>Custom Image Order</source>
         <translation>画像の順序の指定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1943"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1944"/>
         <source>0: Empty</source>
         <translation>0: 空</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="1980"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="1981"/>
         <source>Duplicate Image Number</source>
         <translation>画像の番号の重複</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2247"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2250"/>
         <source>Paused</source>
         <translation>一時停止</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2254"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2257"/>
         <source>This file has no animation.</source>
         <translation>このファイルにアニメーションはありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2259"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2262"/>
         <source>Playing</source>
         <translation>再生中</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2264"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2267"/>
         <source>This file has only one image.</source>
         <translation>このファイルには画像が 1 枚だけです。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2310"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2313"/>
         <source>There is no file to rename.</source>
         <translation>名前を変えるファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2316"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="2333"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2319"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2336"/>
         <source>Rename</source>
         <translation>名前の変更</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2317"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2320"/>
         <source>File name</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2343"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2346"/>
         <source>Renamed to %1</source>
         <translation>%1 に名前を変えました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2350"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2353"/>
         <source>There is no file to delete.</source>
         <translation>削除するファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2355"/>
-        <location filename="../../src/ui/MainWindow.cpp" line="2365"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2358"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2368"/>
         <source>Move to Recycle Bin</source>
         <translation>ごみ箱へ移動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2356"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2359"/>
         <source>Move this file to the Recycle Bin?
 
 %1</source>
@@ -2229,37 +2229,37 @@ Click to follow the other cells again.</source>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2372"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2375"/>
         <source>Moved %1 to the Recycle Bin</source>
         <translation>%1 をごみ箱へ移動しました</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2379"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2382"/>
         <source>There is no file to copy the path of.</source>
         <translation>パスをコピーするファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2384"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2387"/>
         <source>Copied the file path.</source>
         <translation>ファイルのパスをコピーしました。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2390"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2393"/>
         <source>There is no image to print.</source>
         <translation>印刷する画像がありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2400"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2403"/>
         <source>Print</source>
         <translation>印刷</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2401"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2404"/>
         <source>Could not print the image.</source>
         <translation>画像を印刷できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="2404"/>
+        <location filename="../../src/ui/MainWindow.cpp" line="2407"/>
         <source>Sent the image to the printer.</source>
         <translation>画像をプリンターへ送りました。</translation>
     </message>
@@ -2401,43 +2401,43 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>ページ切り替え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="141"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="149"/>
         <source>Separate the cells with a dark gutter and an outline</source>
         <translation>セルの間に暗い溝を挟み、外周に線を引く</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="145"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="153"/>
         <source>Cell borders</source>
         <translation>セルの境目</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="150"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="208"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="158"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="216"/>
         <source>System</source>
         <translation>システムに従う</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="152"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="160"/>
         <source>Light</source>
         <translation>ライト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="154"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="162"/>
         <source>Dark</source>
         <translation>ダーク</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="157"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="165"/>
         <source>The area that shows the images keeps its neutral dark backdrop either way, so images are judged against the same background.</source>
         <translation>どちらでも、画像を出す領域は、中立な暗い背景のままです。画像を、いつも同じ背景で見比べるためです。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="218"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="226"/>
         <source>Color theme</source>
         <translation>配色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="165"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="173"/>
         <source>Solid color</source>
         <translation>単色</translation>
     </message>
@@ -2462,294 +2462,309 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>色管理</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="167"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="141"/>
+        <source>Use two rows in narrow windows</source>
+        <translation>ウィンドウが狭いときは2行にする</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="145"/>
+        <source>Navigation</source>
+        <translation>ナビゲーション</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="175"/>
         <source>Checkerboard</source>
         <translation>市松模様</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="170"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="178"/>
         <source>Transparency background</source>
         <translation>透過部分の背景</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="177"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="185"/>
         <source>Solid background color</source>
         <translation>単色の背景色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="181"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="189"/>
         <source>Checkerboard color 1</source>
         <translation>市松模様の色 1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="185"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="193"/>
         <source>Checkerboard color 2</source>
         <translation>市松模様の色 2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="201"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="209"/>
         <source>Background colors</source>
         <translation>背景の色</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="214"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="222"/>
         <source>Takes effect the next time Heiran starts.</source>
         <translation>次に Heiran を起動したときから変わります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="215"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="459"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="223"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="467"/>
         <source>Language</source>
         <translation>言語</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="222"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="255"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="230"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="263"/>
         <source>Nearest</source>
         <translation>最近傍</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="224"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="232"/>
         <source>Smooth</source>
         <translation>なめらか</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="227"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="235"/>
         <source>Nearest keeps pixel edges visible. Smooth interpolates neighbours.</source>
         <translation>最近傍は、画素の境界をそのまま見せます。なめらかは、隣の画素で補間します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="229"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="237"/>
         <source>Magnify filter</source>
         <translation>拡大時の補間</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="234"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="242"/>
         <source>Auto</source>
         <translation>自動</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="236"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="244"/>
         <source>Locked</source>
         <translation>常に同期</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="238"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="246"/>
         <source>Independent</source>
         <translation>個別</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="242"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="250"/>
         <source>How animations advance when several cells show one. Auto syncs the cells when the animations have the same number of frames and plays each at its own speed otherwise. Locked always keeps every cell on the same frame. Independent always plays each cell at its own speed. Stepping frame by frame always aligns every cell.</source>
         <translation>複数のセルでアニメーションを出すときの進め方。自動は、フレーム数が同じなら同期し、違えば、それぞれの速さで再生します。常に同期は、常に全セルを同じフレームにそろえます。個別は、常にセルごとの速さで再生します。コマ送りは、どの方式でも全セルをそろえます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="248"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="256"/>
         <source>Animation sync</source>
         <translation>アニメーションの同期</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="253"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="261"/>
         <source>Area</source>
         <translation>平均</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="258"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="266"/>
         <source>Area averages 2x2 blocks step by step, which avoids flicker while panning. Nearest picks a single pixel, which flickers but shows the original values.</source>
         <translation>平均は、2x2 の平均を段階的にとるため、パン中にちらつきません。最近傍は、1 画素を拾うため、ちらつきますが、元の値をそのまま見られます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="262"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="270"/>
         <source>Minify filter</source>
         <translation>縮小時の補間</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="269"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="281"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="277"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="289"/>
         <source>Display profile</source>
         <translation>表示のプロファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="271"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="279"/>
         <source>sRGB</source>
         <translation>sRGB</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="273"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="295"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="281"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="303"/>
         <source>ICC file</source>
         <translation>ICC ファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="277"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="285"/>
         <source>Display profile uses the profile assigned to the screen. sRGB ignores it, which helps when comparing against another machine.</source>
         <translation>「表示のプロファイル」は、画面に割り当てられたプロファイルを使います。sRGB は、それを無視します。ほかのコンピューターと見比べるときに便利です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="290"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="298"/>
         <source>Path to an .icc or .icm file</source>
         <translation>.icc または .icm ファイルのパス</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="292"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="300"/>
         <source>Browse...</source>
         <translation>参照...</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="298"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="306"/>
         <source>Select ICC file above to choose a profile file.</source>
         <translation>上の「表示のプロファイル」で「ICC ファイル」を選ぶと、ファイルを指定できます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="313"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="321"/>
         <source>Select an ICC profile</source>
         <translation>ICC プロファイルを選ぶ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="315"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="323"/>
         <source>ICC profiles (*.icc *.icm)</source>
         <translation>ICC プロファイル (*.icc *.icm)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="323"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="331"/>
         <source>Relative colorimetric</source>
         <translation>相対的な色度を保持</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="325"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="333"/>
         <source>Perceptual</source>
         <translation>知覚的</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="327"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="335"/>
         <source>Saturation</source>
         <translation>彩度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="329"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="337"/>
         <source>Absolute colorimetric</source>
         <translation>絶対的な色度を保持</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="335"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="343"/>
         <source>Only profiles that carry conversion tables react to this. Matrix profiles give the same result for every intent.</source>
         <translation>変換の表を持つプロファイルだけが、これに反応します。マトリクスのプロファイルは、どれを選んでも同じ結果になります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="339"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="347"/>
         <source>This build has no Little-CMS, so the intent cannot be chosen.</source>
         <translation>このビルドには Little-CMS がないため、変換の方法を選べません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="341"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="506"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="349"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="518"/>
         <source>Rendering intent</source>
         <translation>変換の方法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="344"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="503"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="352"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="515"/>
         <source>Black point compensation</source>
         <translation>黒点の補正</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="347"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="355"/>
         <source>Stretches the range so the darkest tone of the image lands on the darkest tone the display can show.</source>
         <translation>画像の最も暗い色が、画面で出せる最も暗い色に来るよう、範囲を引き伸ばします。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="359"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="367"/>
         <source>Source values</source>
         <translation>ファイルの値のまま</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="361"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="369"/>
         <source>Linear light</source>
         <translation>線形光</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="365"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="373"/>
         <source>Source values reports the numbers as stored in the file. Linear light decodes them first, which makes differences comparable as light rather than as encoded values.</source>
         <translation>「ファイルの値のまま」は、ファイルに入っている数値のまま出します。「線形光」は、先に復号するため、差を、符号化された値ではなく、光の量として比べられます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="369"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="377"/>
         <source>Analysis values</source>
         <translation>解析の値</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="404"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="412"/>
         <source>Applies to files opened afterwards.</source>
         <translation>これから開くファイルに適用します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="414"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="422"/>
         <source>Information</source>
         <translation>説明</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="419"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="428"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="427"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="436"/>
         <source>Setting description</source>
         <translation>項目の説明</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="434"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="442"/>
         <source>Point to a setting or focus it with the keyboard to read its description.</source>
         <translation>項目にマウスを合わせるか、キーボードでフォーカスすると説明を表示します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="463"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="471"/>
         <source>Changes the unit used for pixel values: 0-255 or 0.0-1.0. The image data is not changed.</source>
         <translation>画素値の表示単位を 0-255 または 0.0-1.0 に切り替えます。画像のデータは変更しません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="467"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="475"/>
         <source>Fits images to their cells whenever the page changes. You can also fit them at any time with F.</source>
         <translation>ページを切り替えるたびに、画像をセルに収めます。F キーでも、いつでもフィットできます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="471"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="479"/>
         <source>Separates cells with a dark gutter and an outline to make their boundaries easier to see.</source>
         <translation>セルの間に暗い溝を挟み、外周に線を引いて、境目を見分けやすくします。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="475"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="483"/>
+        <source>Moves some navigation controls to a second row when they cannot fit in a single row.</source>
+        <translation>ナビゲーションの操作が1行に収まらないときは、一部を2行目に表示します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="487"/>
         <source>Chooses a solid color or checkerboard behind transparent pixels in every cell and the loupe. Image margins, pixel values and analysis results are not changed.</source>
         <translation>全セルとルーペの透過部分の背景を、単色または市松模様にします。画像の外の余白、画素値、解析結果は変わりません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="479"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="491"/>
         <source>Sets the solid background color or the two alternating checkerboard colors. Each color is kept when you change the background pattern.</source>
         <translation>単色の背景色、または市松模様の 2 色を指定します。方式を切り替えても、それぞれの色は保持されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="498"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="510"/>
         <source>Choose ICC file as the display profile to select an .icc or .icm file. Browse opens the file picker.</source>
         <translation>表示のプロファイルで「ICC ファイル」を選ぶと、.icc または .icm ファイルを指定できます。「参照...」でファイルを選びます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="512"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="524"/>
         <source>Applies to the pixel readout, loupe, histogram, diff and change graph.</source>
         <translation>画素値の表示、ルーペ、ヒストグラム、差分、変化グラフに効きます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="517"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="529"/>
         <source>Soft limit for decoded images. The least recently used pages are dropped first, and the current page is kept while possible. HEIRAN_DECODE_CACHE_BUDGET_MB overrides this value when set.</source>
         <translation>デコードした画像を保持するメモリのソフト上限です。最も使われていないページから捨て、現在のページはできるだけ残します。環境変数 HEIRAN_DECODE_CACHE_BUDGET_MB を指定すると、その値が優先されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="522"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="534"/>
         <source>The GPU texture budget is shared by all cells. Textures over the limit are dropped from the least recently used across all cells. HEIRAN_GPU_TEXTURE_BUDGET_MB overrides this value when set.</source>
         <translation>GPU テクスチャの上限は全セルで共有します。上限を超えた分は、全セルを通して最も使われていないものから捨てます。環境変数 HEIRAN_GPU_TEXTURE_BUDGET_MB を指定すると、その値が優先されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="526"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="538"/>
         <source>APNG and WebP animations larger than this threshold after expansion (width x height x 4 x frames) are kept compressed and decoded as needed. This saves memory but uses the CPU during playback. GIF over the threshold is compressed and stored while it plays. Applies to files opened afterwards. HEIRAN_ANIMATION_STREAMING_THRESHOLD_MB overrides this value when set.</source>
         <translation>展開後の大きさ (幅 × 高さ × 4 × フレーム数) がこの境目を超える APNG と WebP は、圧縮したまま持ち、必要なコマだけを展開します。メモリを節約できますが、再生中に CPU を使います。境目を超える GIF は、再生しながら圧縮して貯めます。これから開くファイルに適用します。環境変数 HEIRAN_ANIMATION_STREAMING_THRESHOLD_MB を指定すると、その値が優先されます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="491"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="503"/>
         <source>Images are converted from their embedded profile to the display profile. Images without a profile are treated as sRGB, or as linear when the file stores floating point values.</source>
         <translation>画像は、埋め込みのプロファイルから、表示のプロファイルへ変換されます。プロファイルのない画像は、sRGB として扱い、浮動小数のファイルは線形として扱います。</translation>
     </message>
@@ -2759,25 +2774,25 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>キャッシュ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="379"/>
         <location filename="../../src/ui/SettingsDialog.cpp" line="387"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="396"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="395"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="404"/>
         <source> MiB</source>
         <translation> MiB</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="381"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="389"/>
         <source>Decode cache budget</source>
         <translation>デコードキャッシュの上限</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="389"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="397"/>
         <source>GPU texture budget</source>
         <translation>GPU テクスチャの上限</translation>
     </message>
     <message>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="399"/>
-        <location filename="../../src/ui/SettingsDialog.cpp" line="535"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="407"/>
+        <location filename="../../src/ui/SettingsDialog.cpp" line="547"/>
         <source>Animation streaming threshold</source>
         <translation>アニメーションをストリーミングにする境目</translation>
     </message>
@@ -2808,12 +2823,12 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
 <context>
     <name>ViewerChromeController</name>
     <message>
-        <location filename="../../src/ui/ViewerChromeController.cpp" line="25"/>
+        <location filename="../../src/ui/ViewerChromeController.cpp" line="62"/>
         <source>Cell Headers</source>
         <translation>セルのヘッダー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerChromeController.cpp" line="49"/>
+        <location filename="../../src/ui/ViewerChromeController.cpp" line="97"/>
         <source>Page</source>
         <translation>ページ</translation>
     </message>

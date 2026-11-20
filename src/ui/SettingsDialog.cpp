@@ -137,6 +137,14 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   fitCheckBox->setChecked(current.fitOnPageChange);
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Page change"), fitCheckBox);
 
+  auto *wrapNavigationCheckBox =
+      new QCheckBox(QCoreApplication::translate("SettingsDialog", "Use two rows in narrow windows"),
+                    displayGroup);
+  wrapNavigationCheckBox->setObjectName("wrapNavigation");
+  wrapNavigationCheckBox->setChecked(current.wrapNavigation);
+  displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Navigation"),
+                      wrapNavigationCheckBox);
+
   auto *bordersCheckBox =
       new QCheckBox(QCoreApplication::translate(
                         "SettingsDialog", "Separate the cells with a dark gutter and an outline"),
@@ -471,6 +479,10 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
            QCoreApplication::translate("SettingsDialog",
                                        "Separates cells with a dark gutter and an outline to make "
                                        "their boundaries easier to see."));
+  bindHelp(displayForm, wrapNavigationCheckBox,
+           QCoreApplication::translate("SettingsDialog",
+                                       "Moves some navigation controls to a second row when they "
+                                       "cannot fit in a single row."));
   bindHelp(displayForm, backgroundCombo,
            QCoreApplication::translate(
                "SettingsDialog",
@@ -544,6 +556,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   updated.transparencyBackground = background;
   updated.pixelValueFormat = static_cast<PixelValueFormat>(pixelValueCombo->currentData().toInt());
   updated.fitOnPageChange = fitCheckBox->isChecked();
+  updated.wrapNavigation = wrapNavigationCheckBox->isChecked();
   updated.showCellBorders = bordersCheckBox->isChecked();
   updated.decodeCacheBudgetMib = cacheBudgetSpinBox->value();
   updated.gpuTextureBudgetMib = textureBudgetSpinBox->value();

@@ -9,6 +9,7 @@ namespace {
 
 constexpr auto kPixelValueFormatKey = "pixel_value_format";
 constexpr auto kFitOnPageChangeKey = "fit_on_page_change";
+constexpr auto kWrapNavigationKey = "display/wrapNavigation";
 constexpr auto kDecodeCacheBudgetKey = "decode_cache_budget_mib";
 constexpr auto kGpuTextureBudgetKey = "gpu_texture_budget_mib";
 constexpr auto kAnimationStreamingThresholdKey = "animation_streaming_threshold_mib";
@@ -97,6 +98,7 @@ AppSettings AppSettings::load() {
   appSettings.pixelValueFormat =
       pixelValueFormatFromString(settings.value(kPixelValueFormatKey).toString());
   appSettings.fitOnPageChange = settings.value(kFitOnPageChangeKey, false).toBool();
+  appSettings.wrapNavigation = settings.value(kWrapNavigationKey, false).toBool();
   appSettings.showCellBorders = settings.value(kShowCellBordersKey, true).toBool();
   appSettings.decodeCacheBudgetMib =
       clampDecodeCacheBudgetMib(settings.value(kDecodeCacheBudgetKey, 1024).toInt());
@@ -133,6 +135,7 @@ void AppSettings::save() const {
   settings.setValue(kTransparencyChecker2Key, transparencyBackground.checkerColor2.name());
   settings.setValue(kPixelValueFormatKey, pixelValueFormatToString(pixelValueFormat));
   settings.setValue(kFitOnPageChangeKey, fitOnPageChange);
+  settings.setValue(kWrapNavigationKey, wrapNavigation);
   settings.setValue(kShowCellBordersKey, showCellBorders);
   settings.setValue(kDecodeCacheBudgetKey, clampDecodeCacheBudgetMib(decodeCacheBudgetMib));
   settings.setValue(kGpuTextureBudgetKey, clampGpuTextureBudgetMib(gpuTextureBudgetMib));

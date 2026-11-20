@@ -820,9 +820,8 @@ void MainWindow::createNavigationToolBar() {
   navigationToolBar->addSeparator();
   navigationToolBar->addWidget(
       new QLabel(QCoreApplication::translate("MainWindow", "Page"), navigationToolBar));
-  pageComboBox_ = new QComboBox(navigationToolBar);
+  pageComboBox_ = ViewerChromeController::createPageSelector(navigationToolBar);
   pageComboBox_->setObjectName("pageSelector");
-  pageComboBox_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
   // フォーカスを持たせない。持つと左右キーがページ送りではなく
   // 項目の選択に使われ、ビューアの操作として期待と食い違う。
   pageComboBox_->setFocusPolicy(Qt::NoFocus);
@@ -940,8 +939,9 @@ void MainWindow::createNavigationToolBar() {
   navigationToolBar->addSeparator();
   navigationToolBar->addAction(findChild<QAction *>("rotateAllLeftAction"));
   navigationToolBar->addAction(findChild<QAction *>("rotateAllRightAction"));
-  viewerChrome_ = new ViewerChromeController(this, viewerGrid_, navigationToolBar, pageComboBox_,
-                                             previousPageAction, nextPageAction);
+  viewerChrome_ =
+      new ViewerChromeController(this, viewerGrid_, navigationToolBar, pageComboBox_,
+                                 previousPageAction, nextPageAction, fitOnPageChangeAction_);
 }
 
 // メニューに出さないキー操作。ズーム、全画面、選択解除。
@@ -1521,7 +1521,9 @@ void MainWindow::updatePageControls() {
   pageComboBox_->clear();
   for (int index = 0; index < available; ++index) {
     const int page = viewerGrid_->navigationPageAt(index);
-    pageComboBox_->addItem(allTexts.value(page), page);
+    const auto text = allTexts.value(page);
+    pageComboBox_->addItem(text, page);
+    pageComboBox_->setItemData(index, text, Qt::ToolTipRole);
   }
   pageComboBox_->setCurrentIndex(viewerGrid_->navigationPageIndex());
   pageComboBox_->blockSignals(false);
@@ -2152,6 +2154,8 @@ void MainWindow::applyAppSettings() {
   viewerGrid_->setPixelValueFormat(appSettings_.pixelValueFormat);
   viewerGrid_->setDisplayProfile(appSettings_.displayProfileMode, appSettings_.displayProfilePath);
   updateFitOnPageChange();
+  if (viewerChrome_)
+    viewerChrome_->setWrapNavigation(appSettings_.wrapNavigation);
   viewerGrid_->setFilters(appSettings_.magnifyFilter, appSettings_.minifyFilter);
   viewerGrid_->setTransparencyBackground(appSettings_.transparencyBackground);
   viewerGrid_->setDecodeCacheBudgetBytes(

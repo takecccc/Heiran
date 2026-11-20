@@ -11,6 +11,7 @@
 //                     [--favorites-file path]
 //                     [--list-mode thumbnails|details]
 //                     [--thumbnail-width pixels] [--zoom-percent percent]
+//                     [--wrap-navigation]
 //                     [--list-select 0,2] [--compare-selection] [--list-context-menu]
 //                     [--favorites-only-after-comparison]
 //                     <画像ファイル...>
@@ -157,9 +158,12 @@ int main(int argc, char *argv[]) {
   double zoomPercent = -1.0;
   bool favoritesAfterComparison = false;
   bool listContextMenu = false;
+  bool wrapNavigation = false;
   for (int index = 0; index < arguments.size(); ++index) {
     const QString &argument = arguments.at(index);
-    if (argument == "--theme" && index + 1 < arguments.size()) {
+    if (argument == "--wrap-navigation") {
+      wrapNavigation = true;
+    } else if (argument == "--theme" && index + 1 < arguments.size()) {
       theme = arguments.at(++index);
     } else if (argument == "--favorites-file" && index + 1 < arguments.size()) {
       favoritesFile = arguments.at(++index);
@@ -247,6 +251,7 @@ int main(int argc, char *argv[]) {
   // 主ウィンドウは設定から配色を適用する。専用の保存先へ書いて、そこから読ませる。
   auto settings = heiran::ui::AppSettings::load();
   settings.colorTheme = heiran::ui::colorThemeFromString(theme);
+  settings.wrapNavigation = wrapNavigation;
   if (!transparencyPattern.isEmpty()) {
     settings.transparencyBackground.pattern = transparencyPattern == "checkerboard"
                                                   ? heiran::ui::TransparencyPattern::Checkerboard

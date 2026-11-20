@@ -52,6 +52,7 @@ try {
   # name, arguments
   $scenes = @(
     @("overview", @("--size", "1100x640", $a, $b)),
+    @("wrapped-navigation", @("--size", "440x560", "--wrap-navigation", $a)),
     @("welcome-small", @("--size", "440x560", "--recent-image", $a, "--recent-image", $b, "--recent-image", $c, "--recent-image", $d, "--recent-image", "$drive/a/0002.png")),
     @("compact-navigation", @("--size", "640x480", "--action", "Cell Headers", "--action", "Navigation", $a, $b)),
     @("pixel-info", @("--size", "1100x640", "--action", "Pixel Info", "--cursor", "0,150,110", $a, $b)),

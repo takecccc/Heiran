@@ -82,6 +82,7 @@ QToolBar { background-color: %1; border: none; border-bottom: 1px solid %3; spac
 QToolBar::separator { background-color: %3; width: 1px; margin: 4px 6px; }
 QToolBar QLabel { color: %6; padding: 0 4px; }
 QToolButton { background: transparent; color: %2; border: 1px solid transparent; border-radius: 4px; padding: 4px 10px; }
+QToolBar#navigationToolBar QToolButton, QToolBar#navigationSecondRow QToolButton { padding: 4px 8px; }
 QToolButton:hover { background-color: %4; }
 QToolButton:pressed { background-color: %5; }
 QToolButton:checked { background-color: %7; color: %8; border-color: %9; }

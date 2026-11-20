@@ -214,6 +214,81 @@ private Q_SLOTS:
     QVERIFY(compact->isHidden());
   }
 
+  void wrapsNavigationAndKeepsThePageSelectorUsable() {
+    const auto organization = QCoreApplication::organizationName();
+    const auto application = QCoreApplication::applicationName();
+    QCoreApplication::setOrganizationName("HeiranTests");
+    QCoreApplication::setApplicationName("NavigationWrapTests");
+    const auto restore = qScopeGuard([organization, application]() {
+      QSettings().clear();
+      QCoreApplication::setOrganizationName(organization);
+      QCoreApplication::setApplicationName(application);
+    });
+    QSettings().clear();
+    auto settings = heiran::ui::AppSettings::load();
+    settings.wrapNavigation = true;
+    settings.save();
+    QVERIFY(heiran::ui::AppSettings::load().wrapNavigation);
+
+    QTemporaryDir directory;
+    const auto paths = writeImageFiles(directory.path(), 2);
+    QCOMPARE(paths.size(), 2);
+    const auto longPath = directory.filePath(QString(125, QLatin1Char('x')) + ".png");
+    QVERIFY(QFile::rename(paths.at(0), longPath));
+    heiran::ui::MainWindow window;
+    window.openImageFiles({longPath});
+    window.resize(1250, 620);
+    window.show();
+    auto *navigation = window.findChild<QToolBar *>("navigationToolBar");
+    auto *second = window.findChild<QToolBar *>("navigationSecondRow");
+    auto *selector = window.findChild<QComboBox *>("pageSelector");
+    auto *zoom = window.findChild<QDoubleSpinBox *>("globalZoomPercent");
+    auto *compact = window.findChild<QWidget *>("compactPageNavigation");
+    QVERIFY(navigation && second && selector && zoom && compact);
+    QVERIFY(second->isHidden());
+    QCOMPARE(selector->count(), 2);
+    QVERIFY(selector->currentText().contains(QString(125, QLatin1Char('x'))));
+    QCOMPARE(selector->toolTip(), selector->currentText());
+    QCOMPARE(selector->itemData(selector->currentIndex(), Qt::ToolTipRole).toString(),
+             selector->currentText());
+    const int wideSelector = selector->width();
+
+    window.resize(960, 620);
+    QTRY_VERIFY(selector->width() < wideSelector);
+    QVERIFY(selector->width() >= selector->minimumWidth());
+    QVERIFY(second->isHidden());
+    window.resize(440, 620);
+    QTRY_VERIFY(second->isVisible());
+    QVERIFY(zoom->parentWidget() == second);
+    QVERIFY(selector->isVisible() && zoom->isVisible());
+    for (auto *row : {navigation, second}) {
+      for (auto *action : row->actions()) {
+        if (!action->isSeparator())
+          QVERIFY2(row->widgetForAction(action)->isVisible(), qPrintable(action->text()));
+      }
+    }
+    QVERIFY(compact->isHidden());
+    const auto shortIndex = 1 - selector->currentIndex();
+    selector->setCurrentIndex(shortIndex);
+    QCOMPARE(selector->toolTip(), selector->currentText());
+    navigation->hide();
+    QVERIFY(second->isHidden() && compact->isVisible());
+    navigation->show();
+    QTRY_VERIFY(second->isVisible());
+    window.resize(1250, 620);
+    QTRY_VERIFY(second->isHidden());
+    QVERIFY(zoom->parentWidget() == navigation);
+    QCOMPARE(selector->currentIndex(), shortIndex);
+
+    settings.wrapNavigation = false;
+    settings.save();
+    heiran::ui::MainWindow oneRow;
+    oneRow.resize(440, 620);
+    oneRow.show();
+    QCoreApplication::processEvents();
+    QVERIFY(oneRow.findChild<QToolBar *>("navigationSecondRow")->isHidden());
+  }
+
   void hidesCellHeadersAcrossRebuildAndRestart() {
     const auto organization = QCoreApplication::organizationName();
     const auto application = QCoreApplication::applicationName();
@@ -1492,10 +1567,12 @@ private Q_SLOTS:
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
     const auto toolBars = window.findChildren<QToolBar *>();
-    QVERIFY(!toolBars.isEmpty());
+    QList<const QToolBar *> initiallyVisible;
     for (const auto *toolBar : toolBars) {
-      QVERIFY(toolBar->isVisible());
+      if (toolBar->isVisible())
+        initiallyVisible.push_back(toolBar);
     }
+    QVERIFY(!initiallyVisible.isEmpty());
 
     QTest::keyClick(&window, Qt::Key_F11);
     QTRY_VERIFY(window.isFullScreen());
@@ -1508,7 +1585,7 @@ private Q_SLOTS:
     QTRY_VERIFY(!window.isFullScreen());
     QVERIFY(window.menuBar()->isVisible());
     for (const auto *toolBar : toolBars) {
-      QVERIFY2(toolBar->isVisible(), "a tool bar did not come back");
+      QCOMPARE(toolBar->isVisible(), initiallyVisible.contains(toolBar));
     }
   }
 
