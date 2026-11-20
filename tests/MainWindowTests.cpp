@@ -1698,6 +1698,45 @@ private Q_SLOTS:
     QCOMPARE(grid->sessionSnapshot().cells.at(0).rotation, 0);
   }
 
+  void rotatesAllCellsFromTheToolbarAndViewMenu() {
+    QTemporaryDir directory;
+    const auto paths = writeImageFiles(directory.path(), 2);
+    QCOMPARE(paths.size(), 2);
+    heiran::ui::MainWindow window;
+    window.openImageFiles(paths);
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *toolbar = window.findChild<QToolBar *>("navigationToolBar");
+    auto *viewMenu = findMenu(window.menuBar(), "&View");
+    auto *left = window.findChild<QAction *>("rotateAllLeftAction");
+    auto *right = window.findChild<QAction *>("rotateAllRightAction");
+    QVERIFY(grid && toolbar && viewMenu && left && right);
+    QVERIFY(toolbar->actions().contains(left) && toolbar->actions().contains(right));
+    QVERIFY(viewMenu->actions().contains(left) && viewMenu->actions().contains(right));
+    QVERIFY(!left->icon().isNull() && !right->icon().isNull());
+
+    QCOMPARE(grid->sessionSnapshot().cells.size(), 2);
+    grid->rotateActiveCellBy(1);
+    auto session = grid->sessionSnapshot();
+    session.cells[1].flipX = true;
+    grid->setSessionPreservingView(session);
+    const int active = grid->activeCellIndex();
+    const auto before = grid->sessionSnapshot();
+    QSignalSpy changes(grid, &heiran::ui::ViewerGridWidget::persistentStateChanged);
+    left->trigger();
+    const auto rotated = grid->sessionSnapshot();
+    for (int i = 0; i < before.cells.size(); ++i)
+      QCOMPARE(rotated.cells.at(i).rotation, (before.cells.at(i).rotation + 3) % 4);
+    QVERIFY(!rotated.cells.at(1).flipX && rotated.cells.at(1).flipY);
+    QCOMPARE(grid->activeCellIndex(), active);
+    QCOMPARE(changes.count(), 1);
+    right->trigger();
+    const auto restored = grid->sessionSnapshot();
+    for (int i = 0; i < before.cells.size(); ++i)
+      QCOMPARE(restored.cells.at(i).rotation, before.cells.at(i).rotation);
+    QVERIFY(restored.cells.at(1).flipX && !restored.cells.at(1).flipY);
+    QCOMPARE(changes.count(), 2);
+  }
+
   // Ctrl+C で見ている画像をコピーできること。右クリックのメニューにしか無かった。
   void copiesTheImageWithCtrlC() {
     QTemporaryDir directory;

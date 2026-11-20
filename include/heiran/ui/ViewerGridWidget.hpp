@@ -78,6 +78,7 @@ public:
   void setActualSize();
   // 操作対象セルを 90 度単位で回す。正が時計回り。ショートカットキー用。
   void rotateActiveCellBy(int quarterTurns);
+  void rotateAllCellsBy(int quarterTurns);
   // 操作対象セルの見た目をクリップボードへ渡す。
   void copyActiveCellImage() const;
   // ---- 差分のセル ----
@@ -306,6 +307,7 @@ private:
   void handleReloadRequest(int cellIndex);
   void applyPendingFit();
   void handleCellRotationRequest(int cellIndex, int rotationQuarterTurns);
+  void refreshAfterCellRotation();
   void handleCellFlipRequest(int cellIndex, bool flipX, bool flipY);
   void handleResetCellDisplayRequest(int cellIndex);
   void handlePanRequest(int cellIndex, double deltaImageX, double deltaImageY);

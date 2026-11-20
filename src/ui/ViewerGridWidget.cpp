@@ -598,6 +598,21 @@ void ViewerGridWidget::rotateActiveCellBy(int quarterTurns) {
                             heiran::domain::normalizeQuarterTurns(current + quarterTurns));
 }
 
+void ViewerGridWidget::rotateAllCellsBy(int quarterTurns) {
+  const int delta = heiran::domain::normalizeQuarterTurns(quarterTurns);
+  if (delta == 0 || cellStates_.isEmpty()) {
+    return;
+  }
+  for (auto &cellState : cellStates_) {
+    cellState.rotationQuarterTurns =
+        heiran::domain::normalizeQuarterTurns(cellState.rotationQuarterTurns + delta);
+    if (delta % 2 != 0) {
+      std::swap(cellState.flipX, cellState.flipY);
+    }
+  }
+  refreshAfterCellRotation();
+}
+
 void ViewerGridWidget::copyActiveCellImage() const {
   const int cellIndex = zoomAnchorCellIndex();
   if (cellIndex < 0 || cellIndex >= cells_.size()) {
@@ -1950,6 +1965,10 @@ void ViewerGridWidget::handleCellRotationRequest(int cellIndex, int rotationQuar
 
   setActiveCell(cellIndex);
   cellStates_[cellIndex].rotationQuarterTurns = rotationQuarterTurns;
+  refreshAfterCellRotation();
+}
+
+void ViewerGridWidget::refreshAfterCellRotation() {
   refreshCellViewStates();
   refreshSelectionOverlays();
   updateStatus();

@@ -77,7 +77,7 @@ const QHash<QString, QString> &actionIconNames() {
       {"Fit", "scan"},
       {"Fit on Page Change", "scan-line"},
       {"Reset Exposure", "sun"},
-      {"Reset View", "rotate-ccw"},
+      {"Reset View", "view-reset"},
       // File。
       {"Open Image...", "folder-open"},
       {"Settings...", "settings"},
@@ -94,6 +94,8 @@ const QHash<QString, QString> &actionIconNames() {
       {"Manage Image Sets...", "images"},
       {"Rotate Right", "rotate-cw"},
       {"Rotate Left", "rotate-ccw"},
+      {"Rotate All Cells Right", "rotate-cw"},
+      {"Rotate All Cells Left", "rotate-ccw"},
       {"Invert All Cells", "contrast"},
       {"Copy Image", "copy"},
       {"Favorite", "star"},
@@ -119,7 +121,7 @@ const QHash<QString, QString> &actionIconNames() {
       {"Edit Label...", "pencil"},
       {"Clear Cell", "x"},
       {"Assign Image", "image"},
-      {"Reset Cell Display", "rotate-ccw"},
+      {"Reset Cell Display", "view-reset"},
   };
   // 項目の文言は翻訳される。翻訳された文言でも引けるようにする (項目を作る側 MainWindow と
   // CellContextMenu の文脈で引く)。

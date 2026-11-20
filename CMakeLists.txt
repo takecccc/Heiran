@@ -423,6 +423,7 @@ qt_add_resources(heiran_core heiran_icons
     resources/icons/refresh-cw.svg
     resources/icons/rotate-ccw.svg
     resources/icons/rotate-cw.svg
+    resources/icons/view-reset.svg
     resources/icons/save.svg
     resources/icons/scan-line.svg
     resources/icons/scan.svg

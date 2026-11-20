@@ -500,6 +500,17 @@ void MainWindow::createViewMenu() {
   connect(rotateLeftAction, &QAction::triggered, this,
           [this]() { viewerGrid_->rotateActiveCellBy(-1); });
 
+  auto *rotateAllLeftAction =
+      viewMenu->addAction(QCoreApplication::translate("MainWindow", "Rotate All Cells Left"));
+  rotateAllLeftAction->setObjectName("rotateAllLeftAction");
+  connect(rotateAllLeftAction, &QAction::triggered, this,
+          [this]() { viewerGrid_->rotateAllCellsBy(-1); });
+  auto *rotateAllRightAction =
+      viewMenu->addAction(QCoreApplication::translate("MainWindow", "Rotate All Cells Right"));
+  rotateAllRightAction->setObjectName("rotateAllRightAction");
+  connect(rotateAllRightAction, &QAction::triggered, this,
+          [this]() { viewerGrid_->rotateAllCellsBy(1); });
+
   // ファイルの中の画像。アニメーション (GIF / WebP) は再生し、ページ (マルチページ TIFF) は
   // 手でめくる。ファイルの連番 (Prev / Next) とは別の軸で、キーも分ける。
   viewMenu->addSeparator();
@@ -919,6 +930,9 @@ void MainWindow::createNavigationToolBar() {
   resetViewAction->setShortcut(QKeySequence(Qt::Key_0));
   connect(resetViewAction, &QAction::triggered, this, [this]() { viewerGrid_->resetView(); });
   addAction(resetViewAction);
+  navigationToolBar->addSeparator();
+  navigationToolBar->addAction(findChild<QAction *>("rotateAllLeftAction"));
+  navigationToolBar->addAction(findChild<QAction *>("rotateAllRightAction"));
   viewerChrome_ = new ViewerChromeController(this, viewerGrid_, navigationToolBar, pageComboBox_,
                                              previousPageAction, nextPageAction);
 }
