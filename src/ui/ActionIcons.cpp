@@ -40,7 +40,7 @@ private:
       return palette.color(QPalette::Disabled, QPalette::ButtonText);
     }
     if (state == QIcon::On) {
-      return AppStyleTokens::forDarkScheme(isDarkPalette()).accentText;
+      return AppStyleTokens::current().accentText;
     }
     return palette.color(QPalette::Active, QPalette::ButtonText);
   }

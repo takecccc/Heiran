@@ -23,7 +23,7 @@ void ThumbnailItemDelegate::paint(QPainter *painter, const QStyleOptionViewItem 
   if (!favorite && cells.isEmpty())
     return;
 
-  const auto tokens = AppStyleTokens::forDarkScheme(isDarkPalette());
+  const auto tokens = AppStyleTokens::current();
   auto background = tokens.panel;
   background.setAlpha(230);
   auto font = item.font;

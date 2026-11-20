@@ -30,6 +30,10 @@ QString colorThemeToString(ColorTheme theme) {
       return "light";
     case ColorTheme::Dark:
       return "dark";
+    case ColorTheme::Slate:
+      return "slate";
+    case ColorTheme::Sand:
+      return "sand";
     case ColorTheme::System:
     default:
       return "system";
@@ -44,6 +48,12 @@ ColorTheme colorThemeFromString(const QString &text) {
   if (normalized == "dark") {
     return ColorTheme::Dark;
   }
+  if (normalized == "slate") {
+    return ColorTheme::Slate;
+  }
+  if (normalized == "sand") {
+    return ColorTheme::Sand;
+  }
   return ColorTheme::System;
 }
 
@@ -55,9 +65,11 @@ void applyColorTheme(ColorTheme theme) {
 
   switch (theme) {
     case ColorTheme::Light:
+    case ColorTheme::Sand:
       styleHints->setColorScheme(Qt::ColorScheme::Light);
       break;
     case ColorTheme::Dark:
+    case ColorTheme::Slate:
       styleHints->setColorScheme(Qt::ColorScheme::Dark);
       break;
     case ColorTheme::System:
@@ -67,7 +79,7 @@ void applyColorTheme(ColorTheme theme) {
   }
 
   // 見た目の取り決め (余白、角丸、強調色)。配色に合わせて作り直す。以後の切り替えにも追従する。
-  installAppStyle();
+  installAppStyle(theme);
 }
 
 AnalysisChartPalette AnalysisChartPalette::fromPalette(const QPalette &palette) {

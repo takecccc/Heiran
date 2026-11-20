@@ -161,6 +161,10 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                       static_cast<int>(ColorTheme::Light));
   themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "Dark"),
                       static_cast<int>(ColorTheme::Dark));
+  themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "Slate (dark)"),
+                      static_cast<int>(ColorTheme::Slate));
+  themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "Sand (light)"),
+                      static_cast<int>(ColorTheme::Sand));
   themeCombo->setCurrentIndex(themeCombo->findData(static_cast<int>(current.colorTheme)));
   themeCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
@@ -547,7 +551,14 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                QCoreApplication::translate("SettingsDialog", "Animation streaming threshold"),
                streamingDescription);
 
+  const auto selectedTheme = [themeCombo]() {
+    return static_cast<ColorTheme>(themeCombo->currentData().toInt());
+  };
+  QObject::connect(themeCombo, &QComboBox::currentIndexChanged, &dialog,
+                   [selectedTheme]() { applyColorTheme(selectedTheme()); });
   if (dialog.exec() != QDialog::Accepted) {
+    if (selectedTheme() != current.colorTheme)
+      applyColorTheme(current.colorTheme);
     return std::nullopt;
   }
 
@@ -572,7 +583,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
       static_cast<AnalysisValueSpace>(analysisSpaceCombo->currentData().toInt());
   updated.renderingIntent = static_cast<RenderingIntent>(intentCombo->currentData().toInt());
   updated.blackPointCompensation = blackPointCheckBox->isChecked();
-  updated.colorTheme = static_cast<ColorTheme>(themeCombo->currentData().toInt());
+  updated.colorTheme = selectedTheme();
   updated.language = languageCombo->currentData().toString();
   return updated;
 }

@@ -314,10 +314,41 @@ private Q_SLOTS:
     QSettings().clear();
 
     AppSettings settings;
-    settings.colorTheme = heiran::ui::ColorTheme::Dark;
-    settings.save();
+    using heiran::ui::ColorTheme;
+    for (const auto theme : {ColorTheme::Dark, ColorTheme::Slate, ColorTheme::Sand}) {
+      settings.colorTheme = theme;
+      settings.save();
+      QCOMPARE(AppSettings::load().colorTheme, theme);
+    }
+  }
 
-    QCOMPARE(AppSettings::load().colorTheme, heiran::ui::ColorTheme::Dark);
+  void previewsColorThemesBeforeApplyingAndRestoresOnCancel() {
+    using heiran::ui::ColorTheme;
+    const auto restore = qScopeGuard([]() { heiran::ui::applyColorTheme(ColorTheme::System); });
+    AppSettings current;
+    current.colorTheme = ColorTheme::Dark;
+    current.save();
+    heiran::ui::applyColorTheme(current.colorTheme);
+    const auto initialStyle = qApp->styleSheet();
+    QString slateStyle, sandStyle;
+    ColorTheme storedDuringPreview = ColorTheme::System;
+    QTimer::singleShot(0, [&]() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog);
+      const auto cancel = qScopeGuard([dialog]() { dialog->reject(); });
+      auto *theme = dialog->findChild<QComboBox *>("colorTheme");
+      QVERIFY(theme);
+      theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Slate)));
+      slateStyle = qApp->styleSheet();
+      theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Sand)));
+      sandStyle = qApp->styleSheet();
+      storedDuringPreview = AppSettings::load().colorTheme;
+    });
+    QVERIFY(!heiran::ui::showSettingsDialog(nullptr, current));
+    QVERIFY(!slateStyle.isEmpty() && !sandStyle.isEmpty());
+    QVERIFY(slateStyle != initialStyle && sandStyle != slateStyle);
+    QCOMPARE(storedDuringPreview, ColorTheme::Dark);
+    QCOMPARE(qApp->styleSheet(), initialStyle);
   }
 
   void storesTheAnimationStreamingThreshold() {

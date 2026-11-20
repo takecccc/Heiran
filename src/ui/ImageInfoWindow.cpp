@@ -109,7 +109,7 @@ void ImageInfoWindow::rebuild() {
   }
   table_->setRowCount(rowCount);
 
-  const AppStyleTokens tokens = AppStyleTokens::forDarkScheme(isDarkPalette());
+  const AppStyleTokens tokens = AppStyleTokens::current();
   // 違う行が多いと、全面が染まって読みにくい。薄い塗りにする。
   QColor differenceBackground = tokens.accent;
   differenceBackground.setAlpha(26);

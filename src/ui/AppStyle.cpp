@@ -1,4 +1,5 @@
 #include "heiran/ui/AppStyle.hpp"
+#include "heiran/ui/ColorTheme.hpp"
 
 #include <QApplication>
 #include <QGuiApplication>
@@ -8,6 +9,8 @@
 namespace heiran::ui {
 
 namespace {
+
+ColorTheme activeTheme = ColorTheme::System;
 
 QString css(const QColor &color) {
   return QString("rgba(%1, %2, %3, %4)")
@@ -52,6 +55,50 @@ AppStyleTokens AppStyleTokens::forDarkScheme(bool dark) {
       .accentText = QColor(30, 86, 192),
       .input = QColor(255, 255, 255),
   };
+}
+
+AppStyleTokens AppStyleTokens::current() {
+  switch (activeTheme) {
+    case ColorTheme::Slate:
+      return {
+          .window = QColor(27, 35, 43),
+          .panel = QColor(35, 47, 58),
+          .border = QColor(63, 78, 91),
+          .text = QColor(224, 232, 239),
+          .dimText = QColor(154, 173, 183),
+          .hover = QColor(49, 64, 75),
+          .pressed = QColor(58, 76, 88),
+          .accent = QColor(112, 181, 174),
+          .accentSoft = QColor(112, 181, 174, 42),
+          .accentText = QColor(165, 223, 213),
+          .input = QColor(29, 39, 48),
+      };
+    case ColorTheme::Sand:
+      return {
+          .window = QColor(249, 246, 239),
+          .panel = QColor(244, 238, 227),
+          .border = QColor(214, 202, 184),
+          .text = QColor(47, 40, 32),
+          .dimText = QColor(108, 93, 79),
+          .hover = QColor(233, 224, 209),
+          .pressed = QColor(223, 210, 190),
+          .accent = QColor(156, 106, 57),
+          .accentSoft = QColor(156, 106, 57, 37),
+          .accentText = QColor(116, 72, 34),
+          .input = QColor(255, 251, 242),
+      };
+    case ColorTheme::Light:
+      return forDarkScheme(false);
+    case ColorTheme::Dark:
+      return forDarkScheme(true);
+    case ColorTheme::System:
+      if (const auto *hints = QGuiApplication::styleHints()) {
+        if (hints->colorScheme() != Qt::ColorScheme::Unknown)
+          return forDarkScheme(hints->colorScheme() == Qt::ColorScheme::Dark);
+      }
+      return forDarkScheme(isDarkPalette());
+  }
+  return forDarkScheme(isDarkPalette());
 }
 
 QColor AppStyleTokens::viewerBackground() {
@@ -109,6 +156,9 @@ QToolButton#imageListFavoritesOnly:checked { border-color: %9; }
 QGroupBox { border: 1px solid %3; border-radius: 6px; margin-top: 12px; padding: 12px 10px 8px 10px; }
 QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 10px; padding: 0 6px; color: %6; }
 
+QListWidget#settingsCategories { background-color: %1; color: %2; border-color: %3; }
+QListWidget#settingsCategories::item:selected { background-color: %7; color: %8; }
+
 QLineEdit { background-color: %10; color: %2; border: 1px solid %3; border-radius: 4px; padding: 3px 6px; selection-background-color: %9; }
 QLineEdit:focus { border-color: %9; }
 
@@ -135,33 +185,23 @@ QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
       .arg(css(AppStyleTokens::viewerBackground()));             // %12
 }
 
-void installAppStyle() {
+void installAppStyle(ColorTheme theme) {
+  activeTheme = theme;
   static bool connected = false;
   auto *hints = QGuiApplication::styleHints();
   const auto apply = []() {
     if (auto *app = qobject_cast<QApplication *>(QCoreApplication::instance())) {
-      // 配色が切り替わった直後は、パレットの更新が後になる。判断は Qt の配色から行う。
-      bool dark = isDarkPalette();
-      if (auto *styleHints = QGuiApplication::styleHints()) {
-        switch (styleHints->colorScheme()) {
-          case Qt::ColorScheme::Dark:
-            dark = true;
-            break;
-          case Qt::ColorScheme::Light:
-            dark = false;
-            break;
-          case Qt::ColorScheme::Unknown:
-          default:
-            break;
-        }
-      }
-      app->setStyleSheet(buildAppStyleSheet(AppStyleTokens::forDarkScheme(dark)));
+      const auto sheet = buildAppStyleSheet(AppStyleTokens::current());
+      if (app->styleSheet() != sheet)
+        app->setStyleSheet(sheet);
     }
   };
   apply();
   if (!connected && hints != nullptr) {
     connected = true;
-    QObject::connect(hints, &QStyleHints::colorSchemeChanged, qApp, [apply]() { apply(); });
+    QObject::connect(
+        hints, &QStyleHints::colorSchemeChanged, qApp, [apply]() { apply(); },
+        Qt::QueuedConnection);
   }
 }
 

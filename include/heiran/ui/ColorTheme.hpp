@@ -11,6 +11,8 @@ enum class ColorTheme {
   System,
   Light,
   Dark,
+  Slate,
+  Sand,
 };
 
 QString colorThemeToString(ColorTheme theme);

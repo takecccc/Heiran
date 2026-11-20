@@ -5,6 +5,8 @@
 
 namespace heiran::ui {
 
+enum class ColorTheme;
+
 // 画面全体の見た目 (余白、角丸、ホバー、強調色) の取り決め。
 //
 // 配色そのもの (ウィンドウや文字の色) は Qt の配色に任せる。ここは、標準のままだと味気ない
@@ -24,6 +26,7 @@ struct AppStyleTokens {
   QColor input;
 
   static AppStyleTokens forDarkScheme(bool dark);
+  static AppStyleTokens current();
   static QColor viewerBackground();
 };
 
@@ -32,7 +35,7 @@ QString buildAppStyleSheet(const AppStyleTokens &tokens);
 
 // アプリ全体のスタイルシートを、いまの配色に合わせて設定する。配色が切り替わったら、
 // 自動で作り直す (初回の呼び出しで接続する)。
-void installAppStyle();
+void installAppStyle(ColorTheme theme);
 
 // 暗い配色か。Qt のパレットから判断する。
 bool isDarkPalette();
