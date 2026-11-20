@@ -570,10 +570,7 @@ private Q_SLOTS:
     auto *filter = window.findChild<QAction *>("favoritesOnlyAction");
     QVERIFY(end && end->isHidden());
     QVERIFY(!panel->findChild<QToolButton *>("imageListFavoritesOnly")->icon().isNull());
-    for (const auto *name :
-         {"addSelectedFavorites", "removeSelectedFavorites", "compareSelectedImages"}) {
-      QVERIFY(!panel->findChild<QPushButton *>(name)->icon().isNull());
-    }
+    QVERIFY(!panel->findChild<QPushButton *>("compareSelectedImages")->icon().isNull());
     grid->setCurrentPage(3);
     const auto original = grid->sessionSnapshot();
     window.compareSelectedImages({paths.at(0), paths.at(2)});
@@ -957,15 +954,16 @@ private Q_SLOTS:
             list->item(row)->setSelected(true);
         }
       };
-      auto *add = panel->findChild<QPushButton *>("addSelectedFavorites");
-      auto *remove = panel->findChild<QPushButton *>("removeSelectedFavorites");
+      auto *add = panel->findChild<QAction *>("addSelectedFavoritesAction");
+      auto *remove = panel->findChild<QAction *>("removeSelectedFavoritesAction");
+      QVERIFY(add && remove);
       select({});
       QVERIFY(!add->isEnabled());
       QVERIFY(!remove->isEnabled());
       select({0, 2});
       QSignalSpy updates(window.findChild<heiran::ui::FavoritesController *>(),
                          &heiran::ui::FavoritesController::favoritesChanged);
-      add->click();
+      add->trigger();
       QCOMPARE(updates.size(), 1);
       QVERIFY(store.load());
       QVERIFY(store.contains(paths.at(0)) && store.contains(paths.at(2)) &&
@@ -976,7 +974,7 @@ private Q_SLOTS:
       QCOMPARE(list->count(), 3);
       select({0, 1});
       updates.clear();
-      remove->click();
+      remove->trigger();
       QCOMPARE(updates.size(), 1);
       QCOMPARE(list->count(), 1);
       QVERIFY(store.load());
@@ -1068,9 +1066,9 @@ private Q_SLOTS:
     window.show();
     window.findChild<QAction *>("imageListAction")->trigger();
     window.findChild<QListWidget *>("thumbnailList")->selectAll();
-    auto *add = window.findChild<QPushButton *>("addSelectedFavorites");
-    QVERIFY(add->isEnabled());
-    add->click();
+    auto *add = window.findChild<QAction *>("addSelectedFavoritesAction");
+    QVERIFY(add && add->isEnabled());
+    add->trigger();
     heiran::infra::FavoriteStore saved(database);
     QVERIFY(saved.load());
     for (const auto &path : paths)

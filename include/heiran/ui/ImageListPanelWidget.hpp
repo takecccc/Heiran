@@ -81,8 +81,6 @@ private:
   QTreeWidget *details_;
   QPushButton *compare_;
   QPushButton *finishComparison_;
-  QPushButton *addFavorites_;
-  QPushButton *removeFavorites_;
   QAction *addFavoritesAction_;
   QAction *removeFavoritesAction_;
   QStringList paths_;

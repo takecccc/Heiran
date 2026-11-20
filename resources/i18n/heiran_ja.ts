@@ -3161,32 +3161,32 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>表示中・絞り込み対象外</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="78"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="76"/>
         <source>Small</source>
         <translation>小</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="78"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="76"/>
         <source>Medium</source>
         <translation>中</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="78"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="76"/>
         <source>Large</source>
         <translation>大</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="78"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="76"/>
         <source>Extra Large</source>
         <translation>特大</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="86"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="84"/>
         <source>Maximum width: %1 px. Change size with Ctrl+mouse wheel.</source>
         <translation>最大幅は %1 px です。Ctrl を押しながらホイールを回すとサイズを変更できます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="95"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="93"/>
         <source>Favorites only</source>
         <translation>お気に入りのみ</translation>
     </message>
@@ -3197,13 +3197,11 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     </message>
     <message>
         <location filename="../../src/ui/ImageListPanelWidget.cpp" line="51"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="53"/>
         <source>Add Favorites</source>
         <translation>お気に入り登録</translation>
     </message>
     <message>
         <location filename="../../src/ui/ImageListPanelWidget.cpp" line="52"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="54"/>
         <source>Remove Favorites</source>
         <translation>お気に入り解除</translation>
     </message>
@@ -3223,117 +3221,122 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>比較終了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="77"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="75"/>
         <source>Size:</source>
         <translation>サイズ:</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="96"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="94"/>
         <source>Show only favorites in the list and when changing pages.</source>
         <translation>画像一覧とページ送りをお気に入りのみに絞ります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="122"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="101"/>
+        <source>Filter:</source>
+        <translation>絞り込み:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="118"/>
         <source>Add selected images to favorites.</source>
         <translation>選択した画像をお気に入りに登録します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="123"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="119"/>
         <source>Remove selected images from favorites.</source>
         <translation>選択した画像のお気に入りを解除します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="140"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="132"/>
         <source>Select 2 to 16 images to view side by side. Ctrl-click or Shift-click to select multiple images.</source>
         <translation>2～16 枚を選んで並べて表示します。Ctrl を押しながらクリックで追加・解除、Shift を押しながらクリックで範囲選択できます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="147"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="139"/>
         <source>Return to the layout and page before comparison.</source>
         <translation>比較を始める前のレイアウトとページに戻ります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="156"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="148"/>
         <source>Image details</source>
         <translation>画像の詳細一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="157"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="149"/>
         <source>File name</source>
         <translation>ファイル名</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="157"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="149"/>
         <source>Width (px)</source>
         <translation>幅 (px)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="158"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="150"/>
         <source>Height (px)</source>
         <translation>高さ (px)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="158"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="150"/>
         <source>File size</source>
         <translation>ファイルサイズ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="158"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="150"/>
         <source>Cell</source>
         <translation>セル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="160"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="152"/>
         <source>Displayed in</source>
         <translation>表示中のセル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="159"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="500"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="547"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="151"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="490"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="537"/>
         <source>Favorite</source>
         <translation>お気に入り</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="191"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="183"/>
         <source>Image List</source>
         <translation>画像一覧</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="270"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="262"/>
         <source>%1 px</source>
         <translation>%1 px</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="338"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="330"/>
         <source>%1 items</source>
         <translation>%1 件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="450"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="442"/>
         <source>%1 items, %2 selected</source>
         <translation>%1 件（%2 件選択）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="481"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="471"/>
         <source>%1 bytes</source>
         <translation>%1 バイト</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="500"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="547"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="490"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="537"/>
         <source>Not a favorite</source>
         <translation>お気に入りではありません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="519"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="549"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="509"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="539"/>
         <source>Displayed in cell %1</source>
         <translation>表示中: セル %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="534"/>
-        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="535"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="524"/>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="525"/>
         <source>Cell %1: %2</source>
         <translation>セル %1: %2</translation>
     </message>

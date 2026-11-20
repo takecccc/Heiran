@@ -48,8 +48,6 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
       details_(new ImageFileDetailsWidget(this)),
       compare_(new QPushButton(tr("Compare Selected"), this)),
       finishComparison_(new QPushButton(tr("End Comparison"), this)),
-      addFavorites_(new QPushButton(tr("Add Favorites"), this)),
-      removeFavorites_(new QPushButton(tr("Remove Favorites"), this)),
       addFavoritesAction_(new QAction(tr("Add Favorites"), this)),
       removeFavoritesAction_(new QAction(tr("Remove Favorites"), this)) {
   setObjectName("imageListPanelWidget");
@@ -94,12 +92,18 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   favoritesOnly_->setObjectName("imageListFavoritesOnly");
   favoritesOnly_->setText(tr("Favorites only"));
   favoritesOnly_->setToolTip(tr("Show only favorites in the list and when changing pages."));
-  favoritesOnly_->setIcon(themedIcon("star"));
+  favoritesOnly_->setIcon(themedIcon("filter"));
   favoritesOnly_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   favoritesOnly_->setCheckable(true);
   layout->addLayout(modeLayout);
   layout->addWidget(thumbnailSizeControls_);
-  layout->addWidget(favoritesOnly_);
+  auto *filterLayout = new QHBoxLayout;
+  auto *filterLabel = new QLabel(tr("Filter:"), this);
+  filterLabel->setBuddy(favoritesOnly_);
+  filterLayout->addWidget(filterLabel);
+  filterLayout->addWidget(favoritesOnly_);
+  filterLayout->addStretch();
+  layout->addLayout(filterLayout);
   auto *excludedLayout = new QVBoxLayout(excludedGroup_);
   excludedFiles_->setObjectName("excludedDisplayedFiles");
   excludedFiles_->setTextFormat(Qt::PlainText);
@@ -109,27 +113,15 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   excludedGroup_->hide();
   layout->addWidget(excludedGroup_);
   layout->addWidget(count_);
-  auto *favoriteActions = new QHBoxLayout;
-  favoriteActions->addWidget(addFavorites_);
-  favoriteActions->addWidget(removeFavorites_);
-  layout->addLayout(favoriteActions);
-  addFavorites_->setObjectName("addSelectedFavorites");
-  removeFavorites_->setObjectName("removeSelectedFavorites");
-  addFavorites_->setIcon(themedIcon("star"));
-  removeFavorites_->setIcon(themedIcon("x"));
-  for (auto *button : {addFavorites_, removeFavorites_})
-    button->setProperty("imageListCompact", true);
-  addFavorites_->setToolTip(tr("Add selected images to favorites."));
-  removeFavorites_->setToolTip(tr("Remove selected images from favorites."));
   addFavoritesAction_->setObjectName("addSelectedFavoritesAction");
   removeFavoritesAction_->setObjectName("removeSelectedFavoritesAction");
+  addFavoritesAction_->setToolTip(tr("Add selected images to favorites."));
+  removeFavoritesAction_->setToolTip(tr("Remove selected images from favorites."));
   for (auto *view :
        {static_cast<QAbstractItemView *>(list_), static_cast<QAbstractItemView *>(details_)}) {
     view->setContextMenuPolicy(Qt::ActionsContextMenu);
     view->addActions({addFavoritesAction_, removeFavoritesAction_});
   }
-  connect(addFavorites_, &QPushButton::clicked, addFavoritesAction_, &QAction::trigger);
-  connect(removeFavorites_, &QPushButton::clicked, removeFavoritesAction_, &QAction::trigger);
   connect(addFavoritesAction_, &QAction::triggered, this,
           [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), true); });
   connect(removeFavoritesAction_, &QAction::triggered, this,
@@ -449,8 +441,6 @@ void ImageListPanelWidget::updateSelectionActions() {
   const int count = selectedRows(detailsVisible()).size();
   count_->setText(tr("%1 items, %2 selected").arg(paths_.size()).arg(count));
   compare_->setEnabled(count >= 2 && count <= SessionLayoutController::kMaxCellCount);
-  addFavorites_->setEnabled(count > 0);
-  removeFavorites_->setEnabled(count > 0);
   addFavoritesAction_->setEnabled(count > 0);
   removeFavoritesAction_->setEnabled(count > 0);
 }

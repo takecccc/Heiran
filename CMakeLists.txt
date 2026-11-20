@@ -407,6 +407,7 @@ qt_add_resources(heiran_core heiran_icons
     resources/icons/contrast.svg
     resources/icons/copy.svg
     resources/icons/external-link.svg
+    resources/icons/filter.svg
     resources/icons/flip-horizontal.svg
     resources/icons/flip-vertical.svg
     resources/icons/folder-open.svg
