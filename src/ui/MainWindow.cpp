@@ -132,6 +132,8 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   new GlobalZoomController(this, viewerGrid_);
   connect(imageList, &ImageListPanelController::compareRequested, this,
           &MainWindow::compareSelectedImages);
+  connect(imageList, &ImageListPanelController::finishComparisonRequested, this,
+          &MainWindow::finishComparison);
   addShortcutsToToolTips();
   // 役割が文字から明らかな項目は、アイコンで出す。文字は、ツールチップとメニューに残る。
   applyActionIcons(this);
@@ -1002,6 +1004,7 @@ void MainWindow::setSession(const heiran::domain::SessionModel &session, int ini
                             std::shared_ptr<DecodeScheduler> startupScheduler) {
   // 別のセッションを開いたら、前の変更は、戻せない。
   clearUndoHistory();
+  setComparisonOrigin(nullptr);
   // 前のセッションが直接開いたものでも、次へは持ち越さない。
   fitOnPageChangeOverride_.reset();
   updateFitOnPageChange();
@@ -1227,11 +1230,15 @@ void MainWindow::compareSelectedImages(const QStringList &paths) {
   syncCurrentSessionFromViewer();
   const auto prepared =
       StartupPreparationController::prepareImages(paths, currentSession_.sessionDirectory);
-  pushUndo(captureUndoRecord(QCoreApplication::translate("MainWindow", "Compare selected images")));
+  auto before =
+      captureUndoRecord(QCoreApplication::translate("MainWindow", "Compare selected images"));
+  if (!comparisonOrigin_)
+    setComparisonOrigin(std::make_shared<UndoRecord>(before));
+  pushUndo(std::move(before));
   auto *imageList = findChild<ImageListPanelController *>();
   auto source = imageList->sourceSession();
   if (!source)
-    source = currentSession_;
+    source = comparisonOrigin_->session;
   const bool favoritesOnly = findChild<QAction *>("favoritesOnlyAction")->isChecked();
   imageList->beginSessionChange(std::move(source));
   currentSession_.viewer.layout = prepared.session.viewer.layout;
@@ -1244,6 +1251,28 @@ void MainWindow::compareSelectedImages(const QStringList &paths) {
   refreshSessionDependentUi();
   viewerGrid_->requestFitToCells();
   dirtyStateController_.setDirty(true);
+}
+
+void MainWindow::setComparisonOrigin(std::shared_ptr<const UndoRecord> origin) {
+  comparisonOrigin_ = std::move(origin);
+  findChild<ImageListPanelController *>()->setComparisonActive(comparisonOrigin_ != nullptr);
+}
+
+void MainWindow::finishComparison() {
+  if (!comparisonOrigin_)
+    return;
+  syncCurrentSessionFromViewer();
+  auto original = *comparisonOrigin_;
+  auto before = captureUndoRecord(QCoreApplication::translate("MainWindow", "End Comparison"));
+  original.favoritesOnly = before.favoritesOnly;
+  pushUndo(std::move(before));
+  restoreUndoRecord(original);
+  auto *filter = findChild<QAction *>("favoritesOnlyAction");
+  if (filter->isChecked() &&
+      (viewerGrid_->navigationPageCount() == 0 || viewerGrid_->currentPage() != original.page)) {
+    filter->setChecked(false);
+    viewerGrid_->setCurrentPage(original.page);
+  }
 }
 
 void MainWindow::openPreparedImages(const PreparedImageSession &prepared,
@@ -1635,7 +1664,8 @@ MainWindow::UndoRecord MainWindow::captureUndoRecord(const QString &label) const
           .page = viewerGrid_ != nullptr ? viewerGrid_->currentPage() : 0,
           .dirty = dirtyStateController_.isDirty(),
           .imageListSource = imageList ? imageList->sourceSession() : std::nullopt,
-          .favoritesOnly = favoritesOnly && favoritesOnly->isChecked()};
+          .favoritesOnly = favoritesOnly && favoritesOnly->isChecked(),
+          .comparisonOrigin = comparisonOrigin_};
 }
 
 void MainWindow::pushUndo(UndoRecord record) {
@@ -1654,10 +1684,13 @@ void MainWindow::pushUndo(UndoRecord record) {
 void MainWindow::restoreUndoRecord(const UndoRecord &record) {
   auto *imageList = findChild<ImageListPanelController *>();
   imageList->beginSessionChange(record.imageListSource);
+  auto *filter = findChild<QAction *>("favoritesOnlyAction");
+  filter->setChecked(false);
+  setComparisonOrigin(record.comparisonOrigin);
   currentSession_ = record.session;
   cellLayoutCache_ = record.cellLayoutCache;
   applyCurrentSessionToUiPreservingView(record.page);
-  findChild<QAction *>("favoritesOnlyAction")->setChecked(record.favoritesOnly);
+  filter->setChecked(record.favoritesOnly);
   imageList->endSessionChange();
   dirtyStateController_.setDirty(record.dirty);
 }

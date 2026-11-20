@@ -11,7 +11,7 @@
 
 class QLabel;
 class QListWidget;
-class QCheckBox;
+class QToolButton;
 class QSlider;
 class QStackedWidget;
 class QTreeWidget;
@@ -31,6 +31,7 @@ public:
   void setCurrentPage(int page);
   void cancelLoading();
   void setFavoritesOnly(bool enabled);
+  void setComparisonActive(bool active);
   void setDetailsVisible(bool details);
   bool detailsVisible() const;
   void setThumbnailWidth(int width);
@@ -46,6 +47,7 @@ Q_SIGNALS:
   void detailsVisibleChanged(bool details);
   void thumbnailWidthChanged(int width);
   void compareRequested(const QStringList &paths);
+  void finishComparisonRequested();
   void favoritesRequested(const QStringList &paths, bool favorite);
 
 private:
@@ -64,7 +66,7 @@ private:
   QLabel *empty_;
   QGroupBox *excludedGroup_;
   QLabel *excludedFiles_;
-  QCheckBox *favoritesOnly_;
+  QToolButton *favoritesOnly_;
   QAction *thumbnailsAction_;
   QAction *detailsAction_;
   QWidget *thumbnailSizeControls_;
@@ -74,6 +76,7 @@ private:
   QStackedWidget *views_;
   QTreeWidget *details_;
   QPushButton *compare_;
+  QPushButton *finishComparison_;
   QPushButton *addFavorites_;
   QPushButton *removeFavorites_;
   QAction *addFavoritesAction_;

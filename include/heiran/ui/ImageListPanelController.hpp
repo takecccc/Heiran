@@ -25,9 +25,11 @@ public:
   std::optional<heiran::domain::SessionModel> sourceSession() const { return sourceSession_; }
   void beginSessionChange(std::optional<heiran::domain::SessionModel> sourceSession);
   void endSessionChange();
+  void setComparisonActive(bool active);
 
 Q_SIGNALS:
   void compareRequested(const QStringList &paths);
+  void finishComparisonRequested();
   void sourceSessionChanging();
   void sourceSessionChanged();
 

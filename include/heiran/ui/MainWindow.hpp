@@ -256,6 +256,7 @@ private:
     bool dirty = false;
     std::optional<heiran::domain::SessionModel> imageListSource;
     bool favoritesOnly = false;
+    std::shared_ptr<const UndoRecord> comparisonOrigin;
   };
   static constexpr int kMaxUndoRecords = 30;
   // 変更の前の状態を控える (syncCurrentSessionFromViewer() のあとで呼ぶ)。変更が済んだら、pushUndo() へ渡す。
@@ -264,10 +265,13 @@ private:
   void undo();
   void redo();
   void restoreUndoRecord(const UndoRecord &record);
+  void finishComparison();
+  void setComparisonOrigin(std::shared_ptr<const UndoRecord> origin);
   void updateUndoActions();
   void clearUndoHistory();
   QVector<UndoRecord> undoStack_;
   QVector<UndoRecord> redoStack_;
+  std::shared_ptr<const UndoRecord> comparisonOrigin_;
   QAction *undoAction_ = nullptr;
   QAction *redoAction_ = nullptr;
   int undoSuppressDepth_ = 0;

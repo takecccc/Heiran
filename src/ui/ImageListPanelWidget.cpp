@@ -9,7 +9,6 @@
 
 #include <QAction>
 #include <QActionGroup>
-#include <QCheckBox>
 #include <QFileInfo>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -34,14 +33,14 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
     : QWidget(parent), list_(new ImageFileListWidget(this)), count_(new QLabel(this)),
       empty_(new QLabel(tr("No images to display."), this)),
       excludedGroup_(new QGroupBox(tr("Displayed outside filter"), this)),
-      excludedFiles_(new QLabel(excludedGroup_)),
-      favoritesOnly_(new QCheckBox(tr("Favorites only"), this)),
+      excludedFiles_(new QLabel(excludedGroup_)), favoritesOnly_(new QToolButton(this)),
       thumbnailsAction_(new QAction(tr("Thumbnails"), this)),
       detailsAction_(new QAction(tr("Details"), this)), thumbnailSizeControls_(new QWidget(this)),
       thumbnailSizeSlider_(new QSlider(Qt::Horizontal, thumbnailSizeControls_)),
       thumbnailSizeLabel_(new QLabel(thumbnailSizeControls_)), views_(new QStackedWidget(this)),
       details_(new ImageFileDetailsWidget(this)),
       compare_(new QPushButton(tr("Compare Selected"), this)),
+      finishComparison_(new QPushButton(tr("End Comparison"), this)),
       addFavorites_(new QPushButton(tr("Add Favorites"), this)),
       removeFavorites_(new QPushButton(tr("Remove Favorites"), this)),
       addFavoritesAction_(new QAction(tr("Add Favorites"), this)),
@@ -81,6 +80,11 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   sizeLayout->addWidget(thumbnailSizeSlider_, 1);
   sizeLayout->addWidget(thumbnailSizeLabel_);
   favoritesOnly_->setObjectName("imageListFavoritesOnly");
+  favoritesOnly_->setText(tr("Favorites only"));
+  favoritesOnly_->setToolTip(tr("Show only favorites in the list and when changing pages."));
+  favoritesOnly_->setIcon(themedIcon("star"));
+  favoritesOnly_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+  favoritesOnly_->setCheckable(true);
   layout->addLayout(modeLayout);
   layout->addWidget(thumbnailSizeControls_);
   layout->addWidget(favoritesOnly_);
@@ -99,6 +103,10 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   layout->addLayout(favoriteActions);
   addFavorites_->setObjectName("addSelectedFavorites");
   removeFavorites_->setObjectName("removeSelectedFavorites");
+  addFavorites_->setIcon(themedIcon("star"));
+  removeFavorites_->setIcon(themedIcon("x"));
+  for (auto *button : {addFavorites_, removeFavorites_})
+    button->setProperty("imageListCompact", true);
   addFavorites_->setToolTip(tr("Add selected images to favorites."));
   removeFavorites_->setToolTip(tr("Remove selected images from favorites."));
   addFavoritesAction_->setObjectName("addSelectedFavoritesAction");
@@ -116,10 +124,18 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
           [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), false); });
   layout->addWidget(compare_);
   compare_->setObjectName("compareSelectedImages");
+  compare_->setIcon(themedIcon("layout-grid"));
   compare_->setToolTip(tr("Select 2 to 16 images to view side by side. Ctrl-click or Shift-click "
                           "to select multiple images."));
   connect(compare_, &QPushButton::clicked, this,
           [this]() { Q_EMIT compareRequested(selectedFilePaths()); });
+  layout->addWidget(finishComparison_);
+  finishComparison_->setObjectName("finishComparison");
+  finishComparison_->setIcon(themedIcon("arrow-left"));
+  finishComparison_->setToolTip(tr("Return to the layout and page before comparison."));
+  finishComparison_->hide();
+  connect(finishComparison_, &QPushButton::clicked, this,
+          &ImageListPanelWidget::finishComparisonRequested);
   layout->addWidget(views_, 1);
   layout->addWidget(empty_, 1);
   views_->addWidget(list_);
@@ -147,7 +163,8 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   details_->header()->setStretchLastSection(false);
   detailsPool_.setMaxThreadCount(1);
   connect(details_, &QTreeWidget::itemSelectionChanged, this, [this]() { syncSelection(true); });
-  connect(favoritesOnly_, &QCheckBox::toggled, this, &ImageListPanelWidget::favoritesOnlyRequested);
+  connect(favoritesOnly_, &QToolButton::toggled, this,
+          &ImageListPanelWidget::favoritesOnlyRequested);
   connect(modes, &QActionGroup::triggered, this, [this]() {
     if (views_->currentIndex() != (detailsVisible() ? 1 : 0))
       updateViewMode();
@@ -195,6 +212,10 @@ void ImageListPanelWidget::cancelLoading() {
 void ImageListPanelWidget::setFavoritesOnly(bool enabled) {
   const QSignalBlocker blocker(favoritesOnly_);
   favoritesOnly_->setChecked(enabled);
+}
+
+void ImageListPanelWidget::setComparisonActive(bool active) {
+  finishComparison_->setVisible(active);
 }
 
 bool ImageListPanelWidget::detailsVisible() const {

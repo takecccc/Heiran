@@ -100,6 +100,9 @@ QPushButton:hover { background-color: %4; }
 QPushButton:pressed { background-color: %5; }
 QPushButton:default { border-color: %9; }
 QPushButton:disabled { color: %6; }
+QPushButton[imageListCompact="true"] { padding: 5px 6px; }
+QToolButton#imageListFavoritesOnly { border-color: %3; }
+QToolButton#imageListFavoritesOnly:checked { border-color: %9; }
 
 QGroupBox { border: 1px solid %3; border-radius: 6px; margin-top: 12px; padding: 12px 10px 8px 10px; }
 QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 10px; padding: 0 6px; color: %6; }

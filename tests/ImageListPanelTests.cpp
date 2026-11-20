@@ -11,7 +11,6 @@
 
 #include <QAction>
 #include <QApplication>
-#include <QCheckBox>
 #include <QComboBox>
 #include <QContextMenuEvent>
 #include <QDockWidget>
@@ -34,6 +33,7 @@
 #include <QTreeWidget>
 #include <QUrl>
 #include <QtTest>
+#include <algorithm>
 #include <memory>
 
 namespace {
@@ -200,7 +200,7 @@ private Q_SLOTS:
     mark->trigger();
     grid->setCurrentPage(2);
     mark->trigger();
-    auto *checkbox = window.findChild<QCheckBox *>("imageListFavoritesOnly");
+    auto *checkbox = window.findChild<QToolButton *>("imageListFavoritesOnly");
     auto *filter = window.findChild<QAction *>("favoritesOnlyAction");
     checkbox->setChecked(true);
     QVERIFY(filter->isChecked());
@@ -351,12 +351,12 @@ private Q_SLOTS:
     QCOMPARE(table->topLevelItem(0)->text(0), QStringLiteral("\u2014"));
     QCOMPARE(list->count(), 3);
     mark->trigger();
-    window.findChild<QCheckBox *>("imageListFavoritesOnly")->setChecked(true);
+    window.findChild<QToolButton *>("imageListFavoritesOnly")->setChecked(true);
     QCOMPARE(list->count(), 1);
     QCOMPARE(table->topLevelItem(0)->text(0), star);
     mark->trigger();
     QCOMPARE(list->count(), 0);
-    window.findChild<QCheckBox *>("imageListFavoritesOnly")->setChecked(false);
+    window.findChild<QToolButton *>("imageListFavoritesOnly")->setChecked(false);
     window.findChild<QDockWidget *>("thumbnailDock")->close();
     mark->trigger();
     open->trigger();
@@ -383,6 +383,9 @@ private Q_SLOTS:
   void drawsThumbnailStatesInOppositeUpperCorners() {
     QTemporaryDir source;
     const auto paths = createImages(source.path(), 1);
+    QImage portrait(40, 360, QImage::Format_RGB32);
+    portrait.fill(Qt::red);
+    QVERIFY(portrait.save(paths.first()));
     heiran::ui::ImageListPanelWidget panel;
     panel.resize(260, 480);
     panel.setPages(paths, 0);
@@ -408,12 +411,14 @@ private Q_SLOTS:
     const auto item = list->visualItemRect(list->item(0));
     QVERIFY(!right.isEmpty());
     QVERIFY(right.center().x() > item.center().x());
+    QVERIFY(right.right() >= item.right() - 5);
     QVERIFY(right.bottom() < item.center().y());
     panel.setDisplayedFiles({paths.first(), paths.first()});
     const auto cells = capture();
     const auto left = changes(favorite, cells);
     QVERIFY(!left.isEmpty());
     QVERIFY(left.center().x() < item.center().x());
+    QVERIFY(left.left() <= item.left() + 5);
     QVERIFY(left.bottom() < item.center().y());
     QCOMPARE(list->item(0)->text(), caption);
     panel.setDisplayedFiles(QStringList(16, paths.first()));
@@ -519,6 +524,68 @@ private Q_SLOTS:
     QCOMPARE(grid->sessionSnapshot().images.first().resolvedPaths,
              original.images.first().resolvedPaths);
     QVERIFY(!window.isWindowModified());
+  }
+
+  void endsRepeatedComparisonAndRestoresOriginalPage() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 6);
+    heiran::ui::MainWindow window(nullptr, metadata.filePath("favorites.json"));
+    window.openImageFiles({paths.first()});
+    window.show();
+    window.findChild<QAction *>("imageListAction")->trigger();
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *end = panel->findChild<QPushButton *>("finishComparison");
+    auto *filter = window.findChild<QAction *>("favoritesOnlyAction");
+    QVERIFY(end && end->isHidden());
+    QVERIFY(!panel->findChild<QToolButton *>("imageListFavoritesOnly")->icon().isNull());
+    for (const auto *name :
+         {"addSelectedFavorites", "removeSelectedFavorites", "compareSelectedImages"}) {
+      QVERIFY(!panel->findChild<QPushButton *>(name)->icon().isNull());
+    }
+    grid->setCurrentPage(3);
+    const auto original = grid->sessionSnapshot();
+    window.compareSelectedImages({paths.at(0), paths.at(2)});
+    QVERIFY(!end->isHidden());
+    grid->nextPage();
+    window.compareSelectedImages({paths.at(0), paths.at(2), paths.at(4)});
+    filter->setChecked(true);
+    end->click();
+    QVERIFY(end->isHidden());
+    QVERIFY(!filter->isChecked());
+    QCOMPARE(grid->currentPage(), 3);
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(3));
+    QCOMPARE(grid->sessionSnapshot().cells.size(), original.cells.size());
+    QCOMPARE(grid->sessionSnapshot().images.first().resolvedPaths,
+             original.images.first().resolvedPaths);
+    QVERIFY(!window.isWindowModified());
+    const auto actions = window.findChildren<QAction *>();
+    const auto undo = std::ranges::find_if(
+        actions, [](const auto *action) { return action->shortcut() == QKeySequence::Undo; });
+    QVERIFY(undo != actions.end());
+    (*undo)->trigger();
+    QVERIFY(!end->isHidden());
+    end->click();
+    QCOMPARE(grid->currentPage(), 3);
+
+    grid->setCurrentPage(0);
+    window.compareSelectedImages({paths.at(0), paths.at(2)});
+    filter->setChecked(true);
+    end->click();
+    QVERIFY(!filter->isChecked());
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+
+    window.findChild<heiran::ui::FavoritesController *>()->setFavorites({paths.at(0)}, true);
+    window.compareSelectedImages({paths.at(0), paths.at(2)});
+    filter->setChecked(true);
+    end->click();
+    QVERIFY(filter->isChecked());
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+
+    window.compareSelectedImages({paths.at(0), paths.at(2)});
+    window.openImageFiles({paths.at(1)});
+    QVERIFY(end->isHidden());
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(1));
   }
 
   void preservesSourceListWhenComparingAndPaging() {

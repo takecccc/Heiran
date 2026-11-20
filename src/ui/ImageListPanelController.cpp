@@ -120,6 +120,8 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
   });
   connect(panel_, &ImageListPanelWidget::compareRequested, this,
           &ImageListPanelController::compareRequested);
+  connect(panel_, &ImageListPanelWidget::finishComparisonRequested, this,
+          &ImageListPanelController::finishComparisonRequested);
   connect(panel_, &ImageListPanelWidget::favoritesRequested, favorites_,
           &FavoritesController::setFavorites);
 }
@@ -137,6 +139,10 @@ void ImageListPanelController::endSessionChange() {
   changingSession_ = false;
   panel_->setFavoritesOnly(favoritesFilter_->isChecked());
   invalidate();
+}
+
+void ImageListPanelController::setComparisonActive(bool active) {
+  panel_->setComparisonActive(active);
 }
 
 void ImageListPanelController::invalidate() {
