@@ -1,10 +1,18 @@
 #include "heiran/ui/SessionLayoutController.hpp"
 
 #include <QCoreApplication>
+#include <QSettings>
+#include <QSize>
 #include <algorithm>
 #include <cmath>
 
 namespace heiran::ui {
+
+namespace {
+QString preferredGridKey(int cellCount) {
+  return QString("layout/preferredGrid/%1").arg(cellCount);
+}
+}  // namespace
 
 heiran::domain::ViewerLayout SessionLayoutController::layoutForImageCount(int imageCount) {
   heiran::domain::ViewerLayout layout;
@@ -34,6 +42,26 @@ QVector<heiran::domain::ViewerLayout> SessionLayoutController::layoutsForCellCou
     layouts.push_back(layout);
   }
   return layouts;
+}
+
+heiran::domain::ViewerLayout SessionLayoutController::preferredLayoutForCellCount(int cellCount) {
+  const auto grids = layoutsForCellCount(cellCount);
+  if (grids.isEmpty())
+    return {};
+  const auto saved = QSettings().value(preferredGridKey(cellCount)).toSize();
+  const auto existing = std::ranges::find_if(grids, [saved](const auto &grid) {
+    return grid.rows == saved.height() && grid.cols == saved.width();
+  });
+  if (existing != grids.end())
+    return *existing;
+  return *std::ranges::min_element(
+      grids, {}, [](const auto &grid) { return std::abs(grid.rows - grid.cols); });
+}
+
+void SessionLayoutController::rememberLayout(int rows, int cols) {
+  if (rows <= 0 || cols <= 0 || rows > kMaxCellCount / cols)
+    return;
+  QSettings().setValue(preferredGridKey(rows * cols), QSize(cols, rows));
 }
 
 bool SessionLayoutController::growLayout(heiran::domain::ViewerLayout *layout) {

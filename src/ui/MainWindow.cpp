@@ -305,29 +305,51 @@ void MainWindow::createLayoutMenu() {
   auto *layoutMenu = menuBar()->addMenu(QCoreApplication::translate("MainWindow", "&Layout"));
   layoutActionGroup_ = new QActionGroup(this);
   layoutActionGroup_->setExclusive(true);
+  layoutCountActionGroup_ = new QActionGroup(this);
 
-  auto addLayoutAction = [this](QMenu *menu, const QString &label, int rows, int cols) {
+  const auto chooseGrid = [this](int rows, int cols) {
+    SessionLayoutController::rememberLayout(rows, cols);
+    applyLayout(rows, cols);
+  };
+  const auto addLayoutAction = [this, chooseGrid](QMenu *menu, const QString &label, int rows,
+                                                  int cols) {
     auto *action = menu->addAction(label);
     action->setCheckable(true);
     action->setData(QString("%1x%2").arg(rows).arg(cols));
     layoutActionGroup_->addAction(action);
-    connect(action, &QAction::triggered, this, [this, rows, cols]() { applyLayout(rows, cols); });
+    connect(action, &QAction::triggered, this,
+            [chooseGrid, rows, cols]() { chooseGrid(rows, cols); });
   };
 
-  // セルの数ごとの小メニュー。1 から 16 までの、それぞれの数で、選べる格子 (行 x 列) を並べる。
+  const auto countLabel = [](int count) {
+    return count == 1 ? QCoreApplication::translate("MainWindow", "1 Cell")
+                      : QCoreApplication::translate("MainWindow", "%1 Cells").arg(count);
+  };
   for (int cellCount = 1; cellCount <= SessionLayoutController::kMaxCellCount; ++cellCount) {
-    auto *countMenu = layoutMenu->addMenu(
-        cellCount == 1 ? QCoreApplication::translate("MainWindow", "1 Cell")
-                       : QCoreApplication::translate("MainWindow", "%1 Cells").arg(cellCount));
+    auto *action = layoutMenu->addAction(countLabel(cellCount));
+    action->setCheckable(true);
+    action->setData(cellCount);
+    layoutCountActionGroup_->addAction(action);
+    connect(action, &QAction::triggered, this, [this, cellCount]() {
+      const auto layout = SessionLayoutController::preferredLayoutForCellCount(cellCount);
+      applyLayout(layout.rows, layout.cols);
+    });
+  }
+
+  layoutMenu->addSeparator();
+  auto *gridMenu =
+      layoutMenu->addMenu(QCoreApplication::translate("MainWindow", "Grid Dimensions"));
+  gridMenu->setObjectName("gridDimensionsMenu");
+  for (int cellCount = 2; cellCount <= SessionLayoutController::kMaxCellCount; ++cellCount) {
+    auto *countMenu = gridMenu->addMenu(countLabel(cellCount));
     for (const auto &layout : SessionLayoutController::layoutsForCellCount(cellCount)) {
       addLayoutAction(countMenu, QString("%1x%2").arg(layout.rows).arg(layout.cols), layout.rows,
                       layout.cols);
     }
   }
-  layoutMenu->addSeparator();
   auto *customLayoutAction =
       layoutMenu->addAction(QCoreApplication::translate("MainWindow", "Custom..."));
-  connect(customLayoutAction, &QAction::triggered, this, [this]() {
+  connect(customLayoutAction, &QAction::triggered, this, [this, chooseGrid]() {
     bool ok = false;
     const int rows = QInputDialog::getInt(
         this, QCoreApplication::translate("MainWindow", "Custom Layout"),
@@ -348,7 +370,7 @@ void MainWindow::createLayoutMenu() {
       return;
     }
 
-    applyLayout(rows, cols);
+    chooseGrid(rows, cols);
   });
 
   layoutMenu->addSeparator();
@@ -1874,6 +1896,8 @@ void MainWindow::manageImageSets() {
 
 void MainWindow::applyLayout(int rows, int cols) {
   syncCurrentSessionFromViewer();
+  if (currentSession_.viewer.layout.rows == rows && currentSession_.viewer.layout.cols == cols)
+    return;
   // 格子を替えても、いま見ているページは変えない。セッションを入れ直すと 0 ページへ戻り、
   // 画像を直接開いたときのように、先頭がずれたページから始まる画像セットが空に見えてしまう。
   const int page = viewerGrid_->currentPage();
@@ -2028,6 +2052,13 @@ void MainWindow::updateLayoutActions() {
     action->setChecked(action->data().toString() == currentLayout);
   }
   layoutActionGroup_->setExclusive(true);
+
+  const int cellCount = currentSession_.viewer.layout.rows * currentSession_.viewer.layout.cols;
+  layoutCountActionGroup_->setExclusive(false);
+  for (auto *action : layoutCountActionGroup_->actions()) {
+    action->setChecked(action->data().toInt() == cellCount);
+  }
+  layoutCountActionGroup_->setExclusive(true);
 
   if (layoutOrderActionGroup_ != nullptr) {
     const QString currentOrder = currentSession_.viewer.layout.order;

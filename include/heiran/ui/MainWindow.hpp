@@ -207,6 +207,7 @@ private:
   WelcomeWidget *welcome_ = nullptr;
   ViewerChromeController *viewerChrome_ = nullptr;
   QActionGroup *layoutActionGroup_ = nullptr;
+  QActionGroup *layoutCountActionGroup_ = nullptr;
   QActionGroup *layoutOrderActionGroup_ = nullptr;
   QActionGroup *channelActionGroup_ = nullptr;
   QActionGroup *pixelValueFormatActionGroup_ = nullptr;

@@ -937,7 +937,7 @@ private Q_SLOTS:
     // もう一度戻して、新しい変更 (格子の変更) をすると、やり直しは使えなくなる。
     undoAction->trigger();
     QVERIFY(redoAction->isEnabled());
-    QVERIFY(triggerByText("1x1"));
+    QVERIFY(triggerByText("1 Cell"));
     QCOMPARE(grid->sessionSnapshot().viewer.layout.rows, 1);
     QVERIFY(!redoAction->isEnabled());
     QCOMPARE(undoAction->text(), QString("Undo Change Layout"));
@@ -1035,8 +1035,9 @@ private Q_SLOTS:
 
     // 2x2 へ広げてから、1x1 へ減らす。どの縮小でも、セルは、格子の全体を埋める。
     for (const auto &[layout, expectedCells] :
-         {std::pair{QString("2x2"), 4}, std::pair{QString("1x2"), 2}, std::pair{QString("1x1"), 1},
-          std::pair{QString("2x1"), 2}, std::pair{QString("1x1"), 1}}) {
+         {std::pair{QString("2x2"), 4}, std::pair{QString("1x2"), 2},
+          std::pair{QString("1 Cell"), 1}, std::pair{QString("2x1"), 2},
+          std::pair{QString("1 Cell"), 1}}) {
       QVERIFY(triggerByText(layout));
       QTRY_COMPARE(visibleCells().size(), expectedCells);
       QTRY_VERIFY2(
@@ -1347,32 +1348,75 @@ private Q_SLOTS:
             << "ms";
   }
 
-  // Layout メニュー: セルの数 (1 から 16) ごとの小メニューに、その数になる格子 (行 x 列) が並ぶ。
-  void groupsTheLayoutsByCellCount() {
+  void offersDirectCellCountsAndSeparateGridChoices() {
     heiran::ui::MainWindow window;
     auto *layoutMenu = findMenu(window.menuBar(), "&Layout");
     QVERIFY(layoutMenu != nullptr);
 
     QStringList countTitles;
-    QMap<QString, QStringList> gridsByTitle;
     for (const auto *action : layoutMenu->actions()) {
-      if (action->menu() == nullptr || !action->text().contains("Cell")) {
-        continue;
-      }
-      countTitles.push_back(action->text());
-      for (const auto *grid : action->menu()->actions()) {
-        gridsByTitle[action->text()].push_back(grid->text());
+      if (action->text().contains("Cell")) {
+        QVERIFY(!action->menu() && action->isCheckable());
+        countTitles.push_back(action->text());
       }
     }
     QCOMPARE(countTitles.size(), 16);
     QCOMPARE(countTitles.first(), QString("1 Cell"));
     QCOMPARE(countTitles.at(1), QString("2 Cells"));
     QCOMPARE(countTitles.last(), QString("16 Cells"));
-    QCOMPARE(gridsByTitle.value("1 Cell"), QStringList({"1x1"}));
+    auto *gridMenu = layoutMenu->findChild<QMenu *>("gridDimensionsMenu");
+    QVERIFY(gridMenu);
+    QMap<QString, QStringList> gridsByTitle;
+    for (const auto *action : gridMenu->actions()) {
+      QVERIFY(action->menu());
+      for (const auto *grid : action->menu()->actions())
+        gridsByTitle[action->text()].push_back(grid->text());
+    }
+    QCOMPARE(gridsByTitle.size(), 15);
+    QVERIFY(!gridsByTitle.contains("1 Cell"));
     QCOMPARE(gridsByTitle.value("7 Cells"), QStringList({"1x7", "7x1"}));
     QCOMPARE(gridsByTitle.value("12 Cells"),
              QStringList({"1x12", "2x6", "3x4", "4x3", "6x2", "12x1"}));
     QCOMPARE(gridsByTitle.value("16 Cells"), QStringList({"1x16", "2x8", "4x4", "8x2", "16x1"}));
+  }
+
+  void remembersGridDimensionsIndependentlyForEachCellCount() {
+    const auto organization = QCoreApplication::organizationName();
+    const auto application = QCoreApplication::applicationName();
+    QCoreApplication::setOrganizationName("HeiranTests");
+    QCoreApplication::setApplicationName("PreferredGridsTests");
+    const auto restore = qScopeGuard([organization, application]() {
+      QSettings().clear();
+      QCoreApplication::setOrganizationName(organization);
+      QCoreApplication::setApplicationName(application);
+    });
+    QSettings().clear();
+    const auto applyAndCheck = [](heiran::ui::MainWindow &window, const QString &text, int rows,
+                                  int cols) {
+      const auto actions = window.findChildren<QAction *>();
+      const auto action = std::ranges::find_if(
+          actions, [&text](const auto *entry) { return entry->text() == text && !entry->menu(); });
+      QVERIFY(action != actions.end());
+      (*action)->trigger();
+      const auto layout =
+          window.findChild<heiran::ui::ViewerGridWidget *>()->sessionSnapshot().viewer.layout;
+      QCOMPARE(layout.rows, rows);
+      QCOMPARE(layout.cols, cols);
+      QVERIFY((*action)->isChecked());
+    };
+    {
+      heiran::ui::MainWindow window;
+      QSettings().setValue("layout/preferredGrid/6", QSize(4, 4));
+      applyAndCheck(window, "6 Cells", 2, 3);
+      applyAndCheck(window, "3x2", 3, 2);
+      applyAndCheck(window, "2x1", 2, 1);
+      applyAndCheck(window, "6 Cells", 3, 2);
+      applyAndCheck(window, "2 Cells", 2, 1);
+      applyAndCheck(window, "1 Cell", 1, 1);
+    }
+    heiran::ui::MainWindow reopened;
+    applyAndCheck(reopened, "6 Cells", 3, 2);
+    applyAndCheck(reopened, "2 Cells", 2, 1);
   }
 
   // 4 x 4 を超える格子 (1 行に 7 枚など) を選べて、現在の格子にチェックが付く。

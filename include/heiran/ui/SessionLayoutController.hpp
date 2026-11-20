@@ -19,6 +19,8 @@ public:
   // セルの数がちょうど cellCount になる格子 (行 x 列) を、行の少ない順に返す。例: 6 なら
   // 1x6、2x3、3x2、6x1。 cellCount が 1 未満か、上限を超えるときは、空。
   static QVector<heiran::domain::ViewerLayout> layoutsForCellCount(int cellCount);
+  static heiran::domain::ViewerLayout preferredLayoutForCellCount(int cellCount);
+  static void rememberLayout(int rows, int cols);
 
   // 格子を、セルが 1 つ増える向きに広げる。列が 4 に満たなければ列を、4
   // 列ちょうどまでなら行を、増やす。 5 列以上の横長の格子は、列を増やす (帯のまま延ばす)。上限 (16)
