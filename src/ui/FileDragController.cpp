@@ -31,9 +31,12 @@ bool FileDragController::eventFilter(QObject *watched, QEvent *event) {
     return false;
   }
   if (event->type() == QEvent::MouseButtonPress) {
-    pendingPath_.clear();
     const auto *mouse = static_cast<QMouseEvent *>(event);
-    if (mouse->button() != Qt::LeftButton || mouse->modifiers() != Qt::ControlModifier) {
+    if (mouse->button() != Qt::LeftButton) {
+      return false;
+    }
+    pendingPath_.clear();
+    if (mouse->buttons() != Qt::LeftButton || mouse->modifiers() != Qt::ControlModifier) {
       return false;
     }
     const QFileInfo file(path_);
@@ -46,6 +49,10 @@ bool FileDragController::eventFilter(QObject *watched, QEvent *event) {
   }
   if (event->type() == QEvent::MouseButtonRelease || event->type() == QEvent::UngrabMouse ||
       event->type() == QEvent::Hide) {
+    if (event->type() == QEvent::MouseButtonRelease &&
+        static_cast<QMouseEvent *>(event)->button() != Qt::LeftButton) {
+      return false;
+    }
     const bool pending = !pendingPath_.isEmpty();
     pendingPath_.clear();
     return pending && event->type() == QEvent::MouseButtonRelease;

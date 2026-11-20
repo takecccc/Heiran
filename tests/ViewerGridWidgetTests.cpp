@@ -150,12 +150,12 @@ void hoverAt(QWidget *canvas, const QPoint &position) {
 }
 
 void dragWith(QWidget *canvas, const QPoint &from, const QPoint &to,
-              Qt::KeyboardModifiers modifiers) {
-  QTest::mousePress(canvas, Qt::LeftButton, modifiers, from);
+              Qt::KeyboardModifiers modifiers, Qt::MouseButton button = Qt::LeftButton) {
+  QTest::mousePress(canvas, button, modifiers, from);
   QMouseEvent moveEvent(QEvent::MouseMove, QPointF(to), canvas->mapToGlobal(to), Qt::NoButton,
-                        Qt::LeftButton, modifiers);
+                        button, modifiers);
   QApplication::sendEvent(canvas, &moveEvent);
-  QTest::mouseRelease(canvas, Qt::LeftButton, modifiers, to);
+  QTest::mouseRelease(canvas, button, modifiers, to);
 }
 
 // QTest にホイールの補助関数が無いため、イベントを直接送る。
@@ -554,8 +554,15 @@ private Q_SLOTS:
     QVERIFY2(lines.at(4).contains("load failed"), qPrintable(lines.at(4)));
   }
 
+  void updatesPixelInfoAfterPanning_data() {
+    QTest::addColumn<Qt::MouseButton>("button");
+    QTest::newRow("left") << Qt::LeftButton;
+    QTest::newRow("middle") << Qt::MiddleButton;
+  }
+
   // docs/テスト観点.md 画素値 Case 16: パン後の画素値再計算
   void updatesPixelInfoAfterPanning() {
+    QFETCH(Qt::MouseButton, button);
     SessionFixture fixture;
     QVERIFY(fixture.isValid());
 
@@ -576,7 +583,7 @@ private Q_SLOTS:
     const QString beforePan = pixelInfoSpy.last().at(0).toStringList().at(1);
 
     // 画像を右下へ動かすと、同じビュー座標は左上寄りの画素を指すようになる。
-    dragWith(canvas, QPoint(60, 50), QPoint(80, 70), Qt::NoModifier);
+    dragWith(canvas, QPoint(60, 50), QPoint(80, 70), Qt::NoModifier, button);
 
     pixelInfoSpy.clear();
     hoverAt(canvas, samplePoint);

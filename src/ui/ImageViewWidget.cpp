@@ -770,6 +770,11 @@ protected:
   }
 
   void mousePressEvent(QMouseEvent *event) override {
+    if (panButton_ != Qt::NoButton || selecting_ || event->buttons() != event->button()) {
+      event->accept();
+      return;
+    }
+
     if (event->button() == Qt::LeftButton && owner_->statusInfo_.status == CellStatus::Failed &&
         cellReloadButtonRect(size(), owner_->statusInfo_.status)
             .contains(event->position().toPoint())) {
@@ -778,9 +783,11 @@ protected:
       return;
     }
 
-    if (event->button() == Qt::LeftButton && owner_->hasImage() &&
-        !(event->modifiers() & Qt::ShiftModifier)) {
-      dragging_ = true;
+    const bool shift = event->modifiers().testFlag(Qt::ShiftModifier);
+    const auto button = event->button();
+    if (owner_->hasImage() &&
+        (button == Qt::MiddleButton || (button == Qt::LeftButton && !shift))) {
+      panButton_ = button;
       lastMousePosition_ = event->position().toPoint();
       Q_EMIT owner_->hoverInfoRequested(owner_->cellIndex_, QPointF(), false);
       setCursor(Qt::ClosedHandCursor);
@@ -788,8 +795,7 @@ protected:
       return;
     }
 
-    if (event->button() == Qt::LeftButton && owner_->hasImage() &&
-        (event->modifiers() & Qt::ShiftModifier)) {
+    if (button == Qt::LeftButton && owner_->hasImage() && shift) {
       if (rect().contains(event->position().toPoint())) {
         selecting_ = true;
         selectionStartImagePosition_ = imageCoordinatesForPosition(event->position());
@@ -804,7 +810,7 @@ protected:
   }
 
   void mouseMoveEvent(QMouseEvent *event) override {
-    if (dragging_) {
+    if (panButton_ != Qt::NoButton) {
       const QPoint deltaPixels = event->position().toPoint() - lastMousePosition_;
       if (owner_->globalState_.baseScale > 0.0) {
         Q_EMIT owner_->panRequested(owner_->cellIndex_,
@@ -829,8 +835,8 @@ protected:
   }
 
   void mouseReleaseEvent(QMouseEvent *event) override {
-    if (event->button() == Qt::LeftButton && dragging_) {
-      dragging_ = false;
+    if (event->button() == panButton_) {
+      panButton_ = Qt::NoButton;
       unsetCursor();
       updateHoverInfo(event->position());
       event->accept();
@@ -981,7 +987,7 @@ private:
     return static_cast<qint64>(1'000'000'000.0 / refreshRate);
   }
 
-  bool dragging_ = false;
+  Qt::MouseButton panButton_ = Qt::NoButton;
   bool selecting_ = false;
   QPoint lastMousePosition_;
   QPointF selectionStartImagePosition_;
