@@ -63,6 +63,8 @@ try {
     @("diff-delta-e", @("--size", "1300x640", "--hrn", "DRIVE_SESSION", "--action", "Fit", "--hover-cell", "2")),
     @("diff-settings", @("--size", "1300x640", "--hrn", "DRIVE_SESSION", "--action", "Fit", "--hover-cell", "2", "--diff-popup")),
     @("pages", @("--size", "1100x640", "--favorites-file", $favoritesPath, "--action", "Image List", $a, $b)),
+    @("image-list-large-thumbnails", @("--size", "1200x700", "--thumbnail-width", "256", "--favorites-file", $favoritesPath, "--action", "Image List", $a)),
+    @("zoom-percent", @("--size", "1100x640", "--zoom-percent", "150.25", $a, $b)),
     @("image-list-details", @("--size", "1200x700", "--list-mode", "details", "--favorites-file", $favoritesPath, "--action", "Image List", "--action", "Favorites Only", $a)),
     @("image-list-selection", @("--size", "1200x700", "--list-mode", "details", "--favorites-file", $favoritesPath, "--action", "Image List", "--list-select", "0,2", $a)),
     @("image-list-comparison", @("--size", "1200x700", "--list-mode", "details", "--favorites-file", $favoritesPath, "--action", "Image List", "--list-select", "0,2", "--compare-selection", $a)),

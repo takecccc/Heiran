@@ -47,11 +47,19 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
   });
   panel_->setDetailsVisible(QSettings().value("display/imageListMode", "thumbnails").toString() ==
                             "details");
+  panel_->setThumbnailWidth(QSettings().value("display/thumbnailWidth", 160).toInt());
   connect(panel_, &ImageListPanelWidget::detailsVisibleChanged, this, [this, window](bool details) {
     QSettings().setValue("display/imageListMode", details ? "details" : "thumbnails");
     if (details && dock_->isVisible() && dock_->width() < 500) {
       window->resizeDocks({dock_}, {520}, Qt::Horizontal);
+    } else if (!details && dock_->isVisible() && dock_->width() < panel_->thumbnailWidth() + 64) {
+      window->resizeDocks({dock_}, {panel_->thumbnailWidth() + 64}, Qt::Horizontal);
     }
+  });
+  connect(panel_, &ImageListPanelWidget::thumbnailWidthChanged, this, [this, window](int width) {
+    QSettings().setValue("display/thumbnailWidth", width);
+    if (dock_->isVisible() && !panel_->detailsVisible() && dock_->width() < width + 64)
+      window->resizeDocks({dock_}, {width + 64}, Qt::Horizontal);
   });
   window->addAction(action);
   window->findChild<QMenu *>("viewMenu")->addAction(action);
@@ -64,8 +72,10 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
       break;
     }
   }
-  connect(dock_, &QDockWidget::visibilityChanged, this, [this](bool visible) {
+  connect(dock_, &QDockWidget::visibilityChanged, this, [this, window](bool visible) {
     if (visible) {
+      if (!panel_->detailsVisible() && dock_->width() < panel_->thumbnailWidth() + 64)
+        window->resizeDocks({dock_}, {panel_->thumbnailWidth() + 64}, Qt::Horizontal);
       refresh();
     } else {
       panel_->cancelLoading();

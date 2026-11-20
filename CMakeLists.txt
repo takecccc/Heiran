@@ -216,6 +216,7 @@ add_library(heiran_core
   src/ui/FileDragController.cpp
   src/ui/LoupeWidget.cpp
   src/ui/MainWindow.cpp
+  src/ui/GlobalZoomController.cpp
   src/ui/PixelInfoWidget.cpp
   src/ui/ImageListPanelWidget.cpp
   src/ui/ThumbnailItemDelegate.cpp
@@ -332,6 +333,7 @@ target_sources(heiran_core
     include/heiran/ui/ImageViewWidget.hpp
     include/heiran/ui/LoupeWidget.hpp
     include/heiran/ui/MainWindow.hpp
+    include/heiran/ui/GlobalZoomController.hpp
     include/heiran/ui/PixelInfoWidget.hpp
     include/heiran/ui/ImageListPanelWidget.hpp
     include/heiran/ui/ThumbnailItemDelegate.hpp
@@ -413,6 +415,8 @@ qt_add_resources(heiran_core heiran_icons
     resources/icons/images.svg
     resources/icons/panel-left.svg
     resources/icons/layers.svg
+    resources/icons/layout-grid.svg
+    resources/icons/list.svg
     resources/icons/link.svg
     resources/icons/pencil.svg
     resources/icons/printer.svg

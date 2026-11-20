@@ -13,6 +13,7 @@
 #include "heiran/ui/DiffWindow.hpp"
 #include "heiran/ui/FavoritesController.hpp"
 #include "heiran/ui/FileOperations.hpp"
+#include "heiran/ui/GlobalZoomController.hpp"
 #include "heiran/ui/Histogram3DWindow.hpp"
 #include "heiran/ui/HistogramWindow.hpp"
 #include "heiran/ui/ImageInfoWindow.hpp"
@@ -128,6 +129,7 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   new FavoritesController(this, viewerGrid_, std::move(favoritesFile));
   auto *imageList = new ImageListPanelController(this, viewerGrid_);
   new ComparisonNavigationController(this, viewerGrid_, imageList);
+  new GlobalZoomController(this, viewerGrid_);
   connect(imageList, &ImageListPanelController::compareRequested, this,
           &MainWindow::compareSelectedImages);
   addShortcutsToToolTips();
@@ -820,6 +822,7 @@ void MainWindow::createNavigationToolBar() {
   navigationToolBar->addSeparator();
   exposureSpinBox_ = new QDoubleSpinBox(this);
   auto *exposureSpinBox = exposureSpinBox_;
+  exposureSpinBox->setObjectName("exposureSpinBox");
   exposureSpinBox->setRange(-10.0, 10.0);
   exposureSpinBox->setSingleStep(0.5);
   exposureSpinBox->setDecimals(2);
@@ -903,6 +906,7 @@ void MainWindow::createNavigationToolBar() {
   navigationToolBar->addAction(fitOnPageChangeAction_);
 
   auto *actualSizeAction = navigationToolBar->addAction("1:1");
+  actualSizeAction->setObjectName("actualSizeAction");
   actualSizeAction->setToolTip(QCoreApplication::translate("MainWindow", "Show at 100%."));
   actualSizeAction->setShortcut(QKeySequence(Qt::Key_1));
   connect(actualSizeAction, &QAction::triggered, this, [this]() { viewerGrid_->setActualSize(); });

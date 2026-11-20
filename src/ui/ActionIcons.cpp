@@ -101,6 +101,8 @@ const QHash<QString, QString> &actionIconNames() {
       {"Remove Favorites", "x"},
       {"Favorites Only", "images"},
       {"Image List", "panel-left"},
+      {"Thumbnails", "layout-grid"},
+      {"Details", "list"},
       {"Copy Favorites...", "copy"},
       {"Image Info...", "info"},
       {"Channel", "layers"},

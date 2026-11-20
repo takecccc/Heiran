@@ -12,7 +12,7 @@
 class QLabel;
 class QListWidget;
 class QCheckBox;
-class QComboBox;
+class QSlider;
 class QStackedWidget;
 class QTreeWidget;
 class QPushButton;
@@ -33,6 +33,8 @@ public:
   void setFavoritesOnly(bool enabled);
   void setDetailsVisible(bool details);
   bool detailsVisible() const;
+  void setThumbnailWidth(int width);
+  int thumbnailWidth() const { return thumbnailWidth_; }
   void setFavoriteStates(const QVector<bool> &states);
   void setDisplayedFiles(const QStringList &cellPaths);
   void setExcludedDisplayedFiles(const QStringList &cellPaths);
@@ -42,6 +44,7 @@ Q_SIGNALS:
   void pageSelected(int index);
   void favoritesOnlyRequested(bool enabled);
   void detailsVisibleChanged(bool details);
+  void thumbnailWidthChanged(int width);
   void compareRequested(const QStringList &paths);
   void favoritesRequested(const QStringList &paths, bool favorite);
 
@@ -49,6 +52,8 @@ private:
   void startLoading();
   void startDetailsLoading();
   void updateViewMode();
+  void updateThumbnailGeometry();
+  QSize thumbnailSize() const;
   QVector<int> selectedRows(bool details) const;
   void syncSelection(bool fromDetails);
   void updateSelectionActions();
@@ -60,7 +65,12 @@ private:
   QGroupBox *excludedGroup_;
   QLabel *excludedFiles_;
   QCheckBox *favoritesOnly_;
-  QComboBox *viewMode_;
+  QAction *thumbnailsAction_;
+  QAction *detailsAction_;
+  QWidget *thumbnailSizeControls_;
+  QSlider *thumbnailSizeSlider_;
+  QLabel *thumbnailSizeLabel_;
+  int thumbnailWidth_ = 160;
   QStackedWidget *views_;
   QTreeWidget *details_;
   QPushButton *compare_;

@@ -73,6 +73,7 @@ public:
   void resetView();
   // 見えている中心を固定点にして倍率を変える。マウス位置を使わない操作用。
   void zoomBy(double zoomFactor);
+  void setGlobalScale(double scale);
   // 操作対象セルの表示倍率を 1.0 にする。中心は保つ。
   void setActualSize();
   // 操作対象セルを 90 度単位で回す。正が時計回り。ショートカットキー用。

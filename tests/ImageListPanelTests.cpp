@@ -26,9 +26,11 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QSignalSpy>
+#include <QSlider>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolBar>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QUrl>
 #include <QtTest>
@@ -205,7 +207,7 @@ private Q_SLOTS:
     QCOMPARE(grid->navigationPageCount(), 2);
     grid->previousPage();
     QCOMPARE(grid->currentPage(), 0);
-    window.findChild<QComboBox *>("imageListViewMode")->setCurrentIndex(1);
+    window.findChild<QToolButton *>("imageListDetailsButton")->click();
     auto *table = window.findChild<QTreeWidget *>("imageDetailsList");
     QCOMPARE(table->topLevelItemCount(), 2);
     table->setCurrentItem(table->topLevelItem(1));
@@ -262,13 +264,64 @@ private Q_SLOTS:
     QTRY_COMPARE(table->topLevelItem(0)->text(2), QStringLiteral("\u2014"));
   }
 
+  void switchesModesWithButtonsAndResizesThumbnails() {
+    QTemporaryDir source;
+    const auto paths = createImages(source.path(), 3);
+    QImage large(640, 480, QImage::Format_RGB32);
+    large.fill(Qt::red);
+    QVERIFY(large.save(paths.first()));
+    heiran::ui::ImageListPanelWidget panel;
+    panel.resize(520, 600);
+    panel.setPages(paths, 0);
+    panel.show();
+    auto *list = panel.findChild<QListWidget *>();
+    auto *thumbnails = panel.findChild<QToolButton *>("imageListThumbnailsButton");
+    auto *details = panel.findChild<QToolButton *>("imageListDetailsButton");
+    auto *size = panel.findChild<QSlider *>("thumbnailSizeSlider");
+    QVERIFY(!thumbnails->icon().isNull() && !details->icon().isNull());
+    QVERIFY(thumbnails->isChecked() && !details->isChecked());
+    list->item(2)->setSelected(true);
+    panel.setFavoriteStates({true, false, false});
+    panel.setDisplayedFiles({paths.first(), paths.first()});
+    QTRY_COMPARE(list->item(0)->icon().actualSize(QSize(512, 512)), QSize(160, 120));
+    size->setValue(256);
+    QCOMPARE(panel.thumbnailWidth(), 256);
+    QCOMPARE(list->iconSize(), QSize(256, 192));
+    QTRY_COMPARE(list->item(0)->icon().actualSize(QSize(512, 512)), QSize(256, 192));
+    QCOMPARE(panel.selectedFilePaths(), QStringList({paths.first(), paths.at(2)}));
+    QVERIFY(list->item(0)->data(heiran::ui::ThumbnailFavoriteRole).toBool());
+    QCOMPARE(list->item(0)->data(heiran::ui::ThumbnailCellsRole).toStringList(),
+             QStringList({"1", "2"}));
+    details->click();
+    QVERIFY(details->isChecked() && !thumbnails->isChecked());
+    QVERIFY(!size->isVisible());
+    panel.setThumbnailWidth(80);
+    thumbnails->click();
+    QVERIFY(size->isVisible());
+    QCOMPARE(panel.selectedFilePaths().size(), 2);
+    QTRY_COMPARE(list->item(0)->icon().actualSize(QSize(512, 512)), QSize(80, 60));
+    panel.setThumbnailWidth(9999);
+    QCOMPARE(panel.thumbnailWidth(), 320);
+    panel.setThumbnailWidth(-1);
+    QCOMPARE(panel.thumbnailWidth(), 64);
+  }
+
+  void restoresThumbnailSize() {
+    {
+      heiran::ui::MainWindow window;
+      window.findChild<heiran::ui::ImageListPanelWidget *>()->setThumbnailWidth(256);
+    }
+    heiran::ui::MainWindow reopened;
+    QCOMPARE(reopened.findChild<heiran::ui::ImageListPanelWidget *>()->thumbnailWidth(), 256);
+  }
+
   void restoresTheDetailsViewMode() {
     {
       heiran::ui::MainWindow window;
-      window.findChild<QComboBox *>("imageListViewMode")->setCurrentIndex(1);
+      window.findChild<QToolButton *>("imageListDetailsButton")->click();
     }
     heiran::ui::MainWindow reopened;
-    QCOMPARE(reopened.findChild<QComboBox *>("imageListViewMode")->currentIndex(), 1);
+    QVERIFY(reopened.findChild<QToolButton *>("imageListDetailsButton")->isChecked());
   }
 
   void updatesFavoriteMarkersImmediatelyInBothViews() {
@@ -290,7 +343,7 @@ private Q_SLOTS:
     QVERIFY(!list->item(0)->text().contains(star));
     QCOMPARE(table->topLevelItem(0)->text(0), star);
     QCOMPARE(list->count(), 3);
-    window.findChild<QComboBox *>("imageListViewMode")->setCurrentIndex(1);
+    window.findChild<QToolButton *>("imageListDetailsButton")->click();
     QTRY_COMPARE(table->topLevelItem(0)->text(2), QString("60"));
     QCOMPARE(table->topLevelItem(0)->text(0), star);
     mark->trigger();

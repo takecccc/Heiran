@@ -10,6 +10,7 @@
 //                     [--recent-image path]
 //                     [--favorites-file path]
 //                     [--list-mode thumbnails|details]
+//                     [--thumbnail-width pixels] [--zoom-percent percent]
 //                     [--list-select 0,2] [--compare-selection] [--list-context-menu]
 //                     [--favorites-only-after-comparison]
 //                     <画像ファイル...>
@@ -53,6 +54,7 @@
 #include <QContextMenuEvent>
 #include <QDialog>
 #include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QEnterEvent>
 #include <QEventLoop>
@@ -151,6 +153,8 @@ int main(int argc, char *argv[]) {
   QString listMode = "thumbnails";
   QStringList listSelection;
   bool compareSelection = false;
+  int thumbnailWidth = 160;
+  double zoomPercent = -1.0;
   bool favoritesAfterComparison = false;
   bool listContextMenu = false;
   for (int index = 0; index < arguments.size(); ++index) {
@@ -165,6 +169,10 @@ int main(int argc, char *argv[]) {
       listSelection = arguments.at(++index).split(',');
     } else if (argument == "--compare-selection") {
       compareSelection = true;
+    } else if (argument == "--thumbnail-width" && index + 1 < arguments.size()) {
+      thumbnailWidth = arguments.at(++index).toInt();
+    } else if (argument == "--zoom-percent" && index + 1 < arguments.size()) {
+      zoomPercent = arguments.at(++index).toDouble();
     } else if (argument == "--favorites-only-after-comparison") {
       favoritesAfterComparison = true;
     } else if (argument == "--list-context-menu") {
@@ -247,6 +255,7 @@ int main(int argc, char *argv[]) {
   settings.save();
   QSettings().setValue("display/showCellHeaders", true);
   QSettings().setValue("display/imageListMode", listMode);
+  QSettings().setValue("display/thumbnailWidth", thumbnailWidth);
   if (!recentImages.isEmpty()) {
     heiran::ui::RecentImages::save(recentImages);
   }
@@ -332,6 +341,12 @@ int main(int argc, char *argv[]) {
     selectionTimer.start();
     while (selectionTimer.elapsed() < 2000)
       QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+  }
+  if (zoomPercent > 0.0) {
+    auto *zoom = window.findChild<QDoubleSpinBox *>("globalZoomPercent");
+    if (zoom->isEnabled())
+      zoom->setValue(zoomPercent);
+    pump(300);
   }
   if (cursorCell >= 0) {
     for (auto *cell : window.findChildren<heiran::ui::ImageViewWidget *>()) {

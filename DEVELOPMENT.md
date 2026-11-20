@@ -196,6 +196,7 @@ uv run python tools/generate_example_images.py
 画像一覧のサイドパネルは `--action "Image List"` で開き、メイン画面と一緒に撮影できます。
 `--list-mode details` で詳細表示を確認できます。既定は `thumbnails` です。
 `--list-select 0,2` で複数選択、`--compare-selection` で選択画像の比較結果を撮影できます。
+`--thumbnail-width 256` でサムネイルの最大幅、`--zoom-percent 150.25` で全体の拡大率を指定できます。
 
 ## 配布物の作成
 

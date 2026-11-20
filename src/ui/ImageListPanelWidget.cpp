@@ -1,14 +1,15 @@
 #include "heiran/ui/ImageListPanelWidget.hpp"
 
 #include "heiran/infra/FavoriteStore.hpp"
+#include "heiran/ui/ActionIcons.hpp"
 #include "heiran/ui/ImageListDragViews.hpp"
 #include "heiran/ui/SessionLayoutController.hpp"
 #include "heiran/ui/ThumbnailCache.hpp"
 #include "heiran/ui/ThumbnailItemDelegate.hpp"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCheckBox>
-#include <QComboBox>
 #include <QFileInfo>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -19,7 +20,9 @@
 #include <QPushButton>
 #include <QSet>
 #include <QSignalBlocker>
+#include <QSlider>
 #include <QStackedWidget>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QtConcurrent>
@@ -27,17 +30,17 @@
 
 namespace heiran::ui {
 
-namespace {
-constexpr QSize kThumbnailSize(160, 120);
-}
-
 ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
     : QWidget(parent), list_(new ImageFileListWidget(this)), count_(new QLabel(this)),
       empty_(new QLabel(tr("No images to display."), this)),
       excludedGroup_(new QGroupBox(tr("Displayed outside filter"), this)),
       excludedFiles_(new QLabel(excludedGroup_)),
-      favoritesOnly_(new QCheckBox(tr("Favorites only"), this)), viewMode_(new QComboBox(this)),
-      views_(new QStackedWidget(this)), details_(new ImageFileDetailsWidget(this)),
+      favoritesOnly_(new QCheckBox(tr("Favorites only"), this)),
+      thumbnailsAction_(new QAction(tr("Thumbnails"), this)),
+      detailsAction_(new QAction(tr("Details"), this)), thumbnailSizeControls_(new QWidget(this)),
+      thumbnailSizeSlider_(new QSlider(Qt::Horizontal, thumbnailSizeControls_)),
+      thumbnailSizeLabel_(new QLabel(thumbnailSizeControls_)), views_(new QStackedWidget(this)),
+      details_(new ImageFileDetailsWidget(this)),
       compare_(new QPushButton(tr("Compare Selected"), this)),
       addFavorites_(new QPushButton(tr("Add Favorites"), this)),
       removeFavorites_(new QPushButton(tr("Remove Favorites"), this)),
@@ -47,15 +50,39 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   auto *layout = new QVBoxLayout(this);
   layout->setContentsMargins(6, 6, 6, 6);
   auto *modeLayout = new QHBoxLayout;
-  auto *modeLabel = new QLabel(tr("View:"), this);
-  modeLabel->setBuddy(viewMode_);
-  modeLayout->addWidget(modeLabel);
-  modeLayout->addWidget(viewMode_, 1);
-  viewMode_->setObjectName("imageListViewMode");
-  viewMode_->setAccessibleName(tr("View mode"));
-  viewMode_->addItems({tr("Thumbnails"), tr("Details")});
+  auto *modes = new QActionGroup(this);
+  modes->setExclusive(true);
+  modes->setObjectName("imageListViewMode");
+  for (auto *action : {thumbnailsAction_, detailsAction_}) {
+    action->setCheckable(true);
+    modes->addAction(action);
+    auto *button = new QToolButton(this);
+    button->setDefaultAction(action);
+    button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    button->setObjectName(action == thumbnailsAction_ ? "imageListThumbnailsButton"
+                                                      : "imageListDetailsButton");
+    modeLayout->addWidget(button);
+  }
+  modeLayout->addStretch();
+  thumbnailsAction_->setChecked(true);
+  auto *sizeLayout = new QHBoxLayout(thumbnailSizeControls_);
+  sizeLayout->setContentsMargins(0, 0, 0, 0);
+  auto *sizeLabel = new QLabel(tr("Size:"), thumbnailSizeControls_);
+  sizeLabel->setBuddy(thumbnailSizeSlider_);
+  thumbnailSizeSlider_->setObjectName("thumbnailSizeSlider");
+  thumbnailSizeSlider_->setAccessibleName(tr("Thumbnail size"));
+  thumbnailSizeSlider_->setToolTip(tr("Maximum thumbnail width in pixels."));
+  thumbnailSizeSlider_->setRange(64, 320);
+  thumbnailSizeSlider_->setSingleStep(16);
+  thumbnailSizeSlider_->setPageStep(64);
+  thumbnailSizeSlider_->setTracking(false);
+  thumbnailSizeSlider_->setValue(thumbnailWidth_);
+  sizeLayout->addWidget(sizeLabel);
+  sizeLayout->addWidget(thumbnailSizeSlider_, 1);
+  sizeLayout->addWidget(thumbnailSizeLabel_);
   favoritesOnly_->setObjectName("imageListFavoritesOnly");
   layout->addLayout(modeLayout);
+  layout->addWidget(thumbnailSizeControls_);
   layout->addWidget(favoritesOnly_);
   auto *excludedLayout = new QVBoxLayout(excludedGroup_);
   excludedFiles_->setObjectName("excludedDisplayedFiles");
@@ -121,14 +148,18 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   detailsPool_.setMaxThreadCount(1);
   connect(details_, &QTreeWidget::itemSelectionChanged, this, [this]() { syncSelection(true); });
   connect(favoritesOnly_, &QCheckBox::toggled, this, &ImageListPanelWidget::favoritesOnlyRequested);
-  connect(viewMode_, &QComboBox::currentIndexChanged, this, [this]() { updateViewMode(); });
+  connect(modes, &QActionGroup::triggered, this, [this]() {
+    if (views_->currentIndex() != (detailsVisible() ? 1 : 0))
+      updateViewMode();
+  });
+  connect(thumbnailSizeSlider_, &QSlider::valueChanged, this,
+          &ImageListPanelWidget::setThumbnailWidth);
   empty_->setAlignment(Qt::AlignCenter);
   empty_->setWordWrap(true);
   list_->setObjectName("thumbnailList");
   list_->setAccessibleName(tr("Image List"));
   list_->setViewMode(QListView::IconMode);
-  list_->setIconSize(kThumbnailSize);
-  list_->setGridSize(QSize(184, 164));
+  updateThumbnailGeometry();
   list_->setItemDelegate(new ThumbnailItemDelegate(list_));
   list_->setResizeMode(QListView::Adjust);
   list_->setMovement(QListView::Static);
@@ -140,6 +171,7 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   list_->setDefaultDropAction(Qt::CopyAction);
   connect(list_, &QListWidget::itemSelectionChanged, this, [this]() { syncSelection(false); });
   setPages({}, -1);
+  applyActionIcons(this);
 }
 
 ImageListPanelWidget::~ImageListPanelWidget() {
@@ -166,16 +198,20 @@ void ImageListPanelWidget::setFavoritesOnly(bool enabled) {
 }
 
 bool ImageListPanelWidget::detailsVisible() const {
-  return viewMode_->currentIndex() == 1;
+  return detailsAction_->isChecked();
 }
 
 void ImageListPanelWidget::setDetailsVisible(bool details) {
-  viewMode_->setCurrentIndex(details ? 1 : 0);
+  if (detailsVisible() == details)
+    return;
+  (details ? detailsAction_ : thumbnailsAction_)->setChecked(true);
+  updateViewMode();
 }
 
 void ImageListPanelWidget::updateViewMode() {
   cancelLoading();
   views_->setCurrentIndex(detailsVisible() ? 1 : 0);
+  thumbnailSizeControls_->setVisible(!detailsVisible());
   if (detailsVisible()) {
     startDetailsLoading();
   } else {
@@ -183,6 +219,34 @@ void ImageListPanelWidget::updateViewMode() {
   }
   Q_EMIT detailsVisibleChanged(detailsVisible());
   updateSelectionActions();
+}
+
+QSize ImageListPanelWidget::thumbnailSize() const {
+  return {thumbnailWidth_, thumbnailWidth_ * 3 / 4};
+}
+
+void ImageListPanelWidget::updateThumbnailGeometry() {
+  const auto size = thumbnailSize();
+  list_->setIconSize(size);
+  list_->setGridSize(size + QSize(24, 44));
+  for (int row = 0; row < list_->count(); ++row)
+    list_->item(row)->setSizeHint(size + QSize(24, 40));
+  thumbnailSizeLabel_->setText(tr("%1 px").arg(thumbnailWidth_));
+}
+
+void ImageListPanelWidget::setThumbnailWidth(int width) {
+  width = std::clamp(width, 64, 320);
+  if (width == thumbnailWidth_)
+    return;
+  thumbnailWidth_ = width;
+  const QSignalBlocker blocker(thumbnailSizeSlider_);
+  thumbnailSizeSlider_->setValue(width);
+  updateThumbnailGeometry();
+  if (!detailsVisible()) {
+    cancelLoading();
+    startLoading();
+  }
+  Q_EMIT thumbnailWidthChanged(width);
 }
 
 void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPage) {
@@ -212,13 +276,13 @@ void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPag
                                 ? QString::number(index + 1)
                                 : QString("%1: %2").arg(index + 1).arg(QFileInfo(path).fileName());
     auto *item = new QListWidgetItem(caption, list_);
-    item->setSizeHint(QSize(184, 160));
+    item->setSizeHint(thumbnailSize() + QSize(24, 40));
     item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
     item->setData(Qt::UserRole, caption);
     item->setData(Qt::UserRole + 1, index);
     item->setData(Qt::UserRole + 2, path);
     item->setToolTip(path.isEmpty() ? caption : path);
-    QPixmap placeholder(kThumbnailSize);
+    QPixmap placeholder(thumbnailSize());
     placeholder.fill(Qt::transparent);
     item->setIcon(QIcon(placeholder));
     auto *detail = new QTreeWidgetItem(
@@ -439,10 +503,10 @@ void ImageListPanelWidget::startLoading() {
             }
           });
   connect(watcher, &QFutureWatcher<QImage>::finished, watcher, &QObject::deleteLater);
-  watcher->setFuture(QtConcurrent::mapped(&loaderPool_, paths_, [](const QString &path) {
-    return path.isEmpty() ? QImage()
-                          : ThumbnailCache::standard().loadOrCreate(path, kThumbnailSize);
-  }));
+  watcher->setFuture(
+      QtConcurrent::mapped(&loaderPool_, paths_, [size = thumbnailSize()](const QString &path) {
+        return path.isEmpty() ? QImage() : ThumbnailCache::standard().loadOrCreate(path, size);
+      }));
 }
 
 }  // namespace heiran::ui

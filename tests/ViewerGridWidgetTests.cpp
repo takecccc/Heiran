@@ -192,13 +192,13 @@ bool waitForCellImages(heiran::ui::ViewerGridWidget *grid) {
       5000);
 }
 
-// 状態欄 "Page 1 / 1  Scale 0.50" から倍率を取り出す。
+// Extract the base scale from a status such as "Page 1 / 1  Zoom 50.00%".
 double scaleInStatus(const QString &status) {
-  const int index = status.indexOf("Scale ");
+  const int index = status.indexOf("Zoom ");
   if (index < 0) {
     return -1.0;
   }
-  return status.mid(index + 6).section(' ', 0, 0).toDouble();
+  return status.mid(index + 5).section(' ', 0, 0).chopped(1).toDouble() / 100.0;
 }
 
 }  // namespace

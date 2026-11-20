@@ -21,6 +21,7 @@
 #include <QGuiApplication>
 #include <QImage>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
@@ -36,6 +37,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 namespace {
@@ -79,6 +81,50 @@ class MainWindowTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void editsOverallZoomAsAPercentage() {
+    QTemporaryDir directory;
+    const auto paths = writeImageFiles(directory.path(), 1);
+    heiran::ui::MainWindow window;
+    window.resize(1100, 650);
+    auto *zoom = window.findChild<QDoubleSpinBox *>("globalZoomPercent");
+    QVERIFY(zoom);
+    QVERIFY(!zoom->isEnabled());
+    window.openImageFiles(paths);
+    window.show();
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *cell = grid->findChild<heiran::ui::ImageViewWidget *>();
+    QTRY_VERIFY(cell->hasImage());
+    auto session = grid->sessionSnapshot();
+    session.cells[0].scale = 2.0;
+    grid->setSessionPreservingView(session);
+    grid->setGlobalScale(1.0);
+    QVERIFY(zoom->isEnabled());
+    QCOMPARE(zoom->value(), 100.0);
+    QSignalSpy status(grid, &heiran::ui::ViewerGridWidget::statusChanged);
+    zoom->setValue(150.25);
+    QCOMPARE(grid->globalViewState().baseScale, 1.5025);
+    QCOMPARE(grid->sessionSnapshot().cells.at(0).scale, 2.0);
+    QVERIFY(status.last().at(0).toString().contains("150.25%"));
+    grid->zoomBy(2.0);
+    QCOMPARE(zoom->value(), 300.5);
+    auto *edit = zoom->findChild<QLineEdit *>();
+    edit->setFocus();
+    edit->selectAll();
+    QTest::keyClicks(edit, "175.50");
+    QCOMPARE(grid->globalViewState().baseScale, 3.005);
+    grid->zoomBy(1.1);
+    QVERIFY(edit->text().contains("175.50"));
+    QTest::keyClick(edit, Qt::Key_Return);
+    QCOMPARE(grid->globalViewState().baseScale, 1.755);
+    QCOMPARE(zoom->value(), 175.5);
+    grid->setGlobalScale(0.0);
+    grid->setGlobalScale(std::numeric_limits<double>::quiet_NaN());
+    grid->setGlobalScale(std::numeric_limits<double>::infinity());
+    QCOMPARE(grid->globalViewState().baseScale, 1.755);
+    window.setSession({});
+    QVERIFY(!zoom->isEnabled());
+  }
+
   void handsOffAlreadyDecodedImagesWithoutDecodingThemAgain() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
@@ -1967,7 +2013,7 @@ private Q_SLOTS:
     heiran::ui::MainWindow window;
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
-    auto *exposureBox = window.findChild<QDoubleSpinBox *>();
+    auto *exposureBox = window.findChild<QDoubleSpinBox *>("exposureSpinBox");
     QVERIFY(exposureBox != nullptr);
     QCOMPARE(exposureBox->value(), 0.0);
 
@@ -1986,7 +2032,7 @@ private Q_SLOTS:
     heiran::ui::MainWindow window;
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
-    auto *exposureBox = window.findChild<QDoubleSpinBox *>();
+    auto *exposureBox = window.findChild<QDoubleSpinBox *>("exposureSpinBox");
     QVERIFY(exposureBox != nullptr);
 
     QToolButton *button = nullptr;
@@ -2016,7 +2062,7 @@ private Q_SLOTS:
     heiran::ui::MainWindow window;
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
-    auto *exposureBox = window.findChild<QDoubleSpinBox *>();
+    auto *exposureBox = window.findChild<QDoubleSpinBox *>("exposureSpinBox");
     QVERIFY(exposureBox != nullptr);
     auto *slider = window.findChild<QSlider *>();
     QVERIFY(slider != nullptr);

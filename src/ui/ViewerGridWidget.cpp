@@ -565,6 +565,15 @@ void ViewerGridWidget::zoomBy(double zoomFactor) {
   handleZoomRequest(cellIndex, zoomFactor, anchorImageX * cellScale, anchorImageY * cellScale);
 }
 
+void ViewerGridWidget::setGlobalScale(double scale) {
+  if (!std::isfinite(scale) || scale <= 0.0 || navigationPageCount() <= 0 ||
+      !std::isfinite(globalState_.baseScale) || globalState_.baseScale <= 0.0)
+    return;
+  const double factor = scale / globalState_.baseScale;
+  if (std::isfinite(factor) && factor > 0.0)
+    zoomBy(factor);
+}
+
 void ViewerGridWidget::setActualSize() {
   const int cellIndex = zoomAnchorCellIndex();
   if (cellIndex < 0) {
@@ -1811,7 +1820,7 @@ void ViewerGridWidget::updateStatus() {
   if (!subImageText.isEmpty()) {
     status += QString("  %1").arg(subImageText);
   }
-  status += tr("  Scale %1").arg(globalState_.baseScale, 0, 'f', 2);
+  status += tr("  Zoom %1%").arg(globalState_.baseScale * 100.0, 0, 'f', 2);
   if (!hoverInfoSummary_.isEmpty()) {
     status += QString("  |  %1").arg(hoverInfoSummary_);
   }
