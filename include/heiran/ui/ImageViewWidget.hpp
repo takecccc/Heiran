@@ -134,6 +134,7 @@ Q_SIGNALS:
   void dropItemsRequested(int cellIndex, const QStringList &paths);
   void selectionRequested(int cellIndex, const QPointF &startImagePosition,
                           const QPointF &endImagePosition, bool final);
+  void selectionClearRequested(int cellIndex);
 
 private:
   friend class CellHeaderWidget;

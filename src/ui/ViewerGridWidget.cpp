@@ -1310,6 +1310,10 @@ void ViewerGridWidget::rebuildGrid() {
               handleSelectionRequest(requestedCellIndex, startImagePosition, endImagePosition,
                                      final);
             });
+    connect(view, &ImageViewWidget::selectionClearRequested, this, [this](int requestedCellIndex) {
+      setActiveCell(requestedCellIndex);
+      clearSelection();
+    });
     view->setChannelMode(cellIndex < channelModes_.size() ? channelModes_.at(cellIndex)
                                                           : ChannelMode::Color);
 

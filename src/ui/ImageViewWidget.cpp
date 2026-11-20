@@ -43,6 +43,7 @@
 #include <QRegularExpression>
 #include <QResizeEvent>
 #include <QScreen>
+#include <QStyleHints>
 #include <QSurfaceFormat>
 #include <QTimer>
 #include <QToolTip>
@@ -798,9 +799,9 @@ protected:
     if (button == Qt::LeftButton && owner_->hasImage() && shift) {
       if (rect().contains(event->position().toPoint())) {
         selecting_ = true;
+        selectionDragStarted_ = false;
+        selectionStartPosition_ = event->position();
         selectionStartImagePosition_ = imageCoordinatesForPosition(event->position());
-        Q_EMIT owner_->selectionRequested(owner_->cellIndex_, selectionStartImagePosition_,
-                                          selectionStartImagePosition_, false);
         event->accept();
         return;
       }
@@ -825,8 +826,11 @@ protected:
     updateHoverInfo(event->position());
 
     if (selecting_) {
-      Q_EMIT owner_->selectionRequested(owner_->cellIndex_, selectionStartImagePosition_,
-                                        imageCoordinatesForPosition(event->position()), false);
+      selectionDragStarted_ |= selectionMovedFarEnough(event->position());
+      if (selectionDragStarted_) {
+        Q_EMIT owner_->selectionRequested(owner_->cellIndex_, selectionStartImagePosition_,
+                                          imageCoordinatesForPosition(event->position()), false);
+      }
       event->accept();
       return;
     }
@@ -845,8 +849,12 @@ protected:
 
     if (event->button() == Qt::LeftButton && selecting_) {
       selecting_ = false;
-      Q_EMIT owner_->selectionRequested(owner_->cellIndex_, selectionStartImagePosition_,
-                                        imageCoordinatesForPosition(event->position()), true);
+      if (selectionDragStarted_ || selectionMovedFarEnough(event->position())) {
+        Q_EMIT owner_->selectionRequested(owner_->cellIndex_, selectionStartImagePosition_,
+                                          imageCoordinatesForPosition(event->position()), true);
+      } else {
+        Q_EMIT owner_->selectionClearRequested(owner_->cellIndex_);
+      }
       event->accept();
       return;
     }
@@ -987,9 +995,16 @@ private:
     return static_cast<qint64>(1'000'000'000.0 / refreshRate);
   }
 
+  bool selectionMovedFarEnough(const QPointF &position) const {
+    return (position - selectionStartPosition_).manhattanLength() >=
+           QGuiApplication::styleHints()->startDragDistance();
+  }
+
   Qt::MouseButton panButton_ = Qt::NoButton;
   bool selecting_ = false;
+  bool selectionDragStarted_ = false;
   QPoint lastMousePosition_;
+  QPointF selectionStartPosition_;
   QPointF selectionStartImagePosition_;
 };
 

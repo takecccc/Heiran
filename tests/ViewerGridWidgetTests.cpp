@@ -1029,6 +1029,28 @@ private Q_SLOTS:
     QCOMPARE(smallCellCoordinate, bigCellCoordinate);
   }
 
+  void clearsTheSelectionWhenShiftDragStaysBelowTheDragThreshold() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    heiran::ui::ViewerGridWidget grid;
+    grid.resize(400, 300);
+    grid.setSession(makeSession({fixture.makeGradientImageSet("g", 1)}, 1, 1, {0}));
+    grid.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&grid));
+    QVERIFY(waitForCellImages(&grid));
+    auto *view = grid.findChild<heiran::ui::ImageViewWidget *>();
+    auto *canvas = cellCanvas(view);
+    QVERIFY(canvas);
+    for (const QPoint delta : {QPoint(), QPoint(1, 1)}) {
+      dragWith(canvas, QPoint(10, 10), QPoint(45, 45), Qt::ShiftModifier);
+      QVERIFY(grid.currentAnalysisImages().first().selectionRect.has_value());
+      QSignalSpy selectionRequests(view, &heiran::ui::ImageViewWidget::selectionRequested);
+      dragWith(canvas, QPoint(20, 20), QPoint(20, 20) + delta, Qt::ShiftModifier);
+      QVERIFY(!grid.currentAnalysisImages().first().selectionRect.has_value());
+      QVERIFY(selectionRequests.isEmpty());
+    }
+  }
+
   // docs/テスト観点.md 同期 Case 12: 選択範囲ありでページ切り替え
   void keepsTheSelectionAcrossPageChanges() {
     SessionFixture fixture;

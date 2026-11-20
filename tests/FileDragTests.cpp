@@ -127,10 +127,12 @@ private Q_SLOTS:
         QCOMPARE(selection.count(), 0);
       } else if (modifiers == Qt::ShiftModifier) {
         QCOMPARE(pan.count(), 1);
-        QCOMPARE(selection.count(), 3);
+        QCOMPARE(selection.count(), 2);
+        QVERIFY(!selection.first().at(3).toBool());
+        QVERIFY(selection.last().at(3).toBool());
       } else {
         QCOMPARE(pan.count(), 1);
-        QCOMPARE(selection.count(), 3);
+        QCOMPARE(selection.count(), 2);
       }
     }
   }
