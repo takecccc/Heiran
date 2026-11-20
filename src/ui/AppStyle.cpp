@@ -85,6 +85,7 @@ QToolButton { background: transparent; color: %2; border: 1px solid transparent;
 QToolButton:hover { background-color: %4; }
 QToolButton:pressed { background-color: %5; }
 QToolButton:checked { background-color: %7; color: %8; border-color: %9; }
+QToolButton[thumbnailPreset="true"] { padding: 4px 5px; }
 QToolButton:disabled { color: %6; }
 QToolButton::menu-indicator { image: none; }
 QToolButton[exposureActive="true"] { background-color: %7; color: %8; border-color: %9; }

@@ -12,7 +12,7 @@
 class QLabel;
 class QListWidget;
 class QToolButton;
-class QSlider;
+class QButtonGroup;
 class QStackedWidget;
 class QTreeWidget;
 class QPushButton;
@@ -50,6 +50,9 @@ Q_SIGNALS:
   void finishComparisonRequested();
   void favoritesRequested(const QStringList &paths, bool favorite);
 
+protected:
+  bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
   void startLoading();
   void startDetailsLoading();
@@ -70,9 +73,9 @@ private:
   QAction *thumbnailsAction_;
   QAction *detailsAction_;
   QWidget *thumbnailSizeControls_;
-  QSlider *thumbnailSizeSlider_;
-  QLabel *thumbnailSizeLabel_;
+  QButtonGroup *thumbnailSizeButtons_;
   int thumbnailWidth_ = 160;
+  int thumbnailWheelRemainder_ = 0;
   QStackedWidget *views_;
   QTreeWidget *details_;
   QPushButton *compare_;

@@ -9,6 +9,7 @@
 
 #include <QAction>
 #include <QActionGroup>
+#include <QButtonGroup>
 #include <QFileInfo>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -19,15 +20,20 @@
 #include <QPushButton>
 #include <QSet>
 #include <QSignalBlocker>
-#include <QSlider>
 #include <QStackedWidget>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
+#include <QWheelEvent>
 #include <QtConcurrent>
 #include <algorithm>
+#include <array>
 
 namespace heiran::ui {
+
+namespace {
+constexpr std::array kThumbnailWidths{64, 160, 224, 320};
+}
 
 ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
     : QWidget(parent), list_(new ImageFileListWidget(this)), count_(new QLabel(this)),
@@ -36,8 +42,7 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
       excludedFiles_(new QLabel(excludedGroup_)), favoritesOnly_(new QToolButton(this)),
       thumbnailsAction_(new QAction(tr("Thumbnails"), this)),
       detailsAction_(new QAction(tr("Details"), this)), thumbnailSizeControls_(new QWidget(this)),
-      thumbnailSizeSlider_(new QSlider(Qt::Horizontal, thumbnailSizeControls_)),
-      thumbnailSizeLabel_(new QLabel(thumbnailSizeControls_)), views_(new QStackedWidget(this)),
+      thumbnailSizeButtons_(new QButtonGroup(this)), views_(new QStackedWidget(this)),
       details_(new ImageFileDetailsWidget(this)),
       compare_(new QPushButton(tr("Compare Selected"), this)),
       finishComparison_(new QPushButton(tr("End Comparison"), this)),
@@ -66,19 +71,23 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   thumbnailsAction_->setChecked(true);
   auto *sizeLayout = new QHBoxLayout(thumbnailSizeControls_);
   sizeLayout->setContentsMargins(0, 0, 0, 0);
-  auto *sizeLabel = new QLabel(tr("Size:"), thumbnailSizeControls_);
-  sizeLabel->setBuddy(thumbnailSizeSlider_);
-  thumbnailSizeSlider_->setObjectName("thumbnailSizeSlider");
-  thumbnailSizeSlider_->setAccessibleName(tr("Thumbnail size"));
-  thumbnailSizeSlider_->setToolTip(tr("Maximum thumbnail width in pixels."));
-  thumbnailSizeSlider_->setRange(64, 320);
-  thumbnailSizeSlider_->setSingleStep(16);
-  thumbnailSizeSlider_->setPageStep(64);
-  thumbnailSizeSlider_->setTracking(false);
-  thumbnailSizeSlider_->setValue(thumbnailWidth_);
-  sizeLayout->addWidget(sizeLabel);
-  sizeLayout->addWidget(thumbnailSizeSlider_, 1);
-  sizeLayout->addWidget(thumbnailSizeLabel_);
+  sizeLayout->setSpacing(2);
+  sizeLayout->addWidget(new QLabel(tr("Size:"), thumbnailSizeControls_));
+  const std::array sizeLabels{tr("Small"), tr("Medium"), tr("Large"), tr("Extra Large")};
+  for (size_t index = 0; index < kThumbnailWidths.size(); ++index) {
+    const int width = kThumbnailWidths.at(index);
+    auto *button = new QToolButton(thumbnailSizeControls_);
+    button->setObjectName(QString("thumbnailWidth%1").arg(width));
+    button->setProperty("thumbnailPreset", true);
+    button->setCheckable(true);
+    button->setText(sizeLabels.at(index));
+    button->setToolTip(tr("Maximum width: %1 px. Change size with Ctrl+mouse wheel.").arg(width));
+    thumbnailSizeButtons_->addButton(button, width);
+    sizeLayout->addWidget(button);
+  }
+  thumbnailSizeButtons_->button(thumbnailWidth_)->setChecked(true);
+  sizeLayout->addStretch();
+  list_->viewport()->installEventFilter(this);
   favoritesOnly_->setObjectName("imageListFavoritesOnly");
   favoritesOnly_->setText(tr("Favorites only"));
   favoritesOnly_->setToolTip(tr("Show only favorites in the list and when changing pages."));
@@ -169,8 +178,10 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
     if (views_->currentIndex() != (detailsVisible() ? 1 : 0))
       updateViewMode();
   });
-  connect(thumbnailSizeSlider_, &QSlider::valueChanged, this,
-          &ImageListPanelWidget::setThumbnailWidth);
+  connect(thumbnailSizeButtons_, &QButtonGroup::idClicked, this, [this](int width) {
+    thumbnailWheelRemainder_ = 0;
+    setThumbnailWidth(width);
+  });
   empty_->setAlignment(Qt::AlignCenter);
   empty_->setWordWrap(true);
   list_->setObjectName("thumbnailList");
@@ -230,6 +241,7 @@ void ImageListPanelWidget::setDetailsVisible(bool details) {
 }
 
 void ImageListPanelWidget::updateViewMode() {
+  thumbnailWheelRemainder_ = 0;
   cancelLoading();
   views_->setCurrentIndex(detailsVisible() ? 1 : 0);
   thumbnailSizeControls_->setVisible(!detailsVisible());
@@ -252,22 +264,49 @@ void ImageListPanelWidget::updateThumbnailGeometry() {
   list_->setGridSize(size + QSize(24, 44));
   for (int row = 0; row < list_->count(); ++row)
     list_->item(row)->setSizeHint(size + QSize(24, 40));
-  thumbnailSizeLabel_->setText(tr("%1 px").arg(thumbnailWidth_));
 }
 
 void ImageListPanelWidget::setThumbnailWidth(int width) {
-  width = std::clamp(width, 64, 320);
+  width = *std::ranges::min_element(kThumbnailWidths, {}, [width](int preset) {
+    return std::abs(static_cast<qint64>(width) - preset);
+  });
   if (width == thumbnailWidth_)
     return;
   thumbnailWidth_ = width;
-  const QSignalBlocker blocker(thumbnailSizeSlider_);
-  thumbnailSizeSlider_->setValue(width);
+  thumbnailSizeButtons_->button(width)->setChecked(true);
   updateThumbnailGeometry();
   if (!detailsVisible()) {
     cancelLoading();
     startLoading();
   }
   Q_EMIT thumbnailWidthChanged(width);
+}
+
+bool ImageListPanelWidget::eventFilter(QObject *watched, QEvent *event) {
+  if (event->type() != QEvent::Wheel || watched != list_->viewport() || detailsVisible())
+    return QWidget::eventFilter(watched, event);
+  auto *wheel = static_cast<QWheelEvent *>(event);
+  if (wheel->modifiers() != Qt::ControlModifier) {
+    thumbnailWheelRemainder_ = 0;
+    return QWidget::eventFilter(watched, event);
+  }
+
+  const int delta = wheel->angleDelta().y();
+  if (wheel->phase() == Qt::ScrollBegin || (delta > 0 && thumbnailWheelRemainder_ < 0) ||
+      (delta < 0 && thumbnailWheelRemainder_ > 0)) {
+    thumbnailWheelRemainder_ = 0;
+  }
+  const auto angle = static_cast<qint64>(delta) + thumbnailWheelRemainder_;
+  const auto steps = angle / 120;
+  thumbnailWheelRemainder_ = wheel->phase() == Qt::ScrollEnd ? 0 : static_cast<int>(angle % 120);
+  if (steps != 0) {
+    const auto current = std::ranges::find(kThumbnailWidths, thumbnailWidth_);
+    const auto index = std::clamp<qint64>(current - kThumbnailWidths.begin() + steps, 0,
+                                          kThumbnailWidths.size() - 1);
+    setThumbnailWidth(kThumbnailWidths.at(index));
+  }
+  wheel->accept();
+  return true;
 }
 
 void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPage) {
