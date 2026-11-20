@@ -87,6 +87,20 @@ AppStyleTokens AppStyleTokens::current() {
           .accentText = QColor(116, 72, 34),
           .input = QColor(255, 251, 242),
       };
+    case ColorTheme::Sakura:
+      return {
+          .window = QColor(253, 246, 249),
+          .panel = QColor(249, 236, 241),
+          .border = QColor(219, 197, 207),
+          .text = QColor(55, 38, 48),
+          .dimText = QColor(112, 88, 101),
+          .hover = QColor(242, 223, 232),
+          .pressed = QColor(232, 207, 220),
+          .accent = QColor(157, 75, 105),
+          .accentSoft = QColor(157, 75, 105, 38),
+          .accentText = QColor(118, 45, 75),
+          .input = QColor(255, 250, 252),
+      };
     case ColorTheme::Light:
       return forDarkScheme(false);
     case ColorTheme::Dark:

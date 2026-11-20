@@ -34,6 +34,8 @@ QString colorThemeToString(ColorTheme theme) {
       return "slate";
     case ColorTheme::Sand:
       return "sand";
+    case ColorTheme::Sakura:
+      return "sakura";
     case ColorTheme::System:
     default:
       return "system";
@@ -54,6 +56,9 @@ ColorTheme colorThemeFromString(const QString &text) {
   if (normalized == "sand") {
     return ColorTheme::Sand;
   }
+  if (normalized == "sakura") {
+    return ColorTheme::Sakura;
+  }
   return ColorTheme::System;
 }
 
@@ -66,6 +71,7 @@ void applyColorTheme(ColorTheme theme) {
   switch (theme) {
     case ColorTheme::Light:
     case ColorTheme::Sand:
+    case ColorTheme::Sakura:
       styleHints->setColorScheme(Qt::ColorScheme::Light);
       break;
     case ColorTheme::Dark:

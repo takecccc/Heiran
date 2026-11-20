@@ -13,6 +13,7 @@ enum class ColorTheme {
   Dark,
   Slate,
   Sand,
+  Sakura,
 };
 
 QString colorThemeToString(ColorTheme theme);

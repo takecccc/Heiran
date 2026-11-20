@@ -315,7 +315,8 @@ private Q_SLOTS:
 
     AppSettings settings;
     using heiran::ui::ColorTheme;
-    for (const auto theme : {ColorTheme::Dark, ColorTheme::Slate, ColorTheme::Sand}) {
+    for (const auto theme :
+         {ColorTheme::Dark, ColorTheme::Slate, ColorTheme::Sand, ColorTheme::Sakura}) {
       settings.colorTheme = theme;
       settings.save();
       QCOMPARE(AppSettings::load().colorTheme, theme);
@@ -330,7 +331,7 @@ private Q_SLOTS:
     current.save();
     heiran::ui::applyColorTheme(current.colorTheme);
     const auto initialStyle = qApp->styleSheet();
-    QString slateStyle, sandStyle;
+    QString slateStyle, sandStyle, sakuraStyle;
     ColorTheme storedDuringPreview = ColorTheme::System;
     QTimer::singleShot(0, [&]() {
       auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
@@ -342,11 +343,14 @@ private Q_SLOTS:
       slateStyle = qApp->styleSheet();
       theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Sand)));
       sandStyle = qApp->styleSheet();
+      theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Sakura)));
+      sakuraStyle = qApp->styleSheet();
       storedDuringPreview = AppSettings::load().colorTheme;
     });
     QVERIFY(!heiran::ui::showSettingsDialog(nullptr, current));
-    QVERIFY(!slateStyle.isEmpty() && !sandStyle.isEmpty());
+    QVERIFY(!slateStyle.isEmpty() && !sandStyle.isEmpty() && !sakuraStyle.isEmpty());
     QVERIFY(slateStyle != initialStyle && sandStyle != slateStyle);
+    QVERIFY(sakuraStyle != sandStyle);
     QCOMPARE(storedDuringPreview, ColorTheme::Dark);
     QCOMPARE(qApp->styleSheet(), initialStyle);
   }

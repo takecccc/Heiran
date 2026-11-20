@@ -165,6 +165,8 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                       static_cast<int>(ColorTheme::Slate));
   themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "Sand (light)"),
                       static_cast<int>(ColorTheme::Sand));
+  themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "Sakura"),
+                      static_cast<int>(ColorTheme::Sakura));
   themeCombo->setCurrentIndex(themeCombo->findData(static_cast<int>(current.colorTheme)));
   themeCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
