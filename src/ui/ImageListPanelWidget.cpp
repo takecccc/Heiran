@@ -112,7 +112,11 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   excludedLayout->addWidget(excludedFiles_);
   excludedGroup_->hide();
   layout->addWidget(excludedGroup_);
-  layout->addWidget(count_);
+  auto *comparisonLayout = new QHBoxLayout;
+  count_->setWordWrap(true);
+  comparisonLayout->addWidget(count_, 1);
+  comparisonLayout->addWidget(compare_);
+  layout->addLayout(comparisonLayout);
   addFavoritesAction_->setObjectName("addSelectedFavoritesAction");
   removeFavoritesAction_->setObjectName("removeSelectedFavoritesAction");
   addFavoritesAction_->setToolTip(tr("Add selected images to favorites."));
@@ -126,7 +130,6 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
           [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), true); });
   connect(removeFavoritesAction_, &QAction::triggered, this,
           [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), false); });
-  layout->addWidget(compare_);
   compare_->setObjectName("compareSelectedImages");
   compare_->setIcon(themedIcon("layout-grid"));
   compare_->setToolTip(tr("Select 2 to 16 images to view side by side. Ctrl-click or Shift-click "

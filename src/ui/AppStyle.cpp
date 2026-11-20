@@ -163,6 +163,7 @@ QPushButton:hover { background-color: %4; }
 QPushButton:pressed { background-color: %5; }
 QPushButton:default { border-color: %9; }
 QPushButton:disabled { color: %6; }
+QPushButton#compareSelectedImages { padding: 5px 6px; }
 QToolButton#imageListFavoritesOnly { border-color: %3; }
 QToolButton#imageListFavoritesOnly:checked { border-color: %9; }
 
