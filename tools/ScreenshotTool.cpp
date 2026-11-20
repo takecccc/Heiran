@@ -2,7 +2,7 @@
 //
 //   heiran_screenshot <out.png> [--theme light|dark] [--lang en|ja] [--size 1280x800] [--menu View]
 //                     [--analysis Histogram|"Diff Window"|"Change Graph"] [--diff-cell]
-//                     [--hover-cell N] [--hrn file.hrn] [--dialog "Settings..."]
+//                     [--hover-cell N] [--hrn file.hrn] [--dialog "App Settings..."]
 //                     [--transparency solid|checkerboard]
 //                     [--context-cell N --menu "Transparency background"]
 //                     [--dialog-category "Display and playback"]
@@ -18,7 +18,7 @@
 // --hrn は (QApplication が -session を取ってしまうため、この名前にする)、.hrn を読み込む
 // (画像ファイルの代わり。差分の設定なども、.hrn で指定できる)。
 // --dialog 名前 は、その名前のメニュー項目 (モーダルなダイアログを開くもの)
-// を実行して、開いたダイアログを書き出して閉じる (例: --dialog "Settings..."、--dialog "About
+// を実行して、開いたダイアログを書き出して閉じる (例: --dialog "App Settings..."、--dialog "About
 // Heiran...")。ファイル選択のようなネイティブのダイアログは写せない。
 // --action 名前 は、その名前のメニュー項目を実行する (例: --action "Pixel
 // Info")。何度でも指定できる。

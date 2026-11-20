@@ -1344,17 +1344,20 @@ private Q_SLOTS:
     QVERIFY(fileMenu != nullptr);
     QCOMPARE(titlesOf(fileMenu),
              QStringList({"Open Image...", "Recent Images", "Open .hrn...", "Open Recent", "---",
-                          "Settings...", "Save", "Save As...", "---", "Rename...",
-                          "Move to Recycle Bin...", "Copy File Path", "Show in Folder", "Print...",
-                          "Refresh File List"}));
+                          "Save", "Save As...", "---", "Rename...", "Move to Recycle Bin...",
+                          "Copy File Path", "Show in Folder", "Print...", "Refresh File List"}));
+
+    auto *settingsMenu = findMenu(window.menuBar(), "&Settings");
+    QVERIFY(settingsMenu != nullptr);
+    QCOMPARE(titlesOf(settingsMenu), QStringList({"App Settings..."}));
 
     // 最上位の並びも固定する。
     QStringList menuTitles;
     for (const auto *action : window.menuBar()->actions()) {
       menuTitles.push_back(action->text());
     }
-    QCOMPARE(menuTitles,
-             QStringList({"&File", "&Images", "&Layout", "&View", "&Analysis", "&Help"}));
+    QCOMPARE(menuTitles, QStringList({"&File", "&Images", "&Layout", "&View", "&Analysis",
+                                      "&Settings", "&Help"}));
 
     auto *analysisMenu = findMenu(window.menuBar(), "&Analysis");
     QVERIFY(analysisMenu != nullptr);

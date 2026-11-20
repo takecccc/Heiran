@@ -73,7 +73,7 @@ Windows (64bit) と、**OpenGL 3.0 以上に対応した GPU** が必要です�
 * - 場所
   - 内容
 * - メニューバー
-  - ファイル (File)、画像 (Images)、レイアウト (Layout)、表示 (View)、解析 (Analysis)、ヘルプ (Help)
+  - ファイル (File)、画像 (Images)、レイアウト (Layout)、表示 (View)、解析 (Analysis)、設定 (Settings)、ヘルプ (Help)
 * - ツールバー
   - ページ送り、ページの選択、露出、フィット、等倍、リセット。ボタンの上へマウスを置くと、説明が出ます
 * - セル
@@ -105,7 +105,7 @@ Windows (64bit) と、**OpenGL 3.0 以上に対応した GPU** が必要です�
 
 ```{tip}
 拡大すると、画素が四角く見えます。これは、画素の値をそのまま確かめられるようにするためです。
-滑らかに表示したいときは、**ファイル > 設定...** (File > Settings...) の **表示・再生** (Display and playback) で、拡大のときの補間を **なめらか** (Smooth) にします。
+滑らかに表示したいときは、**設定 > アプリ設定…** (Settings > App Settings...) の **表示・再生** (Display and playback) で、拡大のときの補間を **なめらか** (Smooth) にします。
 ```
 
 ## 画素の値を見る

@@ -143,6 +143,7 @@ private:
   void createLayoutMenu();
   void createViewMenu();
   void createAnalysisMenu();
+  void createSettingsMenu();
   void createHelpMenu();
   void openManual();
   void createNavigationToolBar();

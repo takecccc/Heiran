@@ -68,7 +68,7 @@ QToolTip {
 QLabel#favoriteBadge { color: %11; background-color: %12; border-radius: 4px; font-size: 18px; }
 
 QMenuBar { background-color: %1; color: %2; padding: 2px 6px; border-bottom: 1px solid %3; }
-QMenuBar::item { background: transparent; padding: 4px 10px; border-radius: 4px; }
+QMenuBar::item { background: transparent; padding: 4px 8px; border-radius: 4px; }
 QMenuBar::item:selected { background-color: %4; }
 QMenuBar::item:pressed { background-color: %5; }
 

@@ -80,7 +80,7 @@ const QHash<QString, QString> &actionIconNames() {
       {"Reset View", "view-reset"},
       // File。
       {"Open Image...", "folder-open"},
-      {"Settings...", "settings"},
+      {"App Settings...", "settings"},
       {"Save", "save"},
       {"Save As...", "save"},
       {"Rename...", "pencil"},

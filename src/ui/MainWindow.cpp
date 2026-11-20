@@ -122,6 +122,7 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   createLayoutMenu();
   createViewMenu();
   createAnalysisMenu();
+  createSettingsMenu();
   createHelpMenu();
   createNavigationToolBar();
   createGlobalShortcuts();
@@ -236,12 +237,9 @@ void MainWindow::createFileMenu() {
 
   recentSessionsMenu_ = fileMenu->addMenu(QCoreApplication::translate("MainWindow", "Open Recent"));
 
-  fileMenu->addSeparator();
-  auto *settingsAction =
-      fileMenu->addAction(QCoreApplication::translate("MainWindow", "Settings..."));
-  connect(settingsAction, &QAction::triggered, this, [this]() { openSettingsDialog(); });
   rebuildRecentSessionsMenu();
 
+  fileMenu->addSeparator();
   auto *saveAction = fileMenu->addAction(QCoreApplication::translate("MainWindow", "Save"));
   saveAction->setShortcut(QKeySequence::Save);
   connect(saveAction, &QAction::triggered, this, [this]() { saveCurrentSession(false); });
@@ -684,6 +682,13 @@ void MainWindow::openManual() {
     statusBar()->showMessage(
         QCoreApplication::translate("MainWindow", "Could not open the manual: ") + index, 5000);
   }
+}
+
+void MainWindow::createSettingsMenu() {
+  auto *settingsMenu = menuBar()->addMenu(QCoreApplication::translate("MainWindow", "&Settings"));
+  auto *settingsAction =
+      settingsMenu->addAction(QCoreApplication::translate("MainWindow", "App Settings..."));
+  connect(settingsAction, &QAction::triggered, this, &MainWindow::openSettingsDialog);
 }
 
 // Help メニュー。マニュアルと、ライセンスの表記は、ここから見られる。
