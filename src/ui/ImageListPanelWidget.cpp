@@ -4,6 +4,7 @@
 #include "heiran/ui/ImageListDragViews.hpp"
 #include "heiran/ui/SessionLayoutController.hpp"
 #include "heiran/ui/ThumbnailCache.hpp"
+#include "heiran/ui/ThumbnailItemDelegate.hpp"
 
 #include <QAction>
 #include <QCheckBox>
@@ -99,8 +100,9 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   details_->setObjectName("imageDetailsList");
   details_->setAccessibleName(tr("Image details"));
   details_->setHeaderLabels({QStringLiteral("\u2605"), tr("File name"), tr("Width (px)"),
-                             tr("Height (px)"), tr("File size"), tr("Displayed in")});
+                             tr("Height (px)"), tr("File size"), tr("Cell")});
   details_->headerItem()->setToolTip(0, tr("Favorite"));
+  details_->headerItem()->setToolTip(5, tr("Displayed in"));
   details_->setRootIsDecorated(false);
   details_->setUniformRowHeights(true);
   details_->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -113,7 +115,7 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   details_->setColumnWidth(2, 80);
   details_->setColumnWidth(3, 80);
   details_->setColumnWidth(4, 120);
-  details_->setColumnWidth(5, 100);
+  details_->setColumnWidth(5, 56);
   details_->header()->moveSection(5, 1);
   details_->header()->setStretchLastSection(false);
   detailsPool_.setMaxThreadCount(1);
@@ -126,7 +128,8 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   list_->setAccessibleName(tr("Image List"));
   list_->setViewMode(QListView::IconMode);
   list_->setIconSize(kThumbnailSize);
-  list_->setGridSize(QSize(184, 184));
+  list_->setGridSize(QSize(184, 164));
+  list_->setItemDelegate(new ThumbnailItemDelegate(list_));
   list_->setResizeMode(QListView::Adjust);
   list_->setMovement(QListView::Static);
   list_->setUniformItemSizes(true);
@@ -209,7 +212,7 @@ void ImageListPanelWidget::setPages(const QStringList &pagePaths, int currentPag
                                 ? QString::number(index + 1)
                                 : QString("%1: %2").arg(index + 1).arg(QFileInfo(path).fileName());
     auto *item = new QListWidgetItem(caption, list_);
-    item->setSizeHint(QSize(184, 180));
+    item->setSizeHint(QSize(184, 160));
     item->setTextAlignment(Qt::AlignHCenter | Qt::AlignBottom);
     item->setData(Qt::UserRole, caption);
     item->setData(Qt::UserRole + 1, index);
@@ -360,10 +363,9 @@ void ImageListPanelWidget::setFavoriteStates(const QVector<bool> &states) {
   for (int index = 0; index < list_->count(); ++index) {
     const bool favorite = states.value(index, false);
     auto *item = list_->item(index);
-    item->setData(Qt::UserRole + 3, favorite);
-    updateItemCaption(index);
+    item->setData(ThumbnailFavoriteRole, favorite);
+    updateItemDescription(index);
     const auto description = favorite ? tr("Favorite") : tr("Not a favorite");
-    item->setData(Qt::AccessibleDescriptionRole, description);
     auto *detail = details_->topLevelItem(index);
     detail->setText(0, favorite ? QStringLiteral("\u2605") : QStringLiteral("\u2014"));
     detail->setToolTip(0, description);
@@ -384,9 +386,10 @@ void ImageListPanelWidget::setDisplayedFiles(const QStringList &cellPaths) {
     const auto text =
         cells.isEmpty() ? QString() : tr("Displayed in cell %1").arg(cells.join(", "));
     auto *item = list_->item(index);
-    item->setData(Qt::UserRole + 4, text);
-    updateItemCaption(index);
+    item->setData(ThumbnailCellsRole, cells);
+    updateItemDescription(index);
     details_->topLevelItem(index)->setText(5, cells.join(", "));
+    details_->topLevelItem(index)->setToolTip(5, text);
   }
 }
 
@@ -404,13 +407,18 @@ void ImageListPanelWidget::setExcludedDisplayedFiles(const QStringList &cellPath
   excludedGroup_->setVisible(!labels.isEmpty());
 }
 
-void ImageListPanelWidget::updateItemCaption(int index) {
+void ImageListPanelWidget::updateItemDescription(int index) {
   auto *item = list_->item(index);
   const auto caption = item->data(Qt::UserRole).toString();
-  const bool favorite = item->data(Qt::UserRole + 3).toBool();
-  const auto displayed = item->data(Qt::UserRole + 4).toString();
-  item->setText((favorite ? QStringLiteral("\u2605 ") : QString()) + caption +
-                (displayed.isEmpty() ? QString() : "\n" + displayed));
+  const bool favorite = item->data(ThumbnailFavoriteRole).toBool();
+  const auto cells = item->data(ThumbnailCellsRole).toStringList();
+  QStringList descriptions{favorite ? tr("Favorite") : tr("Not a favorite")};
+  if (!cells.isEmpty())
+    descriptions.push_back(tr("Displayed in cell %1").arg(cells.join(", ")));
+  const auto description = descriptions.join("\n");
+  item->setData(Qt::AccessibleDescriptionRole, description);
+  const auto path = paths_.value(index);
+  item->setToolTip((path.isEmpty() ? caption : path) + "\n" + description);
 }
 
 void ImageListPanelWidget::startLoading() {

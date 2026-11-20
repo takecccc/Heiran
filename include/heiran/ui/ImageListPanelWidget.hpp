@@ -52,7 +52,7 @@ private:
   QVector<int> selectedRows(bool details) const;
   void syncSelection(bool fromDetails);
   void updateSelectionActions();
-  void updateItemCaption(int index);
+  void updateItemDescription(int index);
 
   QListWidget *list_;
   QLabel *count_;

@@ -6,6 +6,7 @@
 #include "heiran/ui/ImageListDragViews.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
+#include "heiran/ui/ThumbnailItemDelegate.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QAction>
@@ -283,16 +284,17 @@ private Q_SLOTS:
     auto *table = window.findChild<QTreeWidget *>("imageDetailsList");
     auto *mark = window.findChild<QAction *>("favoriteAction");
     const auto star = QStringLiteral("\u2605");
-    QVERIFY(!list->item(0)->text().startsWith(star));
+    QVERIFY(!list->item(0)->data(heiran::ui::ThumbnailFavoriteRole).toBool());
     mark->trigger();
-    QVERIFY(list->item(0)->text().startsWith(star));
+    QVERIFY(list->item(0)->data(heiran::ui::ThumbnailFavoriteRole).toBool());
+    QVERIFY(!list->item(0)->text().contains(star));
     QCOMPARE(table->topLevelItem(0)->text(0), star);
     QCOMPARE(list->count(), 3);
     window.findChild<QComboBox *>("imageListViewMode")->setCurrentIndex(1);
     QTRY_COMPARE(table->topLevelItem(0)->text(2), QString("60"));
     QCOMPARE(table->topLevelItem(0)->text(0), star);
     mark->trigger();
-    QVERIFY(!list->item(0)->text().startsWith(star));
+    QVERIFY(!list->item(0)->data(heiran::ui::ThumbnailFavoriteRole).toBool());
     QCOMPARE(table->topLevelItem(0)->text(0), QStringLiteral("\u2014"));
     QCOMPARE(list->count(), 3);
     mark->trigger();
@@ -325,6 +327,55 @@ private Q_SLOTS:
     QCOMPARE(table->topLevelItem(0)->text(0), QStringLiteral("\u2014"));
   }
 
+  void drawsThumbnailStatesInOppositeUpperCorners() {
+    QTemporaryDir source;
+    const auto paths = createImages(source.path(), 1);
+    heiran::ui::ImageListPanelWidget panel;
+    panel.resize(260, 480);
+    panel.setPages(paths, 0);
+    panel.show();
+    auto *list = panel.findChild<QListWidget *>();
+    QTRY_COMPARE(thumbnailColor(list), QColor(Qt::red));
+    const auto caption = list->item(0)->text();
+    auto capture = [&]() {
+      return list->viewport()->grab().toImage().scaled(list->viewport()->size());
+    };
+    auto changes = [](const QImage &a, const QImage &b) {
+      QRect bounds;
+      for (int y = 0; y < a.height(); ++y)
+        for (int x = 0; x < a.width(); ++x)
+          if (a.pixel(x, y) != b.pixel(x, y))
+            bounds = bounds.united(QRect(x, y, 1, 1));
+      return bounds;
+    };
+    const auto normal = capture();
+    panel.setFavoriteStates({true});
+    const auto favorite = capture();
+    const auto right = changes(normal, favorite);
+    const auto item = list->visualItemRect(list->item(0));
+    QVERIFY(!right.isEmpty());
+    QVERIFY(right.center().x() > item.center().x());
+    QVERIFY(right.bottom() < item.center().y());
+    panel.setDisplayedFiles({paths.first(), paths.first()});
+    const auto cells = capture();
+    const auto left = changes(favorite, cells);
+    QVERIFY(!left.isEmpty());
+    QVERIFY(left.center().x() < item.center().x());
+    QVERIFY(left.bottom() < item.center().y());
+    QCOMPARE(list->item(0)->text(), caption);
+    panel.setDisplayedFiles(QStringList(16, paths.first()));
+    const auto many = changes(favorite, capture());
+    QVERIFY(many.right() < right.left());
+    QVERIFY(list->item(0)->toolTip().contains("16"));
+    panel.setFavoriteStates({false});
+    panel.setDisplayedFiles({});
+    QVERIFY(changes(normal, capture()).isEmpty());
+    QCOMPARE(thumbnailColor(list), QColor(Qt::red));
+    auto *table = panel.findChild<QTreeWidget *>();
+    QCOMPARE(table->headerItem()->text(5), QString("Cell"));
+    QCOMPARE(table->headerItem()->toolTip(5), QString("Displayed in"));
+  }
+
   void identifiesDisplayedFilesSeparatelyFromSelection() {
     QTemporaryDir source, metadata;
     const auto paths = createImages(source.path(), 4);
@@ -337,16 +388,16 @@ private Q_SLOTS:
     auto *table = panel->findChild<QTreeWidget *>();
     auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
     QCOMPARE(table->topLevelItem(0)->text(5), QString("1"));
-    QVERIFY(list->item(0)->text().contains("Displayed in cell 1"));
+    QVERIFY(list->item(0)->toolTip().contains("Displayed in cell 1"));
     list->item(2)->setSelected(true);
     QCOMPARE(table->topLevelItem(2)->text(5), QString());
     grid->nextPage();
     QCOMPARE(panel->selectedFilePaths().size(), 2);
     QCOMPARE(table->topLevelItem(0)->text(5), QString());
     QCOMPARE(table->topLevelItem(1)->text(5), QString("1"));
-    QVERIFY(!list->item(0)->text().contains("Displayed in cell"));
+    QVERIFY(!list->item(0)->toolTip().contains("Displayed in cell"));
     window.findChild<QAction *>("favoriteAction")->trigger();
-    QVERIFY(list->item(1)->text().contains("Displayed in cell 1"));
+    QVERIFY(list->item(1)->toolTip().contains("Displayed in cell 1"));
     panel->setDetailsVisible(true);
     QCOMPARE(table->topLevelItem(1)->text(5), QString("1"));
     window.findChild<QDockWidget *>("thumbnailDock")->hide();
@@ -357,7 +408,7 @@ private Q_SLOTS:
     panel->setDisplayedFiles({paths.at(2), paths.at(2), paths.at(3)});
     QCOMPARE(table->topLevelItem(2)->text(5), QString("1, 2"));
     QCOMPARE(table->topLevelItem(3)->text(5), QString("3"));
-    QVERIFY(list->item(2)->text().contains("Displayed in cell 1, 2"));
+    QVERIFY(list->item(2)->toolTip().contains("Displayed in cell 1, 2"));
   }
 
   void preservesMultipleSelectionsAcrossViewsAndPageChanges() {
