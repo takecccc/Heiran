@@ -185,6 +185,7 @@ private:
   void applyFitOnPageChange(bool enabled);
   // ビューアと Fit on Page Change の表示を、いま有効な値へ揃える。
   void updateFitOnPageChange();
+  void updatePageLoop();
 
   DirtyStateController dirtyStateController_;
   ViewerGridWidget *viewerGrid_ = nullptr;
@@ -211,6 +212,7 @@ private:
   QActionGroup *pixelValueFormatActionGroup_ = nullptr;
   QAction *invertAllAction_ = nullptr;
   QAction *fitOnPageChangeAction_ = nullptr;
+  QAction *loopPagesAction_ = nullptr;
   QAction *pixelValueFormat255Action_ = nullptr;
   QAction *pixelValueFormat01Action_ = nullptr;
   AppSettings appSettings_;

@@ -246,12 +246,14 @@ int ViewerGridWidget::navigationPageAt(int index) const {
   return pageNavigation_.pageAt(index, pageCount());
 }
 void ViewerGridWidget::stepPages(int offset) {
-  if (navigationPageCount() <= 0) {
+  const int count = navigationPageCount();
+  if (count <= 1 || offset == 0) {
     return;
   }
   const qint64 target = qint64(navigationPageIndex()) + offset;
-  setCurrentPage(navigationPageAt(
-      static_cast<int>(std::clamp(target, qint64(0), qint64(navigationPageCount() - 1)))));
+  const qint64 index = loopPages_ ? (target % count + count) % count
+                                  : std::clamp(target, qint64(0), qint64(count - 1));
+  setCurrentPage(navigationPageAt(static_cast<int>(index)));
 }
 void ViewerGridWidget::setPageFilter(std::optional<QVector<int>> pages) {
   pageNavigation_.setPages(std::move(pages));

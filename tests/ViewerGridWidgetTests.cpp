@@ -234,6 +234,14 @@ private Q_SLOTS:
     wheelAt(canvas, position, 120);
     QCOMPARE(grid.currentPage(), 4);
     QVERIFY(grid.globalViewState().baseScale > scale);
+
+    grid.setLoopPages(true);
+    wheelAt(canvas, position, -120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 0);
+    wheelAt(canvas, position, 120, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 4);
+    wheelAt(canvas, position, -360, Qt::AltModifier);
+    QCOMPARE(grid.currentPage(), 2);
   }
 
   void accumulatesSmallAltWheelInputsAndClearsUnfinishedGestures() {

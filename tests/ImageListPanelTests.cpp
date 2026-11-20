@@ -680,6 +680,57 @@ private Q_SLOTS:
     QCOMPARE(grid->currentFilePathForCell(0), next.at(1));
   }
 
+  void loopsFilteredPagesAndSuspendsLoopingDuringComparison() {
+    QTemporaryDir source, metadata;
+    const auto paths = createImages(source.path(), 6);
+    QCOMPARE(paths.size(), 6);
+    const auto database = metadata.filePath("favorites.json");
+    heiran::infra::FavoriteStore store(database);
+    QVERIFY(store.setFavorites({paths.at(0), paths.at(2), paths.at(4)}, true));
+
+    heiran::ui::MainWindow window(nullptr, database);
+    window.openImageFiles({paths.first()});
+    window.show();
+    QVERIFY(QTest::qWaitForWindowActive(&window));
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *loop = window.findChild<QAction *>("loopPagesAction");
+    auto *filter = window.findChild<QAction *>("favoritesOnlyAction");
+    QVERIFY(grid && loop && filter);
+    QVERIFY(!loop->isChecked());
+    QTest::keyClick(&window, Qt::Key_Left);
+    QCOMPARE(grid->currentPage(), 0);
+
+    loop->trigger();
+    QVERIFY(loop->isChecked());
+    QTest::keyClick(&window, Qt::Key_Left);
+    QCOMPARE(grid->currentPage(), 5);
+    QTest::keyClick(&window, Qt::Key_Right);
+    QCOMPARE(grid->currentPage(), 0);
+
+    filter->setChecked(true);
+    grid->previousPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(4));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+    grid->previousPage();
+    window.compareSelectedImages({paths.at(0), paths.at(2)});
+    QVERIFY(!loop->isEnabled());
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(2));
+    QCOMPARE(grid->currentFilePathForCell(1), paths.at(4));
+    window.findChild<QPushButton *>("finishComparison")->click();
+    QVERIFY(loop->isEnabled() && loop->isChecked());
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(4));
+    grid->nextPage();
+    QCOMPARE(grid->currentFilePathForCell(0), paths.at(0));
+
+    heiran::ui::MainWindow reopened(nullptr, database);
+    QVERIFY(reopened.findChild<QAction *>("loopPagesAction")->isChecked());
+  }
+
   void stepsEachComparedImageThroughTheFilteredSource() {
     QTemporaryDir source, metadata;
     const auto paths = createImages(source.path(), 7);

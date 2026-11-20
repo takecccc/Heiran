@@ -53,6 +53,7 @@ struct AppSettings {
   TransparencyBackground transparencyBackground;
   PixelValueFormat pixelValueFormat = PixelValueFormat::Normalized255;
   bool fitOnPageChange = false;
+  bool loopPages = false;
   bool wrapNavigation = false;
   // セルの境目を強調するか。隣のセルとの間に暗い溝を挟み、外周と見出しの下に線を引く。
   bool showCellBorders = true;

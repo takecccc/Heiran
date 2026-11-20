@@ -454,6 +454,17 @@ void MainWindow::createViewMenu() {
   fitOnPageChangeAction_->setToolTip(QCoreApplication::translate(
       "MainWindow", "Fit the images into their cells whenever the page changes. (Shift+F)"));
   viewMenu->addAction(fitOnPageChangeAction_);
+  loopPagesAction_ =
+      viewMenu->addAction(QCoreApplication::translate("MainWindow", "Loop Page Navigation"));
+  loopPagesAction_->setObjectName("loopPagesAction");
+  loopPagesAction_->setCheckable(true);
+  loopPagesAction_->setToolTip(QCoreApplication::translate(
+      "MainWindow", "Wrap between the first and last pages outside selected-image comparisons."));
+  connect(loopPagesAction_, &QAction::triggered, this, [this](bool enabled) {
+    appSettings_.loopPages = enabled;
+    appSettings_.save();
+    updatePageLoop();
+  });
   cellBordersAction_ =
       viewMenu->addAction(QCoreApplication::translate("MainWindow", "Cell Borders"));
   cellBordersAction_->setCheckable(true);
@@ -1260,6 +1271,7 @@ void MainWindow::compareSelectedImages(const QStringList &paths) {
 
 void MainWindow::setComparisonOrigin(std::shared_ptr<const UndoRecord> origin) {
   comparisonOrigin_ = std::move(origin);
+  updatePageLoop();
   findChild<ImageListPanelController *>()->setComparisonActive(comparisonOrigin_ != nullptr);
 }
 
@@ -2123,6 +2135,13 @@ void MainWindow::applyFitOnPageChange(bool enabled) {
   applyAppSettings();
 }
 
+void MainWindow::updatePageLoop() {
+  const bool available = comparisonOrigin_ == nullptr;
+  viewerGrid_->setLoopPages(appSettings_.loopPages && available);
+  loopPagesAction_->setChecked(appSettings_.loopPages);
+  loopPagesAction_->setEnabled(available);
+}
+
 void MainWindow::applyPixelValueFormat(PixelValueFormat pixelValueFormat) {
   appSettings_.pixelValueFormat = pixelValueFormat;
   appSettings_.save();
@@ -2154,6 +2173,7 @@ void MainWindow::applyAppSettings() {
   viewerGrid_->setPixelValueFormat(appSettings_.pixelValueFormat);
   viewerGrid_->setDisplayProfile(appSettings_.displayProfileMode, appSettings_.displayProfilePath);
   updateFitOnPageChange();
+  updatePageLoop();
   if (viewerChrome_)
     viewerChrome_->setWrapNavigation(appSettings_.wrapNavigation);
   viewerGrid_->setFilters(appSettings_.magnifyFilter, appSettings_.minifyFilter);

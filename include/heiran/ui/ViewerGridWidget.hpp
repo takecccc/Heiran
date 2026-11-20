@@ -183,6 +183,7 @@ public:
   int totalPages() const;
   void setCurrentPage(int pageIndex, bool forceRefresh = false);
   void stepPages(int offset);
+  void setLoopPages(bool enabled) { loopPages_ = enabled; }
   void setPageFilter(std::optional<QVector<int>> pages);
   int navigationPageCount() const;
   int navigationPageIndex() const;
@@ -362,6 +363,7 @@ private:
   DecodeCache decodeCache_;
   std::shared_ptr<DecodeScheduler> decodeScheduler_;
   PageNavigationFilter pageNavigation_;
+  bool loopPages_ = false;
   bool prefetchScheduled_ = false;
   // セルごとの、いま見せているファイルの 0 ページ目の復号結果。
   //
