@@ -100,7 +100,7 @@ Windows (64bit) と、**OpenGL 3.0 以上に対応した GPU** が必要です�
 | 少しずつ拡大・縮小する | <kbd>+</kbd> / <kbd>-</kbd> |
 | 次のページ・前のページ | <kbd>→</kbd> / <kbd>←</kbd>、<kbd>PageDown</kbd> / <kbd>PageUp</kbd>、<kbd>Space</kbd> / <kbd>Backspace</kbd>、マウスの「進む」「戻る」ボタン |
 | 最初・最後のページ | <kbd>Home</kbd> / <kbd>End</kbd> |
-| 全画面にする | <kbd>F11</kbd> (もう一度で戻ります。<kbd>Esc</kbd> でも戻れます)。全画面では、マウスを画面の上端へ寄せると、メニューとツールバーが一時的に出ます |
+| 全画面にする | <kbd>F11</kbd> (もう一度で戻ります。<kbd>Esc</kbd> でも戻れます)。全画面でもマウスポインターは常に表示され、画面の上端へ寄せるとメニューとツールバーが一時的に出ます |
 | 画像をコピーする | <kbd>Ctrl</kbd> + <kbd>C</kbd> |
 
 ```{tip}

@@ -80,9 +80,6 @@ public:
   // 致命的な場合は別ファイルを開く導線も出す。
   void reportSessionIssues(const SessionIssueReport &report);
 
-  // 全画面でマウスが動かないまま経つと、カーソルを隠すまでの時間。試験で短くするために出している。
-  void setFullScreenCursorHideDelay(int milliseconds) { cursorHideDelayMs_ = milliseconds; }
-
   // 全画面で、マウスが画面の上端へ寄ったら、メニューとツールバーを一時的に出す。離れたら、また隠す。
   // アプリ全体のマウスの動きから呼ばれる。位置は、画面の座標。試験からも呼べるように出している。
   void handleFullScreenPointer(const QPoint &globalPosition);
@@ -115,8 +112,6 @@ private:
   void updateAnimationActions();
   void enterFullScreenChrome();
   void leaveFullScreenChrome();
-  void hideCursorAfterIdle();
-  void showCursorAgain();
   void stepExposure(double stops);
   void saveWindowState();
   void restoreWindowState();
@@ -246,9 +241,6 @@ private:
   QAction *animationSyncAutoAction_ = nullptr;
   QAction *animationSyncLockedAction_ = nullptr;
   QAction *animationSyncIndependentAction_ = nullptr;
-  QTimer cursorIdleTimer_;
-  int cursorHideDelayMs_ = 2000;
-  bool cursorHidden_ = false;
   bool fullScreenChromeShown_ = false;
 
   // 元に戻す: 画像の割り当て、格子、画像セット、並べ替えなどの変更を、1 つずつ戻す (セッションの構造の変更。拡大やパンの操作は含めない)。

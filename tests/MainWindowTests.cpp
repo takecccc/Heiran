@@ -2312,40 +2312,31 @@ private Q_SLOTS:
     QTRY_VERIFY(overlay->text().contains("Copied"));
   }
 
-  // 全画面で動かさないマウスのカーソルを隠し、動かしたら戻すこと。
-  void hidesTheCursorWhileIdleInFullScreen() {
+  void keepsTheCursorVisibleWhileIdleInFullScreen() {
+    QTemporaryDir directory;
+    const auto paths = writeImageFiles(directory.path(), 1);
+    QCOMPARE(paths.size(), 1);
     heiran::ui::MainWindow window;
-    window.setFullScreenCursorHideDelay(50);
+    window.openImageFiles(paths);
     window.show();
     QVERIFY(QTest::qWaitForWindowActive(&window));
 
     QTest::keyClick(&window, Qt::Key_F11);
     QTRY_VERIFY(window.isFullScreen());
-    QTRY_VERIFY_WITH_TIMEOUT(QGuiApplication::overrideCursor() != nullptr, 2000);
-    QCOMPARE(QGuiApplication::overrideCursor()->shape(), Qt::BlankCursor);
+    auto *canvas = window.findChild<QWidget *>("imageCanvas");
+    QVERIFY(canvas);
+    const auto pointerVisible = [canvas]() {
+      const auto *overrideCursor = QGuiApplication::overrideCursor();
+      return (overrideCursor ? *overrideCursor : canvas->cursor()).shape() != Qt::BlankCursor;
+    };
 
-    QMouseEvent move(QEvent::MouseMove, QPointF(20, 20), window.mapToGlobal(QPoint(20, 20)),
-                     Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-    QApplication::sendEvent(&window, &move);
-    QVERIFY(QGuiApplication::overrideCursor() == nullptr);
-
-    // 全画面を抜けたら戻ること。隠したまま残すと、通常の窓でカーソルが消える。
-    QTRY_VERIFY_WITH_TIMEOUT(QGuiApplication::overrideCursor() != nullptr, 2000);
+    QVERIFY(pointerVisible());
+    QTest::qWait(2300);
+    const bool visibleWhileIdle = pointerVisible();
     QTest::keyClick(&window, Qt::Key_F11);
     QTRY_VERIFY(!window.isFullScreen());
-    QVERIFY(QGuiApplication::overrideCursor() == nullptr);
-  }
-
-  // 通常の窓ではカーソルを隠さないこと。
-  void keepsTheCursorOutsideFullScreen() {
-    heiran::ui::MainWindow window;
-    window.setFullScreenCursorHideDelay(30);
-    window.show();
-    QVERIFY(QTest::qWaitForWindowActive(&window));
-
-    QTest::qWait(300);
-
-    QVERIFY(QGuiApplication::overrideCursor() == nullptr);
+    QVERIFY(pointerVisible());
+    QVERIFY(visibleWhileIdle);
   }
 
   // [ ] で露出を上げ下げし、\ で戻せること。全画面では入力欄が見えず、触れない。

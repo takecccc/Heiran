@@ -104,8 +104,6 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
           [this](const QString &path) { openRecentImage(path); });
   connect(welcome_, &WelcomeWidget::filesDropped, this,
           [this](const QStringList &paths) { applyDroppedItems(0, paths); });
-  cursorIdleTimer_.setSingleShot(true);
-  connect(&cursorIdleTimer_, &QTimer::timeout, this, [this]() { hideCursorAfterIdle(); });
   fullScreenChromeTimer_.setSingleShot(true);
   connect(&fullScreenChromeTimer_, &QTimer::timeout, this, [this]() {
     // メニューを開いている間 (ポップアップ) は、引っ込めない。
@@ -1151,7 +1149,6 @@ void MainWindow::enterFullScreenChrome() {
       toolBar->setVisible(false);
     }
   }
-  cursorIdleTimer_.start(cursorHideDelayMs_);
 }
 
 void MainWindow::leaveFullScreenChrome() {
@@ -1164,26 +1161,7 @@ void MainWindow::leaveFullScreenChrome() {
     toolBar->setVisible(true);
   }
   toolBarsHiddenByFullScreen_.clear();
-  cursorIdleTimer_.stop();
-  showCursorAgain();
   messageOverlay_->hide();
-}
-
-// 動かさないマウスのカーソルは、画像を見る邪魔になる。ダイアログが出ている間は隠さない。
-void MainWindow::hideCursorAfterIdle() {
-  if (!isFullScreen() || cursorHidden_ || QApplication::activeModalWidget() != nullptr) {
-    return;
-  }
-  QGuiApplication::setOverrideCursor(Qt::BlankCursor);
-  cursorHidden_ = true;
-}
-
-void MainWindow::showCursorAgain() {
-  if (!cursorHidden_) {
-    return;
-  }
-  QGuiApplication::restoreOverrideCursor();
-  cursorHidden_ = false;
 }
 
 // 全画面で隠したメニューとツールバーを、マウスが上端へ寄ったときだけ、出す。
@@ -1232,15 +1210,8 @@ void MainWindow::handleFullScreenPointer(const QPoint &globalPosition) {
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
-  const auto type = event->type();
-  if (type == QEvent::MouseMove || type == QEvent::MouseButtonPress) {
-    showCursorAgain();
-    if (isFullScreen()) {
-      cursorIdleTimer_.start(cursorHideDelayMs_);
-      if (type == QEvent::MouseMove) {
-        handleFullScreenPointer(static_cast<QMouseEvent *>(event)->globalPosition().toPoint());
-      }
-    }
+  if (event->type() == QEvent::MouseMove) {
+    handleFullScreenPointer(static_cast<QMouseEvent *>(event)->globalPosition().toPoint());
   }
   return QMainWindow::eventFilter(watched, event);
 }
