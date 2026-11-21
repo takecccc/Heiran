@@ -6,40 +6,55 @@
 #include <QMap>
 #include <QSet>
 #include <cmath>
+#include <filesystem>
 
 namespace heiran::app {
 namespace {
 
 void enumerateFiles(const QDir &root, bool left, QMap<QString, FolderComparisonEntry> &entries,
-                    QStringList &unreadable, const std::function<bool()> &canceled) {
+                    QStringList &unreadable, QSet<QString> &unreadableRelative,
+                    const std::function<bool()> &canceled) {
   QStringList pending{root.absolutePath()};
   while (!pending.isEmpty() && !canceled()) {
     const QDir directory(pending.takeLast());
-    const QFileInfo info(directory.absolutePath());
-    if (!info.isDir() || !info.isReadable()) {
-      unreadable.append(directory.absolutePath());
-      continue;
-    }
-    const auto children = directory.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden |
-                                                      QDir::NoDotAndDotDot | QDir::NoSymLinks,
-                                                  QDir::NoSort);
-    for (const auto &child : children) {
+    std::error_code error;
+    for (std::filesystem::directory_iterator it(directory.filesystemAbsolutePath(), error), end;
+         !error && it != end; it.increment(error)) {
       if (canceled()) {
         return;
       }
-      if (child.fileName() == ".git" || child.isJunction()) {
+      const QFileInfo child(it->path());
+      if (child.fileName() == ".git" || child.isSymLink() || child.isJunction()) {
         continue;
       }
       if (child.isDir()) {
         pending.append(child.absoluteFilePath());
-      } else {
+      } else if (child.isFile()) {
         const auto relative = root.relativeFilePath(child.absoluteFilePath());
         auto &entry = entries[relative];
         entry.relativePath = relative;
         (left ? entry.leftPath : entry.rightPath) = child.absoluteFilePath();
       }
     }
+    if (error) {
+      unreadable.append(directory.absolutePath());
+      unreadableRelative.insert(root.relativeFilePath(directory.absolutePath()));
+    }
   }
+}
+
+bool inUnreadableDirectory(const QString &path, const QSet<QString> &unreadable) {
+  if (unreadable.contains(".") || unreadable.contains(QString())) {
+    return true;
+  }
+  QStringView parent(path);
+  for (auto slash = parent.lastIndexOf(u'/'); slash >= 0; slash = parent.lastIndexOf(u'/')) {
+    parent = parent.first(slash);
+    if (unreadable.contains(parent.toString())) {
+      return true;
+    }
+  }
+  return false;
 }
 
 FileComparisonStatus compareFileContents(const FolderComparisonEntry &entry,
@@ -90,15 +105,23 @@ FolderComparisonResult compareFolders(const QString &left, const QString &right,
   const auto canceled = [&]() { return isCanceled && isCanceled(); };
   QMap<QString, FolderComparisonEntry> entries;
   FolderComparisonResult result;
-  enumerateFiles(QDir(left), true, entries, result.unreadableDirectories, canceled);
-  enumerateFiles(QDir(right), false, entries, result.unreadableDirectories, canceled);
+  QSet<QString> unreadableLeft;
+  QSet<QString> unreadableRight;
+  enumerateFiles(QDir(left), true, entries, result.unreadableDirectories, unreadableLeft, canceled);
+  enumerateFiles(QDir(right), false, entries, result.unreadableDirectories, unreadableRight,
+                 canceled);
   const auto suffixes = imageSuffixes();
   result.entries.reserve(entries.size());
   for (auto &entry : entries) {
     if (canceled()) {
       return {};
     }
-    entry.status = compareFileContents(entry, canceled);
+    const bool unknownLeft = !unreadableLeft.isEmpty() && entry.leftPath.isEmpty() &&
+                             inUnreadableDirectory(entry.relativePath, unreadableLeft);
+    const bool unknownRight = !unreadableRight.isEmpty() && entry.rightPath.isEmpty() &&
+                              inUnreadableDirectory(entry.relativePath, unreadableRight);
+    entry.status = unknownLeft || unknownRight ? FileComparisonStatus::Unreadable
+                                               : compareFileContents(entry, canceled);
     entry.image = suffixes.contains(QFileInfo(entry.relativePath).suffix().toLower().toLatin1());
     result.entries.append(std::move(entry));
   }

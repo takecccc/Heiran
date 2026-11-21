@@ -2545,6 +2545,14 @@ std::pair<qsizetype, qsizetype> ViewerGridWidget::diffRegionPosition(int cellInd
   return {state.regionIndex + 1, state.regions.size()};
 }
 
+bool ViewerGridWidget::diffHasAlphaChanges(int cellIndex) const {
+  if (cellIndex < 0 || cellIndex >= diffStates_.size()) {
+    return false;
+  }
+  const auto &field = diffStates_.at(cellIndex).field;
+  return field && field->inspection && !field->inspection->alphaChanged.empty();
+}
+
 void ViewerGridWidget::setDiffRegionOnSources(const QRect &region, const QSize &comparisonSize,
                                               heiran::domain::DiffSizeMatch match) {
   if (!comparisonPresentation_ || cells_.size() < 2) {
@@ -2649,7 +2657,8 @@ void ViewerGridWidget::setDiffBlinking(int cellIndex, bool enabled) {
     return image;
   };
   view->setDiffBlinkFrames(prepareDiffBlinkFrames(displayInSrgb(diff->baseCell),
-                                                  displayInSrgb(target), diff->settings.sizeMatch));
+                                                  displayInSrgb(target), diff->settings.sizeMatch,
+                                                  comparisonPresentation_));
 }
 
 AnalysisSampler ViewerGridWidget::samplerForSource(
@@ -2779,7 +2788,8 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
     } else {
       QString error;
       ++diffFieldComputeCount_;
-      auto field = computeDiffField(baseInput, targetInput, diff.settings, &error);
+      auto field =
+          computeDiffField(baseInput, targetInput, diff.settings, &error, comparisonPresentation_);
       if (field == nullptr) {
         fail(error);
         return;

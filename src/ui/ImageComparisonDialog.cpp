@@ -122,7 +122,7 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   form->addRow(tr("Threshold"), threshold_);
   sizeMatch_ = new QComboBox(sidebar);
   sizeMatch_->addItems(
-      {tr("Overlap only"), tr("Resize to left"), tr("Resize to right"), tr("Resize to larger")});
+      {tr("Align top left"), tr("Resize to left"), tr("Resize to right"), tr("Resize to larger")});
   form->addRow(tr("Image size"), sizeMatch_);
   left->addLayout(form);
   auto *navigation = new QHBoxLayout;
@@ -470,9 +470,12 @@ void ImageComparisonDialog::updateComparisonControls() {
   } else if (position > 0) {
     differences_->setText(tr("Difference %1 of %2").arg(position).arg(count));
   } else if (changes) {
-    differences_->setText(tr("%1 pixels meet the threshold").arg(metrics->exceededPixelCount));
+    differences_->setText(tr("%1 changed pixels").arg(metrics->exceededPixelCount));
   } else {
-    differences_->setText(tr("No pixels meet the threshold."));
+    differences_->setText(tr("No changed pixels."));
+  }
+  if (ready && grid_->diffHasAlphaChanges(kDiffCell)) {
+    differences_->setText(differences_->text() + '\n' + tr("Opacity differs."));
   }
 }
 
@@ -490,18 +493,28 @@ void ImageComparisonDialog::checkPixels() {
   const QString equal = multiple ? tr("First images: pixels match.") : tr("Pixels match.");
   const QString different = multiple ? tr("First images: pixels differ.") : tr("Pixels differ.");
   const QString profile = tr("Color profiles differ.");
-  pixelTask_.setFuture(QtConcurrent::run(
-      [left = *left, right = *right, equal, different, profile](QPromise<QString> &promise) {
-        const bool same =
-            heiran::app::equalDecodedPixels(left, right, [&]() { return promise.isCanceled(); });
-        if (!promise.isCanceled()) {
-          QString result = same ? equal : different;
-          if (left.colorSpace != right.colorSpace) {
-            result += '\n' + profile;
-          }
-          promise.addResult(result);
-        }
-      }));
+  const QString dimensions = left->size() != right->size()
+                                 ? tr("Image sizes differ: %1 × %2 / %3 × %4")
+                                       .arg(left->size().width())
+                                       .arg(left->size().height())
+                                       .arg(right->size().width())
+                                       .arg(right->size().height())
+                                 : QString();
+  pixelTask_.setFuture(QtConcurrent::run([left = *left, right = *right, equal, different, profile,
+                                          dimensions](QPromise<QString> &promise) {
+    const bool same =
+        heiran::app::equalDecodedPixels(left, right, [&]() { return promise.isCanceled(); });
+    if (!promise.isCanceled()) {
+      QString result = same ? equal : different;
+      if (left.colorSpace != right.colorSpace) {
+        result += '\n' + profile;
+      }
+      if (!dimensions.isEmpty()) {
+        result += '\n' + dimensions;
+      }
+      promise.addResult(result);
+    }
+  }));
 }
 
 }  // namespace heiran::ui

@@ -377,15 +377,98 @@ void shadeRowsFor(DiffViewMode view, const float *values, int width, int firstRo
   }
 }
 
+QSize diffCanvasSize(const DiffField &field) {
+  if (field.inspection && field.sizeMatch == heiran::domain::DiffSizeMatch::Overlap) {
+    return field.inspection->baseSize.expandedTo(field.inspection->targetSize);
+  }
+  return field.size;
+}
+
+int ssimBorder(const DiffField &field) {
+  return field.kind == DiffFieldKind::Ssim && field.size.width() >= heiran::domain::kSsimWindow &&
+                 field.size.height() >= heiran::domain::kSsimWindow
+             ? heiran::domain::kSsimRadius
+             : 0;
+}
+
+bool marksDifference(const DiffField &field, int x, int y, double threshold, int border) {
+  const int width = field.size.width();
+  const int height = field.size.height();
+  if (x >= width || y >= height) {
+    if (!field.inspection) {
+      return false;
+    }
+    const auto covers = [&](const QSize &size) { return x < size.width() && y < size.height(); };
+    return covers(field.inspection->baseSize) != covers(field.inspection->targetSize);
+  }
+  const auto index = static_cast<size_t>(y) * width + x;
+  if (field.inspection && !field.inspection->alphaChanged.empty() &&
+      field.inspection->alphaChanged[index]) {
+    return true;
+  }
+  const float difference = field.values[index];
+  if (field.kind == DiffFieldKind::Ssim) {
+    return x >= border && y >= border && x < width - border && y < height - border &&
+           1.0 - difference < threshold;
+  }
+  return std::abs(difference) > static_cast<float>(threshold);
+}
+
+QImage renderInspection(const DiffField &field, const QImage &base, double threshold,
+                        heiran::domain::DiffMetrics &metrics) {
+  const auto size = diffCanvasSize(field);
+  const bool overlapOnly = field.sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
+  QImage result = matchDisplayImage(base, size, overlapOnly);
+  if (result.isNull()) {
+    return {};
+  }
+  if (overlapOnly) {
+    const auto area = [](const QSize &s) { return qint64(s.width()) * s.height(); };
+    metrics.pixelCount =
+        area(field.inspection->baseSize) + area(field.inspection->targetSize) - area(field.size);
+  } else {
+    metrics.pixelCount = qint64(size.width()) * size.height();
+  }
+  uchar *bits = result.bits();
+  const qsizetype stride = result.bytesPerLine();
+  const int border = ssimBorder(field);
+  struct Count {
+    qint64 pixels = 0;
+    void merge(const Count &other) { pixels += other.pixels; }
+  };
+  metrics.exceededPixelCount =
+      reduceRows<Count>(size.height(), [&](int firstRow, int lastRow, Count *count) {
+        for (int y = firstRow; y < lastRow; ++y) {
+          uchar *row = bits + static_cast<qsizetype>(y) * stride;
+          for (int x = 0; x < size.width(); ++x) {
+            if (!marksDifference(field, x, y, threshold, border)) {
+              continue;
+            }
+            uchar *pixel = row + static_cast<qsizetype>(x) * 4;
+            if (pixel[3] == 0) {
+              put(pixel, 255, 196, 0);
+            } else {
+              put(pixel, blendHalf(pixel[0], 255), blendHalf(pixel[1], 196),
+                  blendHalf(pixel[2], 0));
+            }
+            ++count->pixels;
+          }
+        }
+      }).pixels;
+  return result;
+}
+
 }  // namespace
 
 std::array<QImage, 2> prepareDiffBlinkFrames(const QImage &base, const QImage &target,
-                                             heiran::domain::DiffSizeMatch sizeMatch) {
+                                             heiran::domain::DiffSizeMatch sizeMatch,
+                                             bool includeOutsideOverlap) {
   if (base.isNull() || target.isNull()) {
     return {};
   }
-  const QSize size = comparisonSize(base, target, sizeMatch);
   const bool overlapOnly = sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
+  const QSize size = overlapOnly && includeOutsideOverlap ? base.size().expandedTo(target.size())
+                                                          : comparisonSize(base, target, sizeMatch);
   return {matchDisplayImage(base, size, overlapOnly), matchDisplayImage(target, size, overlapOnly)};
 }
 
@@ -394,28 +477,23 @@ QVector<QRect> findDiffRegions(const DiffField &field, double threshold) {
     return {};
   }
   constexpr int tileSize = 16;
-  const int width = field.size.width();
-  const int height = field.size.height();
+  const auto size = diffCanvasSize(field);
+  const int width = size.width();
+  const int height = size.height();
   const int columns = (width - 1) / tileSize + 1;
   const int rows = (height - 1) / tileSize + 1;
   QVector<QRect> tiles(static_cast<qsizetype>(columns) * rows);
   QRect *tileRects = tiles.data();
-  const bool ssim = field.kind == DiffFieldKind::Ssim;
-  const float limit = static_cast<float>(threshold);
-  const int border =
-      ssim && width >= heiran::domain::kSsimWindow && height >= heiran::domain::kSsimWindow
-          ? heiran::domain::kSsimRadius
-          : 0;
+  const int border = ssimBorder(field);
+  const int scanBorder = field.inspection ? 0 : border;
   heiran::infra::forEachRowBand(rows, [&](int firstRow, int lastRow) {
     for (int row = firstRow; row < lastRow; ++row) {
       QRect *rects = tileRects + static_cast<qsizetype>(row) * columns;
-      const int firstY = std::max(row * tileSize, border);
-      const int lastY = std::min((row + 1) * tileSize, height - border);
+      const int firstY = std::max(row * tileSize, scanBorder);
+      const int lastY = std::min((row + 1) * tileSize, height - scanBorder);
       for (int y = firstY; y < lastY; ++y) {
-        const float *line = field.values.data() + static_cast<size_t>(y) * width;
-        for (int x = border; x < width - border; ++x) {
-          const float difference = line[x];
-          if (ssim ? 1.0 - difference < threshold : std::abs(difference) > limit) {
+        for (int x = scanBorder; x < width - scanBorder; ++x) {
+          if (marksDifference(field, x, y, threshold, border)) {
             rects[x / tileSize] |= QRect(x, y, 1, 1);
           }
         }
@@ -478,7 +556,8 @@ bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings 
 }
 
 DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
-                              const heiran::domain::DiffSettings &settings, QString *error) {
+                              const heiran::domain::DiffSettings &settings, QString *error,
+                              bool inspectCoverageAndAlpha) {
   const auto fail = [&](const QString &message) -> DiffFieldPtr {
     if (error != nullptr) {
       *error = message;
@@ -504,6 +583,36 @@ DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
   field->sizeMatch = settings.sizeMatch;
   field->values.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
   const size_t pixelCount = field->values.size();
+  if (inspectCoverageAndAlpha) {
+    field->inspection =
+        DiffInspection{.baseSize = base.image.size(), .targetSize = target.image.size()};
+    const auto alphaPlane = [&size](const DiffInput &input, const QSize &region) {
+      AnalysisSampler sampler = input.sampler;
+      sampler.valueSpace = AnalysisValueSpace::Source;
+      return resizeLumaPlane(sampler.buildChannelPlane(QRect(input.origin, region), 3), region,
+                             size);
+    };
+    const auto leftAlpha = alphaPlane(base, baseRegion);
+    const auto rightAlpha = alphaPlane(target, targetRegion);
+    if (static_cast<size_t>(leftAlpha.size()) != pixelCount ||
+        static_cast<size_t>(rightAlpha.size()) != pixelCount) {
+      return fail(
+          QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
+    }
+    if (leftAlpha != rightAlpha) {
+      auto &changed = field->inspection->alphaChanged;
+      changed.resize(pixelCount);
+      const float tolerance = baseRegion == size && targetRegion == size ? 0.0F : 1.0e-6F;
+      std::transform(leftAlpha.cbegin(), leftAlpha.cend(), rightAlpha.cbegin(), changed.begin(),
+                     [tolerance](float a, float b) {
+                       return a != b &&
+                              (std::isnan(a) != std::isnan(b) || std::abs(a - b) > tolerance);
+                     });
+      if (std::ranges::none_of(changed, [](unsigned char value) { return value != 0; })) {
+        changed.clear();
+      }
+    }
+  }
 
   if (field->kind == DiffFieldKind::DeltaE) {
     // 色差は、RGB の 3 つの平面から。Lab は線形光で測るため、値の空間は線形へ固定する。
@@ -604,6 +713,15 @@ DiffOutput renderDiffFromField(const DiffField &field, const DiffInput &base,
   const DiffViewMode viewMode = settings.view;
 
   output.metrics = metricsOf(field, settings.threshold);
+  if (field.inspection) {
+    output.image = renderInspection(field, base.image, settings.threshold, output.metrics);
+    output.ok = !output.image.isNull();
+    if (!output.ok) {
+      output.error =
+          QCoreApplication::translate("DiffRenderer", "Base or target image is not available.");
+    }
+    return output;
+  }
   const bool colorDifference = field.kind == DiffFieldKind::DeltaE;
 
   // 自動の範囲合わせを切ったときの尺度。輝度は 0-255 のまま、色差は ΔE 10 を最も明るい階調にする。

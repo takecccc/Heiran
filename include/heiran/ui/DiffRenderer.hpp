@@ -11,6 +11,7 @@
 #include <QVector>
 #include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace heiran::ui {
@@ -45,18 +46,26 @@ enum class DiffFieldKind {
   Ssim,    // 1 - SSIM
 };
 
+struct DiffInspection {
+  QSize baseSize;
+  QSize targetSize;
+  std::vector<unsigned char> alphaChanged;
+};
+
 struct DiffField {
   DiffFieldKind kind = DiffFieldKind::Luma;
   QSize size;
   heiran::domain::DiffSizeMatch sizeMatch = heiran::domain::DiffSizeMatch::Overlap;
   std::vector<float> values;
+  std::optional<DiffInspection> inspection;
 };
 
 using DiffFieldPtr = std::shared_ptr<const DiffField>;
 
 QVector<QRect> findDiffRegions(const DiffField &field, double threshold);
 std::array<QImage, 2> prepareDiffBlinkFrames(const QImage &base, const QImage &target,
-                                             heiran::domain::DiffSizeMatch sizeMatch);
+                                             heiran::domain::DiffSizeMatch sizeMatch,
+                                             bool includeOutsideOverlap = false);
 
 DiffFieldKind diffFieldKindOf(heiran::domain::DiffMode mode);
 
@@ -66,7 +75,8 @@ bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings 
 
 // 入力から、場を作る。作れなければ null (理由は `error`)。ワイプは、場を持たないため、呼ばない。
 DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
-                              const heiran::domain::DiffSettings &settings, QString *error);
+                              const heiran::domain::DiffSettings &settings, QString *error,
+                              bool inspectCoverageAndAlpha = false);
 
 // 場から、絵と指標を作る (色の付け方、倍率、閾値は、`settings` に従う)。`base`
 // は、重ね合わせの下地。

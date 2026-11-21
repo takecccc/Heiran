@@ -3755,11 +3755,6 @@ Usage: heiran --diff [--left-title title] [--right-title title] left right</sour
     </message>
     <message>
         <location filename="../../src/ui/ImageComparisonDialog.cpp" line="114"/>
-        <source>Overlap only</source>
-        <translation>重なる部分だけ</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="114"/>
         <source>Resize to left</source>
         <translation>左のサイズに合わせる</translation>
     </message>
@@ -3888,16 +3883,6 @@ Right: %2</source>
         <translation>差分 %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="444"/>
-        <source>%1 pixels meet the threshold</source>
-        <translation>閾値に該当する画素 %1</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="446"/>
-        <source>No pixels meet the threshold.</source>
-        <translation>閾値に該当する画素がありません。</translation>
-    </message>
-    <message>
         <location filename="../../src/ui/ImageComparisonDialog.cpp" line="461"/>
         <source>First images: pixels match.</source>
         <translation>先頭の画像は画素が一致します。</translation>
@@ -3921,6 +3906,31 @@ Right: %2</source>
         <location filename="../../src/ui/ImageComparisonDialog.cpp" line="463"/>
         <source>Color profiles differ.</source>
         <translation>色空間が異なります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="125"/>
+        <source>Align top left</source>
+        <translation>左上をそろえる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="473"/>
+        <source>%1 changed pixels</source>
+        <translation>差分画素 %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="475"/>
+        <source>No changed pixels.</source>
+        <translation>差分画素がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="494"/>
+        <source>Image sizes differ: %1 × %2 / %3 × %4</source>
+        <translation>画像の寸法が異なります (左 %1 × %2 / 右 %3 × %4)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="478"/>
+        <source>Opacity differs.</source>
+        <translation>透明度が異なります。</translation>
     </message>
 </context>
 </TS>

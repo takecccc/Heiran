@@ -95,6 +95,7 @@ public:
   void setComparisonPresentation() { comparisonPresentation_ = true; }
   const heiran::infra::DecodedImage *comparisonSource(int cellIndex) const;
   std::pair<qsizetype, qsizetype> diffRegionPosition(int cellIndex) const;
+  bool diffHasAlphaChanges(int cellIndex) const;
   void moveToDiffRegion(int cellIndex, int direction);
   void setDiffBlinking(int cellIndex, bool enabled);
   // 差分のセルとして使える空きセル。無ければ -1。

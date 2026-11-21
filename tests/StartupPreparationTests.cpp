@@ -16,6 +16,19 @@ class StartupPreparationTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void anUnreadableRootDoesNotMakeTheOtherFilesLeftOnly() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    QFile left(directory.filePath("image.png"));
+    QVERIFY(left.open(QIODevice::WriteOnly));
+    left.close();
+    const auto result =
+        heiran::app::compareFolders(directory.path(), directory.filePath("missing"));
+    QCOMPARE(result.entries.size(), 1);
+    QCOMPARE(result.entries.first().status, heiran::app::FileComparisonStatus::Unreadable);
+    QCOMPARE(result.unreadableDirectories.size(), 1);
+  }
+
   void comparesFolderEntriesByRelativePathAndFileContents() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());

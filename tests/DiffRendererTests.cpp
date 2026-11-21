@@ -31,6 +31,51 @@ class DiffRendererTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void inspectionUsesOneDecisionForHighlightsCountAndRegions() {
+    QImage base = solid({80, 24}, 100);
+    QImage target = solid({96, 24}, 100);
+    base.setPixelColor(1, 2, QColor(100, 100, 100, 100));
+    target.setPixelColor(1, 2, QColor(100, 100, 100, 180));
+    target.setPixelColor(19, 2, QColor(105, 105, 105));
+    target.setPixelColor(47, 2, QColor(120, 120, 120));
+    DiffSettings settings{.view = DiffViewMode::Overlay};
+    const auto field =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(field);
+    auto result = renderDiffFromField(*field, makeInput(base), settings);
+    QVERIFY(result.ok);
+    QCOMPARE(result.image.size(), target.size());
+    QCOMPARE(result.image.pixelColor(19, 2), base.pixelColor(19, 2));
+    QVERIFY(result.image.pixelColor(47, 2) != base.pixelColor(47, 2));
+    QVERIFY(result.image.pixelColor(1, 2) != base.pixelColor(1, 2));
+    QCOMPARE(result.metrics.exceededPixelCount, 16 * 24 + 2);
+    QCOMPARE(findDiffRegions(*field, settings.threshold),
+             (QVector<QRect>{QRect(80, 0, 16, 24), QRect(1, 2, 1, 1), QRect(47, 2, 1, 1)}));
+
+    settings.threshold = 25.0;
+    result = renderDiffFromField(*field, makeInput(base), settings);
+    QCOMPARE(result.image.pixelColor(47, 2), base.pixelColor(47, 2));
+    QCOMPARE(result.metrics.exceededPixelCount, 16 * 24 + 1);
+    QCOMPARE(findDiffRegions(*field, settings.threshold).size(), 2);
+  }
+
+  void inspectionLeavesTheAreaOutsideBothImagesTransparent() {
+    const auto base = solid({64, 48}, 100);
+    const auto target = solid({80, 32}, 100);
+    const DiffSettings settings{.view = DiffViewMode::Overlay};
+    const auto field =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(field);
+    const auto result = renderDiffFromField(*field, makeInput(base), settings);
+    QVERIFY(result.ok);
+    QCOMPARE(result.metrics.exceededPixelCount, 16 * 32 + 64 * 16);
+    QCOMPARE(result.image.pixelColor(79, 47).alpha(), 0);
+    const auto frames = prepareDiffBlinkFrames(base, target, settings.sizeMatch, true);
+    QCOMPARE(frames[0].size(), QSize(80, 48));
+    QCOMPARE(frames[0].pixelColor(79, 47).alpha(), 0);
+    QCOMPARE(frames[1].pixelColor(79, 47).alpha(), 0);
+  }
+
   void groupsNearbyChangesAndSortsSeparatedRegions() {
     DiffField field{.size = {80, 48}, .values = std::vector<float>(80 * 48, 0.0F)};
     const auto set = [&](int x, int y, float difference) { field.values[y * 80 + x] = difference; };

@@ -6,6 +6,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QDir>
+#include <QDoubleSpinBox>
 #include <QGuiApplication>
 #include <QImage>
 #include <QMouseEvent>
@@ -1143,6 +1144,39 @@ private Q_SLOTS:
   }
 
   // ---- 差分のセル ----
+
+  void theDedicatedComparisonMarksChangesOutsideTheBrightnessThreshold() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    const auto base = fixture.makeImageSet("base", QColor(100, 100, 100), 1, {64, 32});
+    const auto target = fixture.makeImageSet("target", QColor(100, 100, 100), 1, {80, 32});
+    QVERIFY(!base.resolvedPaths.isEmpty() && !target.resolvedPaths.isEmpty());
+    QImage changed(target.resolvedPaths.first());
+    changed.setPixelColor(0, 0, QColor(100, 100, 100, 100));
+    changed.setPixelColor(33, 0, QColor(120, 120, 120));
+    QVERIFY(changed.save(target.resolvedPaths.first()));
+
+    heiran::ui::ImageComparisonDialog dialog;
+    dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
+    auto *threshold = dialog.findChild<QDoubleSpinBox *>("imageComparisonThreshold");
+    auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(threshold && grid);
+    const auto count = [grid]() {
+      const auto metrics = grid->cellDiffMetrics(2);
+      return metrics ? metrics->exceededPixelCount : -1;
+    };
+    QTRY_COMPARE(count(), 16 * 32 + 2);
+    QVERIFY(grid->diffHasAlphaChanges(2));
+    threshold->setValue(25.0);
+    QTRY_COMPARE(count(), 16 * 32 + 1);
+    const auto after =
+        grid->findChildren<heiran::ui::ImageViewWidget *>().at(2)->currentDecodedImage();
+    QCOMPARE(after.displayImage.pixelColor(33, 0), QColor(100, 100, 100));
+    QVERIFY(after.displayImage.pixelColor(0, 0) != QColor(100, 100, 100));
+    QVERIFY(after.displayImage.pixelColor(79, 31) != QColor(Qt::transparent));
+    grid->moveToDiffRegion(2, 1);
+    QCOMPARE(grid->diffRegionPosition(2), (std::pair<qsizetype, qsizetype>{1, 2}));
+  }
 
   void folderComparisonShowsByteChangesAndPixelEqualityIndependently() {
     SessionFixture fixture;
