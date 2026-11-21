@@ -31,6 +31,44 @@ class DiffRendererTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void groupsNearbyChangesAndSortsSeparatedRegions() {
+    DiffField field{.size = {80, 48}, .values = std::vector<float>(80 * 48, 0.0F)};
+    const auto set = [&](int x, int y, float difference) { field.values[y * 80 + x] = difference; };
+    set(15, 3, 10.0F);
+    set(16, 4, -12.0F);
+    set(71, 6, 11.0F);
+    set(2, 34, 9.0F);
+    set(40, 20, 8.0F);
+    QCOMPARE(findDiffRegions(field, 8.0),
+             (QVector<QRect>{QRect(15, 3, 2, 2), QRect(71, 6, 1, 1), QRect(2, 34, 1, 1)}));
+    QVERIFY(findDiffRegions(field, 12.0).isEmpty());
+    field.values = std::vector<float>(80 * 48, 0.1F);
+    QVERIFY(findDiffRegions(field, 0.1).isEmpty());
+  }
+
+  void usesTheSsimThresholdAndExcludesItsWindowBorder() {
+    DiffField field{
+        .kind = DiffFieldKind::Ssim, .size = {16, 16}, .values = std::vector<float>(16 * 16, 0.0F)};
+    field.values[0] = 1.0F;
+    field.values[7 * 16 + 6] = 0.05F;
+    field.values[8 * 16 + 6] = 0.2F;
+    QCOMPARE(findDiffRegions(field, 0.9), (QVector<QRect>{QRect(6, 8, 1, 1)}));
+  }
+
+  void alignsBlinkFramesUsingTheDiffSizeSettings() {
+    using heiran::domain::DiffSizeMatch;
+    const auto base = solid({10, 20}, 50);
+    const auto target = solid({12, 15}, 220);
+    const auto overlap = prepareDiffBlinkFrames(base, target, DiffSizeMatch::Overlap);
+    QCOMPARE(overlap[0].size(), QSize(10, 15));
+    QCOMPARE(overlap[1].size(), overlap[0].size());
+    QCOMPARE(overlap[0].pixelColor(0, 0), QColor(50, 50, 50));
+    QCOMPARE(overlap[1].pixelColor(0, 0), QColor(220, 220, 220));
+    const auto scaled = prepareDiffBlinkFrames(base, target, DiffSizeMatch::ToTarget);
+    QCOMPARE(scaled[0].size(), target.size());
+    QCOMPARE(scaled[1].size(), target.size());
+  }
+
   // 絶対値の差。自動の範囲合わせを切れば、差の大きさがそのまま階調になる。
   void rendersTheAbsoluteDifference() {
     DiffSettings settings;
@@ -241,9 +279,8 @@ private Q_SLOTS:
 
   // 設定の文字列の往復。保存形式 (.hrn) へ使う。
   void settingsRoundTripThroughStrings() {
-    for (const auto mode :
-         {DiffMode::Absolute, DiffMode::Signed, DiffMode::Binary, DiffMode::DeltaE, DiffMode::Ssim,
-          DiffMode::Wipe}) {
+    for (const auto mode : {DiffMode::Absolute, DiffMode::Signed, DiffMode::Binary,
+                            DiffMode::DeltaE, DiffMode::Ssim, DiffMode::Wipe}) {
       QCOMPARE(heiran::domain::diffModeFromString(heiran::domain::toDiffModeString(mode)), mode);
     }
     for (const auto view :
@@ -301,7 +338,8 @@ private Q_SLOTS:
     color.mode = DiffMode::DeltaE;
     const auto byColor = renderDiff(makeInput(red), makeInput(green), color);
     QVERIFY(byColor.ok);
-    QVERIFY2(byColor.metrics.maxAbsDiff > 30.0, qPrintable(QString::number(byColor.metrics.maxAbsDiff)));
+    QVERIFY2(byColor.metrics.maxAbsDiff > 30.0,
+             qPrintable(QString::number(byColor.metrics.maxAbsDiff)));
   }
 
   // 色差も、大きさの違う画像を、重なる部分だけで比べる。
@@ -403,21 +441,24 @@ private Q_SLOTS:
     QCOMPARE(brightest, 255);
   }
 
-  // 取っておいた場から作った絵と指標は、最初から作ったものと、まったく同じになる (倍率、見せ方、閾値、範囲合わせの、どの組でも)。
+  // 取っておいた場から作った絵と指標は、最初から作ったものと、まったく同じになる
+  // (倍率、見せ方、閾値、範囲合わせの、どの組でも)。
   void rerenderingFromTheFieldMatchesRenderingFromScratch() {
     QImage base(23, 17, QImage::Format_RGBA8888);
     QImage target(23, 17, QImage::Format_RGBA8888);
     for (int y = 0; y < 17; ++y) {
       for (int x = 0; x < 23; ++x) {
-        base.setPixelColor(x, y, QColor((x * 37 + y * 11) % 256, (x * 5 + y * 23) % 256, (x * 13) % 256));
-        target.setPixelColor(x, y, QColor((x * 31 + y * 7) % 256, (x * 9 + y * 17) % 256, (y * 19) % 256));
+        base.setPixelColor(x, y,
+                           QColor((x * 37 + y * 11) % 256, (x * 5 + y * 23) % 256, (x * 13) % 256));
+        target.setPixelColor(
+            x, y, QColor((x * 31 + y * 7) % 256, (x * 9 + y * 17) % 256, (y * 19) % 256));
       }
     }
     const DiffInput baseInput = makeInput(base);
     const DiffInput targetInput = makeInput(target);
 
-    for (const auto mode : {DiffMode::Absolute, DiffMode::Signed, DiffMode::Binary, DiffMode::DeltaE,
-                            DiffMode::Ssim}) {
+    for (const auto mode : {DiffMode::Absolute, DiffMode::Signed, DiffMode::Binary,
+                            DiffMode::DeltaE, DiffMode::Ssim}) {
       DiffSettings first;
       first.mode = mode;
       QString error;
@@ -425,7 +466,8 @@ private Q_SLOTS:
       QVERIFY2(field != nullptr, qPrintable(error));
       QVERIFY(diffFieldServes(*field, first));
 
-      for (const auto view : {DiffViewMode::Grayscale, DiffViewMode::SignedColor, DiffViewMode::Overlay}) {
+      for (const auto view :
+           {DiffViewMode::Grayscale, DiffViewMode::SignedColor, DiffViewMode::Overlay}) {
         for (const double gain : {0.5, 1.0, 4.0}) {
           for (const bool autoRange : {true, false}) {
             for (const double threshold : {0.5, 8.0}) {
@@ -440,7 +482,9 @@ private Q_SLOTS:
               const auto scratch = renderDiff(baseInput, targetInput, settings);
               QVERIFY2(fromField.ok && scratch.ok, qPrintable(scratch.error));
               QVERIFY2(fromField.image == scratch.image,
-                       qPrintable(QString("mode %1 view %2").arg(static_cast<int>(mode)).arg(static_cast<int>(view))));
+                       qPrintable(QString("mode %1 view %2")
+                                      .arg(static_cast<int>(mode))
+                                      .arg(static_cast<int>(view))));
               QCOMPARE(fromField.metrics.maxAbsDiff, scratch.metrics.maxAbsDiff);
               QCOMPARE(fromField.metrics.meanAbsDiff, scratch.metrics.meanAbsDiff);
               QCOMPARE(fromField.metrics.exceededPixelCount, scratch.metrics.exceededPixelCount);
@@ -452,7 +496,8 @@ private Q_SLOTS:
     }
   }
 
-  // 場を使い回してよいのは、計算の種類と、大きさの合わせ方が同じときだけ。absolute、signed、binary は、同じ場を使う。
+  // 場を使い回してよいのは、計算の種類と、大きさの合わせ方が同じときだけ。absolute、signed、binary
+  // は、同じ場を使う。
   void aFieldServesOnlyTheSameKindAndSizeMatch() {
     const DiffInput input = makeInput(solid({8, 6}, 100));
     DiffSettings absolute;

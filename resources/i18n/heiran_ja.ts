@@ -3071,6 +3071,31 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <source>Size</source>
         <translation>大きさ</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/DiffBarWidget.cpp" line="166"/>
+        <source>Previous difference</source>
+        <translation>前の差分</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DiffBarWidget.cpp" line="167"/>
+        <source>Next difference</source>
+        <translation>次の差分</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DiffBarWidget.cpp" line="170"/>
+        <source>Alternate the base and target images</source>
+        <translation>基準画像と比較画像を交互に表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DiffBarWidget.cpp" line="171"/>
+        <source>Blink</source>
+        <translation>点滅</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/DiffBarWidget.cpp" line="374"/>
+        <source>Difference %1 of %2</source>
+        <translation>差分 %1 / %2</translation>
+    </message>
 </context>
 <context>
     <name>heiran::ui::FavoritesController</name>

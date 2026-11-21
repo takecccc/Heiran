@@ -168,11 +168,13 @@ public:
   bool hasSelection() const { return selectionRect_.has_value(); }
 
   // 単独表示: 1 つのセルだけを、格子の全体へ広げて見せる (-1 で、全セルへ戻す)。
-  // セッションは変えない (未保存の印も付かない)。ほかのセルは隠れるだけで、解析と画素値の対象には残る。
+  // セッションは変えない
+  // (未保存の印も付かない)。ほかのセルは隠れるだけで、解析と画素値の対象には残る。
   // 拡大縮小と移動は全セル共通の基準で動くため、セルを切り替えても、同じ場所を同じ倍率で見続けられる。
   void setSoloCell(int cellIndex);
   int soloCellIndex() const { return soloCell_; }
-  // 差の場 (差分の重い計算) を作った回数。倍率や見せ方の変更で、作り直していないことを、試験で確かめるために出している。
+  // 差の場 (差分の重い計算)
+  // を作った回数。倍率や見せ方の変更で、作り直していないことを、試験で確かめるために出している。
   int diffFieldComputeCount() const { return diffFieldComputeCount_; }
   // 全セル共通の表示の基準 (倍率と位置)。試験と、状態の確認に使う。
   heiran::domain::GlobalViewState globalViewState() const { return globalState_; }
@@ -265,6 +267,8 @@ private:
   void scheduleDiffRefresh();
   void refreshDiffCells();
   void refreshDiffCell(int cellIndex);
+  void moveToDiffRegion(int cellIndex, int direction);
+  void setDiffBlinking(int cellIndex, bool enabled);
   // 差分の入力にする解析用の読み出し。各セルの回転や反転は掛けない。
   AnalysisSampler samplerForSource(const heiran::infra::DecodedImage &source) const;
   // 1 つのセルの画像と状態を、キャッシュにある結果から組み立て直す。
@@ -389,6 +393,8 @@ private:
     QString message;
     // 差の場 (計算が重い部分)。倍率、見せ方、閾値だけが変わったときは、これを使い回す。
     std::shared_ptr<const DiffField> field;
+    QVector<QRect> regions;
+    qsizetype regionIndex = -1;
   };
   QVector<DiffState> diffStates_;
   bool diffRefreshScheduled_ = false;

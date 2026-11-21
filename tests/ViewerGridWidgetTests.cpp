@@ -4,14 +4,16 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDir>
+#include <QGuiApplication>
 #include <QImage>
 #include <QMouseEvent>
 #include <QOpenGLWidget>
 #include <QScreen>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <QTimer>
+#include <QToolButton>
 #include <QWheelEvent>
-#include <QGuiApplication>
 #include <QtTest>
 
 using heiran::domain::CellConfig;
@@ -607,7 +609,8 @@ private Q_SLOTS:
   // 120Hz の画面に対して 6 倍の枚数を積んでいた。表示されずに捨てられる分で、
   // 後から出す 1 枚を遅らせるだけになる。
   void drawsNoFasterThanTheScreenWhilePanning() {
-    // 画面の更新に合わせて描く仕組みの確認のため、実際の画面と GPU が要る。offscreen では、画面の更新が来ない。
+    // 画面の更新に合わせて描く仕組みの確認のため、実際の画面と GPU が要る。offscreen
+    // では、画面の更新が来ない。
     // `-DHEIRAN_TEST_QPA_PLATFORM=` (空) で構成し直すと、実際の窓で動く。
     if (QGuiApplication::platformName() == "offscreen") {
       QSKIP("Needs a native platform: the offscreen platform has no screen refresh.");
@@ -1136,6 +1139,94 @@ private Q_SLOTS:
   }
 
   // ---- 差分のセル ----
+
+  void stepsBetweenChangedRegionsAndStopsBlinkingWhenThePageChanges() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    auto base = fixture.makeImageSet("base", Qt::black, 2, {96, 64});
+    auto target = fixture.makeImageSet("target", Qt::black, 2, {96, 64});
+    QImage changed(target.resolvedPaths.first());
+    QVERIFY(!changed.isNull());
+    changed.setPixelColor(10, 10, Qt::white);
+    changed.setPixelColor(82, 42, Qt::white);
+    QVERIFY(changed.save(target.resolvedPaths.first()));
+
+    heiran::ui::ViewerGridWidget grid;
+    grid.resize(600, 300);
+    auto session = makeSession({base, target}, 1, 3, {0, 1, -1});
+    session.cells[2].scale = 2.0;
+    grid.setSession(session);
+    grid.setCellDiff(2, heiran::domain::CellDiff{.baseCell = 0, .targetCell = 1});
+    auto *cell = grid.findChildren<heiran::ui::ImageViewWidget *>().at(2);
+    auto *previous = cell->findChild<QToolButton *>("previousDiffRegion");
+    auto *next = cell->findChild<QToolButton *>("nextDiffRegion");
+    auto *blink = cell->findChild<QToolButton *>("blinkDiffImages");
+    auto *timer = cell->findChild<QTimer *>("diffBlinkTimer");
+    QVERIFY(previous && next && blink && timer);
+    QTRY_VERIFY(next->isEnabled());
+
+    next->click();
+    QCOMPARE(cell->diffRegionInDisplay(), QRectF(10, 10, 1, 1));
+    const auto firstOffset = grid.globalViewState().baseOffsetX;
+    next->click();
+    QCOMPARE(cell->diffRegionInDisplay(), QRectF(82, 42, 1, 1));
+    QCOMPARE(grid.globalViewState().baseOffsetX - firstOffset, 144.0);
+    next->click();
+    QCOMPARE(cell->diffRegionInDisplay(), QRectF(10, 10, 1, 1));
+    previous->click();
+    QCOMPARE(cell->diffRegionInDisplay(), QRectF(82, 42, 1, 1));
+
+    QSignalSpy blinkFrames(timer, &QTimer::timeout);
+    const auto differenceKey = cell->currentDecodedImage().displayImage.cacheKey();
+    blink->click();
+    QVERIFY(blink->isChecked() && timer->isActive());
+    QTRY_VERIFY(blinkFrames.count() > 0);
+    QCOMPARE(cell->currentDecodedImage().displayImage.cacheKey(), differenceKey);
+    blink->click();
+    QVERIFY(!blink->isChecked() && !timer->isActive());
+    blink->click();
+
+    grid.nextPage();
+    QTRY_VERIFY(!timer->isActive());
+    QVERIFY(!blink->isChecked());
+    QTRY_VERIFY(blink->isEnabled());
+    QVERIFY(!next->isEnabled());
+    QVERIFY(cell->diffRegionInDisplay().isEmpty());
+  }
+
+  void blinkDrawsBothOriginalImagesInTheSameCanvas() {
+    if (QGuiApplication::platformName() == "offscreen") {
+      QSKIP("Blink rendering requires an OpenGL window.");
+    }
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    heiran::ui::ViewerGridWidget grid;
+    grid.setAttribute(Qt::WA_ShowWithoutActivating);
+    grid.resize(720, 300);
+    grid.setSession(makeSession(
+        {fixture.makeImageSet("base", Qt::red, 1), fixture.makeImageSet("target", Qt::green, 1)}, 1,
+        3, {0, 1, -1}));
+    grid.setCellDiff(2, heiran::domain::CellDiff{.baseCell = 0, .targetCell = 1});
+    grid.show();
+    auto *cell = grid.findChildren<heiran::ui::ImageViewWidget *>().at(2);
+    auto *blink = cell->findChild<QToolButton *>("blinkDiffImages");
+    auto *canvas = cell->findChild<QOpenGLWidget *>("imageCanvas");
+    QVERIFY(blink && canvas);
+    QTRY_VERIFY(blink->isEnabled() && canvas->isValid());
+    grid.requestFitToCells();
+
+    const auto canvasCenter = [canvas]() {
+      const QImage frame = canvas->grabFramebuffer();
+      return frame.isNull() ? QColor() : frame.pixelColor(frame.rect().center());
+    };
+    const QColor diffColor = canvasCenter();
+    QVERIFY(diffColor.isValid());
+    blink->click();
+    QTRY_COMPARE(canvasCenter(), QColor(Qt::red));
+    QTRY_COMPARE(canvasCenter(), QColor(Qt::green));
+    blink->click();
+    QTRY_COMPARE(canvasCenter(), diffColor);
+  }
 
   // 空きセルへ、他の 2 つのセルの差分を出す。通常のセルとして画像を持ち、設定は保存される。
   void showsTheDifferenceOfTwoCellsInADedicatedCell() {

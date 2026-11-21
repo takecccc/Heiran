@@ -1,4 +1,5 @@
 #include "heiran/ui/DiffBarWidget.hpp"
+#include "heiran/ui/ActionIcons.hpp"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -11,6 +12,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <QScreen>
+#include <QSignalBlocker>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -147,6 +149,33 @@ DiffBarWidget::DiffBarWidget(QWidget *parent) : QWidget(parent) {
   controls->addWidget(settingsButton_);
   controls->addWidget(closeButton_);
   root->addLayout(controls);
+
+  auto *inspection = new QHBoxLayout;
+  inspection->setSpacing(4);
+  const auto addButton = [&](const char *name, const QString &icon, const QString &tooltip) {
+    auto *button = new QToolButton(this);
+    button->setObjectName(name);
+    button->setIcon(themedIcon(icon));
+    button->setToolTip(tooltip);
+    button->setAccessibleName(tooltip);
+    button->setAutoRaise(true);
+    button->setEnabled(false);
+    inspection->addWidget(button);
+    return button;
+  };
+  previousRegion_ = addButton("previousDiffRegion", "arrow-left", tr("Previous difference"));
+  nextRegion_ = addButton("nextDiffRegion", "arrow-right", tr("Next difference"));
+  regionLabel_ = new ElidedLabel(this);
+  inspection->addWidget(regionLabel_, 1);
+  blinkButton_ = addButton("blinkDiffImages", "layers", tr("Alternate the base and target images"));
+  blinkButton_->setText(tr("Blink"));
+  blinkButton_->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+  blinkButton_->setCheckable(true);
+  root->addLayout(inspection);
+  connect(previousRegion_, &QToolButton::clicked, this,
+          [this]() { Q_EMIT regionStepRequested(-1); });
+  connect(nextRegion_, &QToolButton::clicked, this, [this]() { Q_EMIT regionStepRequested(1); });
+  connect(blinkButton_, &QToolButton::toggled, this, &DiffBarWidget::blinkRequested);
 
   resultLabel_ = new ElidedLabel(this);
   resultLabel_->setObjectName("diffBarResult");
@@ -334,6 +363,20 @@ void DiffBarWidget::setResult(const std::optional<heiran::domain::DiffMetrics> &
                               const QString &message) {
   auto *label = static_cast<ElidedLabel *>(resultLabel_);
   label->setFullText(metrics ? metricsText(*metrics) : message);
+  const bool hasChanges = metrics && !metrics->wipe && metrics->exceededPixelCount > 0;
+  previousRegion_->setEnabled(hasChanges);
+  nextRegion_->setEnabled(hasChanges);
+  blinkButton_->setEnabled(metrics.has_value());
+}
+
+void DiffBarWidget::setRegionProgress(qsizetype index, qsizetype count) {
+  static_cast<ElidedLabel *>(regionLabel_)
+      ->setFullText(index >= 0 ? tr("Difference %1 of %2").arg(index + 1).arg(count) : QString());
+}
+
+void DiffBarWidget::setBlinking(bool enabled) {
+  const QSignalBlocker blocker(blinkButton_);
+  blinkButton_->setChecked(enabled);
 }
 
 heiran::domain::CellDiff DiffBarWidget::currentDiff() const {

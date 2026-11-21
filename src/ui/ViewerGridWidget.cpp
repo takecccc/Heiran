@@ -5,6 +5,7 @@
 #include "heiran/domain/ImageTransform.hpp"
 #include "heiran/domain/SessionPages.hpp"
 #include "heiran/ui/CellStatus.hpp"
+#include "heiran/ui/ColorManagement.hpp"
 #include "heiran/ui/DiffRenderer.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 
@@ -1302,6 +1303,9 @@ void ViewerGridWidget::rebuildGrid(bool reuseCells) {
             });
     connect(view, &ImageViewWidget::diffStopRequested, this,
             [this](int requestedCellIndex) { setCellDiff(requestedCellIndex, std::nullopt); });
+    connect(view, &ImageViewWidget::diffRegionStepRequested, this,
+            &ViewerGridWidget::moveToDiffRegion);
+    connect(view, &ImageViewWidget::diffBlinkRequested, this, &ViewerGridWidget::setDiffBlinking);
     connect(view, &ImageViewWidget::wipeStartRequested, this,
             [this](int requestedCellIndex, int baseCell) {
               if (!showDifference(requestedCellIndex, baseCell, heiran::domain::DiffMode::Wipe)) {
@@ -1504,6 +1508,13 @@ void ViewerGridWidget::updateCellImage(int cellIndex, bool countCacheAccess) {
       qScopeGuard([&]() { observeStream(cellIndex, std::move(streamToObserve)); });
 
   if (navigationPageCount() == 0) {
+    if (showsDiff) {
+      if (cellIndex < diffStates_.size()) {
+        diffStates_[cellIndex] = {};
+      }
+      view->setDiffRegion();
+      view->setDiffBlinkFrames();
+    }
     view->setDecodedImage({}, {}, CellStatusInfo::empty(tr("No images to display.")));
     return;
   }
@@ -2380,9 +2391,13 @@ void ViewerGridWidget::setCellDiff(int cellIndex,
   // 重い計算をやり直さないため。差分をやめる、始める、基準や比べる側を替えるときは、捨てる。
   const bool sameSources = wasDiff && diff.has_value() && config.diff->baseCell == diff->baseCell &&
                            config.diff->targetCell == diff->targetCell;
+  if (!sameSources || config.diff->settings.sizeMatch != diff->settings.sizeMatch) {
+    cells_.at(cellIndex)->setDiffBlinkFrames();
+  }
   config.diff = diff;
   if (!sameSources && cellIndex < diffStates_.size()) {
     diffStates_[cellIndex] = {};
+    cells_.at(cellIndex)->setDiffRegion();
   }
 
   if (wasDiff != diff.has_value()) {
@@ -2504,6 +2519,76 @@ bool ViewerGridWidget::addDifferenceCell(heiran::domain::DiffMode mode) {
   return baseCell >= 0 && showDifference(emptyCell, baseCell, mode);
 }
 
+void ViewerGridWidget::moveToDiffRegion(int cellIndex, int direction) {
+  refreshDiffCell(cellIndex);
+  if (cellIndex < 0 || cellIndex >= diffStates_.size() || !cellDiff(cellIndex)) {
+    return;
+  }
+  auto &state = diffStates_[cellIndex];
+  if (!state.field || !state.metrics || state.metrics->exceededPixelCount == 0) {
+    return;
+  }
+  if (state.regions.isEmpty()) {
+    state.regions = findDiffRegions(*state.field, state.settings.threshold);
+  }
+  const qsizetype count = state.regions.size();
+  if (count == 0) {
+    return;
+  }
+  state.regionIndex = state.regionIndex < 0 ? (direction > 0 ? 0 : count - 1)
+                                            : (state.regionIndex + count + direction) % count;
+  auto *view = cells_.at(cellIndex);
+  view->setDiffRegion(state.regions.at(state.regionIndex), state.regionIndex, count);
+  const auto finalState =
+      heiran::domain::computeFinalViewState(globalState_, cellStates_.at(cellIndex));
+  const QPointF center = view->diffRegionInDisplay().center();
+  const QSize canvas = view->canvasSize();
+  fitPending_ = false;
+  handlePanRequest(cellIndex,
+                   (heiran::domain::imageToViewX(finalState, center.x()) - canvas.width() / 2.0) /
+                       globalState_.baseScale,
+                   (heiran::domain::imageToViewY(finalState, center.y()) - canvas.height() / 2.0) /
+                       globalState_.baseScale);
+}
+
+void ViewerGridWidget::setDiffBlinking(int cellIndex, bool enabled) {
+  auto *view = cells_.at(cellIndex);
+  if (!enabled) {
+    view->setDiffBlinkFrames();
+    return;
+  }
+  refreshDiffCell(cellIndex);
+  const auto diff = cellDiff(cellIndex);
+  if (!diff || !cellDiffMetrics(cellIndex)) {
+    view->setDiffBlinkFrames();
+    return;
+  }
+  const int target = diff->targetCell < 0 ? cellIndex : diff->targetCell;
+  const auto displayInSrgb = [this](int index) {
+    const auto &source = cellSources_.at(index);
+    QImage image = source.displayImage;
+    const QColorSpace srgb(QColorSpace::SRgb);
+    auto colorSpace = source.colorSpace;
+    if (const auto *imageSet = heiran::domain::imageSetForCell(session_, index)) {
+      const auto overrideSpace = colorSpaceFromSessionSpec(
+          imageSet->colorSpaceName, imageSet->iccProfilePath, session_.sessionDirectory);
+      if (overrideSpace.isValid()) {
+        colorSpace = overrideSpace;
+      }
+    }
+    if (colorSpace.isValid() && colorSpace != srgb) {
+      image.setColorSpace(colorSpace);
+      const QImage converted = image.convertedToColorSpace(srgb);
+      if (!converted.isNull()) {
+        return converted;
+      }
+    }
+    return image;
+  };
+  view->setDiffBlinkFrames(prepareDiffBlinkFrames(displayInSrgb(diff->baseCell),
+                                                  displayInSrgb(target), diff->settings.sizeMatch));
+}
+
 AnalysisSampler ViewerGridWidget::samplerForSource(
     const heiran::infra::DecodedImage &source) const {
   const auto transfer = makeColorTransformParams(source.colorSpace, source.colorSpace);
@@ -2544,8 +2629,11 @@ void ViewerGridWidget::refreshDiffCells() {
 }
 
 void ViewerGridWidget::refreshDiffCell(int cellIndex) {
+  if (cellIndex < 0 || cellIndex >= cells_.size()) {
+    return;
+  }
   const auto config = heiran::domain::cellConfigAt(session_, cellIndex);
-  if (!config.diff || cellIndex >= cells_.size()) {
+  if (!config.diff) {
     return;
   }
   if (diffStates_.size() != cells_.size()) {
@@ -2567,6 +2655,8 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
     }
     state = {};
     state.message = message;
+    view->setDiffRegion();
+    view->setDiffBlinkFrames();
     view->setDecodedImage({}, QString(), CellStatusInfo::empty(message));
     updateDiffUi(cellIndex);
     Q_EMIT cellDiffChanged(cellIndex);
@@ -2582,6 +2672,10 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
     // 自身の画像を比べる側にしたセルは、読み込み中と失敗の表示を、通常のセルが出している。
     if (diff.targetCell < 0 && cellSources_.at(cellIndex).displayImage.isNull() &&
         view->cellStatus() != CellStatus::Empty) {
+      state = {};
+      view->setDiffRegion();
+      view->setDiffBlinkFrames();
+      updateDiffUi(cellIndex);
       return;
     }
     fail(tr("Diff: waiting for Cell %1 and Cell %2.").arg(baseCell + 1).arg(targetCell + 1));
@@ -2593,6 +2687,15 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
                           state.targetSerial == cellSourceSerial_.at(targetCell);
   if (sameInputs && state.settings == diff.settings) {
     return;
+  }
+  if (!sameInputs || state.settings.sizeMatch != diff.settings.sizeMatch) {
+    view->setDiffBlinkFrames();
+  }
+  if (!sameInputs || !state.field || !diffFieldServes(*state.field, diff.settings) ||
+      state.settings.threshold != diff.settings.threshold) {
+    state.regions.clear();
+    state.regionIndex = -1;
+    view->setDiffRegion();
   }
 
   const DiffInput baseInput{.image = baseSource.displayImage,

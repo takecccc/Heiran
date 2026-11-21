@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstring>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 namespace heiran::ui {
@@ -114,24 +115,22 @@ QVector<float> resizeLumaPlane(const QVector<float> &plane, QSize from, QSize to
   return result;
 }
 
-// 2 枚を、境目で切って、つなぎ合わせる。基準は、左 / 上の側。大きさの合わせ方は、差分と同じ
-// (重なる部分だけ、または、一方を拡大縮小)。表示用の 8bit の画像から作る。
+static QImage matchDisplayImage(const QImage &image, const QSize &size, bool overlapOnly) {
+  const QImage converted = image.convertToFormat(QImage::Format_RGBA8888);
+  if (converted.size() == size) {
+    return converted;
+  }
+  return overlapOnly ? converted.copy(QRect(QPoint(0, 0), size))
+                     : converted.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+}
+
+// 2 枚を、境目で切って、つなぎ合わせる。基準は、左 / 上の側。
 DiffOutput renderWipe(const QImage &baseImage, const QImage &targetImage, const QSize &size,
                       const heiran::domain::DiffSettings &settings) {
   DiffOutput output;
   const bool overlapOnly = settings.sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
-  const auto fitTo = [&](const QImage &image) {
-    QImage converted = image.format() == QImage::Format_RGBA8888
-                           ? image
-                           : image.convertToFormat(QImage::Format_RGBA8888);
-    if (converted.size() == size) {
-      return converted;
-    }
-    return overlapOnly ? converted.copy(QRect(QPoint(0, 0), size))
-                       : converted.scaled(size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-  };
-  const QImage first = fitTo(baseImage);
-  const QImage second = fitTo(targetImage);
+  const QImage first = matchDisplayImage(baseImage, size, overlapOnly);
+  const QImage second = matchDisplayImage(targetImage, size, overlapOnly);
   if (first.isNull() || second.isNull() || first.size() != size || second.size() != size) {
     output.error =
         QCoreApplication::translate("DiffRenderer", "Base or target image is not available.");
@@ -379,6 +378,88 @@ void shadeRowsFor(DiffViewMode view, const float *values, int width, int firstRo
 }
 
 }  // namespace
+
+std::array<QImage, 2> prepareDiffBlinkFrames(const QImage &base, const QImage &target,
+                                             heiran::domain::DiffSizeMatch sizeMatch) {
+  if (base.isNull() || target.isNull()) {
+    return {};
+  }
+  const QSize size = comparisonSize(base, target, sizeMatch);
+  const bool overlapOnly = sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
+  return {matchDisplayImage(base, size, overlapOnly), matchDisplayImage(target, size, overlapOnly)};
+}
+
+QVector<QRect> findDiffRegions(const DiffField &field, double threshold) {
+  if (field.size.isEmpty()) {
+    return {};
+  }
+  constexpr int tileSize = 16;
+  const int width = field.size.width();
+  const int height = field.size.height();
+  const int columns = (width - 1) / tileSize + 1;
+  const int rows = (height - 1) / tileSize + 1;
+  QVector<QRect> tiles(static_cast<qsizetype>(columns) * rows);
+  QRect *tileRects = tiles.data();
+  const bool ssim = field.kind == DiffFieldKind::Ssim;
+  const float limit = static_cast<float>(threshold);
+  const int border =
+      ssim && width >= heiran::domain::kSsimWindow && height >= heiran::domain::kSsimWindow
+          ? heiran::domain::kSsimRadius
+          : 0;
+  heiran::infra::forEachRowBand(rows, [&](int firstRow, int lastRow) {
+    for (int row = firstRow; row < lastRow; ++row) {
+      QRect *rects = tileRects + static_cast<qsizetype>(row) * columns;
+      const int firstY = std::max(row * tileSize, border);
+      const int lastY = std::min((row + 1) * tileSize, height - border);
+      for (int y = firstY; y < lastY; ++y) {
+        const float *line = field.values.data() + static_cast<size_t>(y) * width;
+        for (int x = border; x < width - border; ++x) {
+          const float difference = line[x];
+          if (ssim ? 1.0 - difference < threshold : std::abs(difference) > limit) {
+            rects[x / tileSize] |= QRect(x, y, 1, 1);
+          }
+        }
+      }
+    }
+  });
+
+  QVector<QRect> regions;
+  QVector<qsizetype> pending;
+  for (qsizetype index = 0; index < tiles.size(); ++index) {
+    if (tiles.at(index).isEmpty()) {
+      continue;
+    }
+    QRect region;
+    const auto visit = [&](qsizetype neighbor) {
+      if (!tileRects[neighbor].isEmpty()) {
+        region |= std::exchange(tileRects[neighbor], QRect());
+        pending.append(neighbor);
+      }
+    };
+    visit(index);
+    while (!pending.isEmpty()) {
+      const qsizetype tile = pending.takeLast();
+      const qsizetype column = tile % columns;
+      if (column > 0) {
+        visit(tile - 1);
+      }
+      if (column + 1 < columns) {
+        visit(tile + 1);
+      }
+      if (tile >= columns) {
+        visit(tile - columns);
+      }
+      if (tile + columns < tiles.size()) {
+        visit(tile + columns);
+      }
+    }
+    regions.append(region);
+  }
+  std::sort(regions.begin(), regions.end(), [](const QRect &a, const QRect &b) {
+    return a.top() == b.top() ? a.left() < b.left() : a.top() < b.top();
+  });
+  return regions;
+}
 
 DiffFieldKind diffFieldKindOf(DiffMode mode) {
   switch (mode) {

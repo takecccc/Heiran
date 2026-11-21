@@ -18,6 +18,7 @@
 #include <QRectF>
 #include <QStringList>
 #include <QWidget>
+#include <array>
 #include <optional>
 
 namespace heiran {
@@ -45,6 +46,9 @@ public:
   void setDiffTitle(const QString &title);
   void setDiffBarResult(const std::optional<heiran::domain::DiffMetrics> &metrics,
                         const QString &message);
+  void setDiffRegion(const QRect &region = {}, qsizetype index = -1, qsizetype count = 0);
+  QRectF diffRegionInDisplay() const;
+  void setDiffBlinkFrames(std::array<QImage, 2> frames = {});
   // 右クリックの項目へ出す、セルの名前の一覧と、このセルの差分の有無。
   void setDiffMenuInfo(const QStringList &cellLabels, bool hasDiff, bool diffIsWipe = false);
   void setDecodedImage(const heiran::infra::DecodedImage &decodedImage, const QString &sourcePath,
@@ -57,7 +61,8 @@ public:
   // セルの枠線 (画像の面の外周と、見出しの下の線) を描くか。
   void setBordersVisible(bool visible);
   void setHeaderVisible(bool visible);
-  // ワイプの境目の線の位置 (このウィジェットの座標)。試験のために出している。線が出ていなければ、無効な値。
+  // ワイプの境目の線の位置
+  // (このウィジェットの座標)。試験のために出している。線が出ていなければ、無効な値。
   QRect wipeHandleGeometry() const;
   // 境目の線を、ドラッグで動かす (指した位置は、このウィジェットの座標)。試験のために出している。
   void dragWipeLineTo(const QPoint &positionInThis) { dragWipeTo(positionInThis); }
@@ -106,7 +111,8 @@ protected:
 
 Q_SIGNALS:
   void favoriteToggleRequested(int cellIndex);
-  // セルの大きさが変わった (ウィンドウの大きさ、格子、単独表示の変化)。フィットした状態で見ているなら、フィットし直すために使う。
+  // セルの大きさが変わった
+  // (ウィンドウの大きさ、格子、単独表示の変化)。フィットした状態で見ているなら、フィットし直すために使う。
   void cellResized();
   void panRequested(int cellIndex, double deltaImageX, double deltaImageY);
   void zoomRequested(int cellIndex, double zoomFactor, double anchorImageX, double anchorImageY);
@@ -129,6 +135,8 @@ Q_SIGNALS:
   // 帯で差分の指定を変えた / 閉じた。右クリックから始める / やめる。
   void diffChangeRequested(int cellIndex, const heiran::domain::CellDiff &diff);
   void diffStopRequested(int cellIndex);
+  void diffRegionStepRequested(int cellIndex, int direction);
+  void diffBlinkRequested(int cellIndex, bool enabled);
   void diffStartRequested(int cellIndex, int baseCell);
   void wipeStartRequested(int cellIndex, int baseCell);
   void resetCellDisplayRequested(int cellIndex);
@@ -147,7 +155,7 @@ private:
   QPoint originalFilePixelForDisplayPixel(const QPoint &displayPixel) const;
   void rebuildDisplayImage();
   const QImage &displayImage() const;
-  DisplayTransformParams displayTransformParams() const;
+  DisplayTransformParams displayTransformParams(const QColorSpace &sourceOverride = {}) const;
   void rebuildOverlayCache();
   // 差分の帯を、画像の面の上端へ重ねる (レイアウトには入れない。画像の位置をずらさないため)。
   void placeDiffBar();
@@ -232,6 +240,7 @@ private:
   bool diffMenuHasDiff_ = false;
   bool diffMenuIsWipe_ = false;
   DiffBarWidget *diffBar_ = nullptr;
+  QRect diffRegion_;
   bool diffBarEnabled_ = false;
   QString diffTitle_;
   CellHeaderWidget *headerWidget_ = nullptr;

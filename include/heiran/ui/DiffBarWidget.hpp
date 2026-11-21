@@ -19,7 +19,8 @@ QT_END_NAMESPACE
 
 namespace heiran::ui {
 
-// 差分を出しているセルの上に置く、小さな帯。帯には、求め方と、差の数値指標だけを出す (狭いセルでは、指標を省略記号で切る)。
+// 差分を出しているセルの上に置く、小さな帯。帯には、求め方と、差の数値指標だけを出す
+// (狭いセルでは、指標を省略記号で切る)。
 // 基準と比べる側のセル、見せ方、倍率、閾値、大きさの合わせ方は、歯車のボタンで開くポップアップに置く。
 // 変えると `diffChanged` で新しい指定を返す。
 class DiffBarWidget : public QWidget {
@@ -34,6 +35,8 @@ public:
                bool ownsImage);
   // 求めた指標か、作れなかった理由。
   void setResult(const std::optional<heiran::domain::DiffMetrics> &metrics, const QString &message);
+  void setRegionProgress(qsizetype index, qsizetype count);
+  void setBlinking(bool enabled);
 
   heiran::domain::CellDiff currentDiff() const;
   // 指標の全文 (帯が狭くて切れていても、全文を返す)。
@@ -44,6 +47,8 @@ public:
 Q_SIGNALS:
   void diffChanged(const heiran::domain::CellDiff &diff);
   void closeRequested();
+  void regionStepRequested(int direction);
+  void blinkRequested(bool enabled);
 
 private:
   void emitChange();
@@ -62,6 +67,10 @@ private:
   QDoubleSpinBox *wipePositionSpinBox_ = nullptr;
   QCheckBox *autoRangeCheckBox_ = nullptr;
   QLabel *resultLabel_ = nullptr;
+  QLabel *regionLabel_ = nullptr;
+  QToolButton *previousRegion_ = nullptr;
+  QToolButton *nextRegion_ = nullptr;
+  QToolButton *blinkButton_ = nullptr;
   QToolButton *closeButton_ = nullptr;
   QToolButton *settingsButton_ = nullptr;
   QFrame *settingsPopup_ = nullptr;

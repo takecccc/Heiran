@@ -362,12 +362,19 @@ protected:
 class ImageCanvasWidget final : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
   explicit ImageCanvasWidget(ImageViewWidget *owner)
-      : QOpenGLWidget(owner), owner_(owner), fileDragController_(this) {
+      : QOpenGLWidget(owner), owner_(owner), fileDragController_(this), diffBlinkTimer_(this) {
     setMouseTracking(true);
     setAcceptDrops(true);
     // 画像をクリックしたら操作の対象をビューアへ戻す。ツールバーの入力欄を
     // 触った後でも、画像を触れば矢印キーがページ送りへ戻る。
     setFocusPolicy(Qt::ClickFocus);
+    diffBlinkTimer_.setObjectName("diffBlinkTimer");
+    diffBlinkTimer_.setInterval(500);
+    connect(&diffBlinkTimer_, &QTimer::timeout, this, [this]() {
+      blinkFrame_ = 1 - blinkFrame_;
+      ++owner_->imageGeneration_;
+      requestCoalescedUpdate();
+    });
 
     // 画面へ出た間隔を測る。連続して出ていない限り記録しない。止まっている間の
     // 長い間隔が混ざると、なめらかさの目安にならない。
@@ -623,7 +630,7 @@ protected:
       }
 
       if (uploadedImageGeneration_ != owner_->imageGeneration_) {
-        renderer_.setImage(owner_->decodedImage_);
+        renderer_.setImage(isDiffBlinking() ? blinkImages_[blinkFrame_] : owner_->decodedImage_);
         uploadedImageGeneration_ = owner_->imageGeneration_;
       }
 
@@ -638,7 +645,9 @@ protected:
         const bool smooth = minifying ? owner_->minifyFilter_ == MinifyFilter::Area
                                       : owner_->magnifyFilter_ == MagnifyFilter::Smooth;
         // 透過画素の下地は画像と同じ四角形の中でシェーダが合成する。
-        renderer_.draw(owner_->displayTransformParams(), projectedImageRect, size(),
+        const QColorSpace blinkSpace =
+            isDiffBlinking() ? QColorSpace(QColorSpace::SRgb) : QColorSpace();
+        renderer_.draw(owner_->displayTransformParams(blinkSpace), projectedImageRect, size(),
                        devicePixelRatioF(), smooth, owner_->transparencyBackground_);
       }
 
@@ -653,6 +662,18 @@ protected:
     }
 
     if (hasImage) {
+      const QRectF region = owner_->diffRegionInDisplay();
+      if (!region.isEmpty()) {
+        const QRectF projected((region.x() - finalState.offsetX) * finalState.scale,
+                               (region.y() - finalState.offsetY) * finalState.scale,
+                               region.width() * finalState.scale,
+                               region.height() * finalState.scale);
+        const QRectF outline = projected.adjusted(-2, -2, 2, 2);
+        painter.setPen(QPen(Qt::black, 3));
+        painter.drawRect(outline);
+        painter.setPen(QPen(palette().color(QPalette::Highlight), 1));
+        painter.drawRect(outline);
+      }
       paintCellOverlays(&painter,
                         {.scale = finalState.scale,
                          .offsetX = finalState.offsetX,
@@ -969,12 +990,35 @@ protected:
 
 public:
   void setFileDragSource(const QString &path) { fileDragController_.setSourceFile(path); }
+  bool isDiffBlinking() const { return diffBlinkTimer_.isActive(); }
+
+  void setDiffBlinkFrames(std::array<QImage, 2> frames) {
+    const bool enable = !frames[0].isNull() && !frames[1].isNull();
+    if (!enable && !isDiffBlinking()) {
+      return;
+    }
+    if (enable) {
+      for (size_t i = 0; i < frames.size(); ++i) {
+        blinkImages_[i].displayImage = std::move(frames[i]);
+      }
+      blinkFrame_ = 0;
+      diffBlinkTimer_.start();
+    } else {
+      diffBlinkTimer_.stop();
+      blinkImages_ = {};
+    }
+    ++owner_->imageGeneration_;
+    requestCoalescedUpdate();
+  }
 
 private:
   ImageViewWidget *owner_;
   FileDragController fileDragController_;
   GpuImageRenderer renderer_;
   PageWheelController pageWheelController_;
+  QTimer diffBlinkTimer_;
+  std::array<heiran::infra::DecodedImage, 2> blinkImages_;
+  size_t blinkFrame_ = 0;
   // renderer_ へ載せた画像の世代。owner_ 側の世代と違えばテクスチャを作り直す。
   quint64 uploadedImageGeneration_ = 0;
   QElapsedTimer presentTimer_;
@@ -1042,14 +1086,23 @@ ImageViewWidget::ImageViewWidget(QWidget *parent) : QWidget(parent) {
           });
   connect(diffBar_, &DiffBarWidget::closeRequested, this,
           [this]() { Q_EMIT diffStopRequested(cellIndex_); });
+  connect(diffBar_, &DiffBarWidget::regionStepRequested, this,
+          [this](int direction) { Q_EMIT diffRegionStepRequested(cellIndex_, direction); });
+  connect(diffBar_, &DiffBarWidget::blinkRequested, this,
+          [this](bool enabled) { Q_EMIT diffBlinkRequested(cellIndex_, enabled); });
   layout->addWidget(headerWidget_);
   layout->addWidget(canvasWidget_, 1);
 }
 
 void ImageViewWidget::setDiffBar(const std::optional<heiran::domain::CellDiff> &diff,
                                  const QStringList &cellLabels, bool ownsImage) {
+  if (!diff && !diffBarEnabled_) {
+    return;
+  }
   diffBarEnabled_ = diff.has_value();
   if (!diff) {
+    setDiffRegion();
+    setDiffBlinkFrames();
     diffBar_->hide();
     wipeDiff_.reset();
     updateWipeHandle();
@@ -1131,6 +1184,35 @@ void ImageViewWidget::resizeEvent(QResizeEvent *event) {
 void ImageViewWidget::setDiffBarResult(const std::optional<heiran::domain::DiffMetrics> &metrics,
                                        const QString &message) {
   diffBar_->setResult(metrics, message);
+}
+
+void ImageViewWidget::setDiffRegion(const QRect &region, qsizetype index, qsizetype count) {
+  diffBar_->setRegionProgress(index, count);
+  if (diffRegion_ != region) {
+    diffRegion_ = region;
+    canvasWidget_->requestCoalescedUpdate();
+  }
+}
+
+QRectF ImageViewWidget::diffRegionInDisplay() const {
+  if (diffRegion_.isEmpty()) {
+    return {};
+  }
+  const heiran::domain::ImageOrientation orientation{.rotationQuarterTurns =
+                                                         cellState_.rotationQuarterTurns,
+                                                     .flipX = cellState_.flipX,
+                                                     .flipY = cellState_.flipY};
+  const auto topLeft = heiran::domain::mapSourceToTransformed(diffRegion_.topLeft(),
+                                                              sourceImage_.size(), orientation);
+  const auto bottomRight = heiran::domain::mapSourceToTransformed(diffRegion_.bottomRight(),
+                                                                  sourceImage_.size(), orientation);
+  return QRectF(QRect(topLeft, bottomRight).normalized());
+}
+
+void ImageViewWidget::setDiffBlinkFrames(std::array<QImage, 2> frames) {
+  canvasWidget_->setDiffBlinkFrames(std::move(frames));
+  diffBar_->setBlinking(canvasWidget_->isDiffBlinking());
+  updateWipeHandle();
 }
 
 void ImageViewWidget::setDiffMenuInfo(const QStringList &cellLabels, bool hasDiff,
@@ -1255,7 +1337,8 @@ void ImageViewWidget::updateWipeHandle() {
   const bool unrotated =
       cellState_.rotationQuarterTurns % 4 == 0 && !cellState_.flipX && !cellState_.flipY;
   const QSize imageSize = displayImageSize();
-  if (!wipeDiff_ || !unrotated || imageSize.isEmpty() || !hasImage() || canvasWidget_ == nullptr) {
+  if (!wipeDiff_ || !unrotated || imageSize.isEmpty() || !hasImage() || canvasWidget_ == nullptr ||
+      canvasWidget_->isDiffBlinking()) {
     wipeHandleWidget_->hide();
     return;
   }
@@ -1577,9 +1660,11 @@ const QColorSpace &ImageViewWidget::resolvedDisplayColorSpace() const {
   return displayColorSpace_;
 }
 
-DisplayTransformParams ImageViewWidget::displayTransformParams() const {
+DisplayTransformParams ImageViewWidget::displayTransformParams(
+    const QColorSpace &sourceOverride) const {
   const QColorSpace &displayColorSpace = resolvedDisplayColorSpace();
-  const QColorSpace &sourceColorSpace = effectiveColorSpace();
+  const QColorSpace &sourceColorSpace =
+      sourceOverride.isValid() ? sourceOverride : effectiveColorSpace();
   const bool needsConversion = sourceColorSpace.isValid() && displayColorSpace.isValid() &&
                                sourceColorSpace != displayColorSpace;
   // 行列と曲線で表せる組み合わせはそのまま計算する。表せない場合 (LUT を持つ
@@ -1598,7 +1683,7 @@ DisplayTransformParams ImageViewWidget::displayTransformParams() const {
       .gamma = cellState_.gamma,
       .exposureStops = exposureStops_,
       .invert = cellState_.invert,
-      .lumaWeights = lumaWeights_,
+      .lumaWeights = sourceOverride.isValid() ? lumaWeightsFor(sourceColorSpace) : lumaWeights_,
       .colorManaged = colorManaged,
       .colorTransform = colorManaged ? makeColorTransformParams(sourceColorSpace, displayColorSpace)
                                      : ColorTransformParams{},
