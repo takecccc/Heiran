@@ -252,20 +252,23 @@ CPack の該当部分が変わった場合は configure を失敗させるため
 配布物は、リポジトリへ入れず、GitHub の Releases に添付する。手順は `scripts/release.ps1` が二段に分けて行う。
 前提は、`main` にいること、作業ツリーがきれいなこと、`uv` と `makensis` があること、公開には `gh` (GitHub CLI) へログイン済みなこと。
 
-1. **版を上げる。** `./scripts/release.ps1 -Version 1.0.0` を実行する。`CMakeLists.txt` と `vcpkg.json` の版が違えば、
+1. **リリースノートを用意する。** `manual/release-notes/v1.0.0.md` に、版名をレベル 1 の見出し (`# Heiran 1.0.0`) として置き、変更点と配布案内を書く。
+   [リリースノートの目次](./manual/release-notes/index.md) の先頭にその版を加え、`./scripts/build-manual.ps1` で表示を確認し、配布準備の前にコミットする。
+2. **版を上げる。** `./scripts/release.ps1 -Version 1.0.0` を実行する。`CMakeLists.txt` と `vcpkg.json` の版が違えば、
    書き換えて止まる。差分を確かめてコミットし、もう一度実行する。
-2. **準備 (同じコマンド)。** Release 構成で `build-release/` へ作り直し、テストを通し、`-Fast` なしでパッケージを作る。
+3. **準備 (同じコマンド)。** Release 構成で `build-release/` へ作り直し、テストを通し、`-Fast` なしでパッケージを作る。
    続けて、ZIP を一時フォルダへ展開し (PATH から Qt を外して)、`heiran.exe` が起動し続けるかを確かめる。
    成果物は `build-release/release/` に出る (インストーラ、ZIP、`SHA256SUMS.txt`、`release-notes.md`)。
+   `release-notes.md` はマニュアルの各版の本文に、確定した配布ファイルの SHA-256 を加えて生成する。
    - アプリを確実に作り直したいときは `-CleanBuildDir` (共有の `vcpkg_installed/` は残す)。
    - `-SkipTests`、`-SkipSmokeTest` もある (どちらも、公開前には外さない)。
-3. **手で確かめる。** `release-notes.md` を書き直す。インストーラは、きれいな環境 (VM など) で実行し、
+4. **手で確かめる。** 生成した `release-notes.md` の内容を確認する。本文に修正があればマニュアル側を更新してコミットし、準備をやり直す。インストーラは、きれいな環境 (VM など) で実行し、
    関連付け、アンインストール、VC++ ランタイムの案内を確かめる (レジストリへの書き込みは、スクリプトでは確かめない)。
-4. **公開する。** `./scripts/release.ps1 -Version 1.0.0 -Publish`。準備のときの commit と HEAD が同じかを確かめ、
+5. **公開する。** `./scripts/release.ps1 -Version 1.0.0 -Publish`。準備のときの commit と HEAD が同じかを確かめ、
    `main` と、タグ `v1.0.0` を push し、**下書き (draft)** のリリースを作る。GitHub の画面で内容を確かめて、公開する。
 
-コード署名はしていないため、SmartScreen の警告が出ることがある。リリースノートの雛形 (`resources/release/release-notes.template.md`)
-に、その案内を入れてある。
+版別の本文がまだない場合は、[雛形](./resources/release/release-notes.template.md) とコミット一覧から下書きを生成する。
+コード署名はしていないため、リリースノートには SmartScreen の警告が出る場合があることを記載する。
 
 ## ライセンスの表記
 

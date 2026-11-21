@@ -36,3 +36,4 @@
 - 未着手の作業は [open_tasks.md](../open_tasks.md) に書く (要件定義には、状態だけを書く)。
 - 作業のルールは [AGENTS.md](../AGENTS.md) にある。
 - 利用者向けのマニュアルは、設計文書ではなく、[manual/](../manual/index.md) にある (アプリの Help > Manual から開く)。
+- 各版の変更点と配布案内は、マニュアルの [リリースノート](../manual/release-notes/index.md) にある。

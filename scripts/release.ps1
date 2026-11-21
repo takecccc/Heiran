@@ -18,7 +18,8 @@ param(
 #   1. ./scripts/release.ps1 -Version 1.0.0
 #        Checks the version, builds a Release package, runs the tests, unpacks the ZIP outside the build tree and starts it,
 #        then writes <BuildDir>/release/ (installer, ZIP, SHA256SUMS.txt, release-notes.md).
-#        Edit release-notes.md, and try the installer by hand (registry writes are not covered here).
+#        Commit manual/release-notes/v1.0.0.md before building. The script appends the package hashes.
+#        Review the generated notes, and try the installer by hand (registry writes are not covered here).
 #   2. ./scripts/release.ps1 -Version 1.0.0 -Publish
 #        Tags, pushes, and creates a draft release. Needs gh (GitHub CLI), logged in.
 #
@@ -265,30 +266,45 @@ Write-Utf8File (Join-Path $releaseDir "SHA256SUMS.txt") (($sumLines -join "`n") 
 $head = (Invoke-Git @("rev-parse", "HEAD") | Select-Object -First 1).Trim()
 Write-Utf8File (Join-Path $releaseDir "commit.txt") ($head + "`n")
 
-# Release notes draft. git prints UTF-8; read it as such.
-$previousTag = $null
-$savedErrorAction = $ErrorActionPreference
-$ErrorActionPreference = "Continue"
-$previousTag = & git -C $repoRoot describe --tags --abbrev=0 --match "v*" 2>$null
-$ErrorActionPreference = $savedErrorAction
-$changes = "(Initial release. Replace this line.)"
-if ($LASTEXITCODE -eq 0 -and $previousTag) {
-  $savedEncoding = [Console]::OutputEncoding
-  [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-  try {
-    $changes = (Invoke-Git @("log", "$previousTag..HEAD", "--pretty=format:- %s")) -join "`n"
-  } finally {
-    [Console]::OutputEncoding = $savedEncoding
+$versionNotesPath = Join-Path $repoRoot "manual\release-notes\$tag.md"
+if (Test-Path -LiteralPath $versionNotesPath -PathType Leaf) {
+  $versionNotes = (Read-Utf8File $versionNotesPath).TrimEnd()
+  $notes = @(
+    $versionNotes
+    ""
+    "## SHA-256"
+    ""
+    '```text'
+    $sumLines
+    '```'
+    ""
+  ) -join "`n"
+} else {
+  # Fallback draft. git prints UTF-8; read it as such.
+  $previousTag = $null
+  $savedErrorAction = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  $previousTag = & git -C $repoRoot describe --tags --abbrev=0 --match "v*" 2>$null
+  $ErrorActionPreference = $savedErrorAction
+  $changes = "(Initial release. Replace this line.)"
+  if ($LASTEXITCODE -eq 0 -and $previousTag) {
+    $savedEncoding = [Console]::OutputEncoding
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    try {
+      $changes = (Invoke-Git @("log", "$previousTag..HEAD", "--pretty=format:- %s")) -join "`n"
+    } finally {
+      [Console]::OutputEncoding = $savedEncoding
+    }
   }
-}
 
-$template = Read-Utf8File (Join-Path $repoRoot "resources\release\release-notes.template.md")
-$notes = $template.Replace("{{VERSION}}", $Version).
-  Replace("{{SHA256_INSTALLER}}", $hashes[$installerName]).
-  Replace("{{SHA256_ZIP}}", $hashes[$zipName]).
-  Replace("{{INSTALLER_NAME}}", $installerName).
-  Replace("{{ZIP_NAME}}", $zipName).
-  Replace("{{CHANGES}}", $changes)
+  $template = Read-Utf8File (Join-Path $repoRoot "resources\release\release-notes.template.md")
+  $notes = $template.Replace("{{VERSION}}", $Version).
+    Replace("{{SHA256_INSTALLER}}", $hashes[$installerName]).
+    Replace("{{SHA256_ZIP}}", $hashes[$zipName]).
+    Replace("{{INSTALLER_NAME}}", $installerName).
+    Replace("{{ZIP_NAME}}", $zipName).
+    Replace("{{CHANGES}}", $changes)
+}
 Write-Utf8File (Join-Path $releaseDir "release-notes.md") $notes
 
 Write-Host ""
@@ -296,6 +312,6 @@ Write-Host "Prepared: $releaseDir"
 Get-ChildItem -Path $releaseDir | ForEach-Object { Write-Host "  $($_.Name)" }
 Write-Host ""
 Write-Host "Next:"
-Write-Host "  1. Edit release-notes.md."
+Write-Host "  1. Review release-notes.md."
 Write-Host "  2. Install the installer on a clean machine (or VM) and check it by hand."
 Write-Host "  3. ./scripts/release.ps1 -Version $Version -Publish   (creates a draft release)"

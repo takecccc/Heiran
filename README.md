@@ -50,6 +50,7 @@ HEIC には対応していません (HEVC の特許の扱いが重いためで�
 
 [Releases](https://github.com/takecccc/Heiran/releases) から、インストーラ (`Heiran-<版>-win64.exe`) か、
 ZIP (`Heiran-<版>-win64.zip`) を入手します。
+版ごとの変更点は、[リリースノート](./manual/release-notes/index.md) で確認できます。
 
 - インストーラ: 実行します。`.hrn` と画像形式の関連付けを、個別に選べます
 - ZIP: 好きな場所へ展開して、`bin` フォルダの `heiran.exe` を起動します

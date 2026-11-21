@@ -22,6 +22,7 @@ hrn-files
 reference
 faq
 glossary
+release-notes/index
 ```
 
 ## このマニュアルについて
