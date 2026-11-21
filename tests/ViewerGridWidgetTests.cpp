@@ -1146,6 +1146,46 @@ private Q_SLOTS:
 
   // ---- 差分のセル ----
 
+  void switchesBetweenPixelAndBackgroundComparison() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    const auto base = fixture.makeImageSet("base", Qt::white, 1);
+    const auto target = fixture.makeImageSet("target", Qt::white, 1);
+    QVERIFY(!base.resolvedPaths.isEmpty() && !target.resolvedPaths.isEmpty());
+    QImage left(base.resolvedPaths.first());
+    QImage right(target.resolvedPaths.first());
+    left.setPixelColor(5, 5, QColor(255, 255, 255, 64));
+    right.setPixelColor(5, 5, QColor(255, 255, 255, 192));
+    QVERIFY(left.save(base.resolvedPaths.first()));
+    QVERIFY(right.save(target.resolvedPaths.first()));
+
+    heiran::ui::ImageComparisonDialog dialog;
+    dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
+    auto *basis = dialog.findChild<QComboBox *>("imageComparisonBasis");
+    auto *ignore = dialog.findChild<QCheckBox *>("imageComparisonIgnoreTransparentRgb");
+    auto *pixels = dialog.findChild<QLabel *>("imageComparisonPixelStatus");
+    auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(basis && ignore && pixels && grid);
+    const auto count = [grid]() {
+      const auto metrics = grid->cellDiffMetrics(2);
+      return metrics ? metrics->exceededPixelCount : -1;
+    };
+    QCOMPARE(basis->currentText(), "Pixel values");
+    QTRY_COMPARE(count(), 1);
+    QTRY_COMPARE(pixels->text(), "Pixels differ.");
+    basis->setCurrentText("Composite on white");
+    QTRY_COMPARE(count(), 0);
+    QVERIFY(!ignore->isEnabled());
+    QCOMPARE(pixels->text(), "Source images:\nPixels differ.");
+    basis->setCurrentText("Composite on black");
+    QTRY_COMPARE(count(), 1);
+    grid->moveToDiffRegion(2, 1);
+    QCOMPARE(grid->diffRegionPosition(2), (std::pair<qsizetype, qsizetype>{1, 1}));
+    basis->setCurrentText("Pixel values");
+    QTRY_VERIFY(grid->diffHasAlphaChanges(2));
+    QVERIFY(ignore->isEnabled());
+  }
+
   void togglesHiddenRgbInTheComparisonAndPixelStatus() {
     SessionFixture fixture;
     QVERIFY(fixture.isValid());

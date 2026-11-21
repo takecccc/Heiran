@@ -2635,6 +2635,17 @@ void ViewerGridWidget::setDiffBlinking(int cellIndex, bool enabled) {
     return;
   }
   const int target = diff->targetCell < 0 ? cellIndex : diff->targetCell;
+  if (comparisonPresentation_ &&
+      diff->settings.comparisonBasis != heiran::domain::DiffComparisonBasis::PixelValues) {
+    const auto input = [this](int index) {
+      const auto &image = cellSources_.at(index);
+      return DiffInput{.image = image.displayImage, .sampler = samplerForSource(image)};
+    };
+    view->setDiffBlinkFrames(prepareDiffCompositeFrames(input(diff->baseCell), input(target),
+                                                        diff->settings.sizeMatch,
+                                                        diff->settings.comparisonBasis));
+    return;
+  }
   const auto displayInSrgb = [this](int index) {
     const auto &source = cellSources_.at(index);
     QImage image = source.displayImage;

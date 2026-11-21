@@ -29,6 +29,7 @@ namespace heiran::ui {
 namespace {
 
 using heiran::app::FileComparisonStatus;
+using heiran::domain::DiffComparisonBasis;
 using heiran::domain::DiffMode;
 using heiran::domain::DiffSizeMatch;
 
@@ -115,6 +116,14 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   calculation_->addItem(tr("Color difference (ΔE00)"), static_cast<int>(DiffMode::DeltaE));
   calculation_->addItem(tr("Structural similarity (SSIM)"), static_cast<int>(DiffMode::Ssim));
   form->addRow(tr("Compare by"), calculation_);
+  comparisonBasis_ = new QComboBox(sidebar);
+  comparisonBasis_->setObjectName("imageComparisonBasis");
+  comparisonBasis_->addItem(tr("Pixel values"), static_cast<int>(DiffComparisonBasis::PixelValues));
+  comparisonBasis_->addItem(tr("Composite on white"),
+                            static_cast<int>(DiffComparisonBasis::WhiteBackground));
+  comparisonBasis_->addItem(tr("Composite on black"),
+                            static_cast<int>(DiffComparisonBasis::BlackBackground));
+  form->addRow(tr("Transparency comparison"), comparisonBasis_);
   threshold_ = new QDoubleSpinBox(sidebar);
   threshold_->setObjectName("imageComparisonThreshold");
   threshold_->setDecimals(3);
@@ -197,6 +206,17 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   });
   connect(threshold_, &QDoubleSpinBox::valueChanged, this,
           &ImageComparisonDialog::applyDiffSettings);
+  connect(comparisonBasis_, &QComboBox::currentIndexChanged, this, [this]() {
+    TransparencyBackground background;
+    const auto basis = comparisonBasis();
+    if (basis != DiffComparisonBasis::PixelValues) {
+      background.solidColor = basis == DiffComparisonBasis::WhiteBackground ? Qt::white : Qt::black;
+    }
+    grid_->setTransparencyBackground(background);
+    applyDiffSettings();
+    applyDisplayMode();
+    updatePixelStatus();
+  });
   connect(ignoreTransparentRgb_, &QCheckBox::toggled, this, [this]() {
     pixelTask_.cancel();
     pixelsStarted_ = false;
@@ -213,11 +233,8 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   connect(grid_, &ViewerGridWidget::cellDiffChanged, this,
           &ImageComparisonDialog::updateComparisonControls);
   connect(grid_, &ViewerGridWidget::imageContentChanged, this, &ImageComparisonDialog::checkPixels);
-  connect(&pixelTask_, &QFutureWatcherBase::finished, this, [this]() {
-    if (!pixelTask_.isCanceled() && pixelTask_.future().resultCount() > 0) {
-      pixelStatus_->setText(pixelTask_.result());
-    }
-  });
+  connect(&pixelTask_, &QFutureWatcherBase::finished, this,
+          &ImageComparisonDialog::updatePixelStatus);
   updateComparisonControls();
 }
 
@@ -450,6 +467,7 @@ void ImageComparisonDialog::applyDiffSettings() {
   }
   diff->settings.mode = static_cast<DiffMode>(calculation_->currentData().toInt());
   diff->settings.threshold = threshold_->value();
+  diff->settings.comparisonBasis = comparisonBasis();
   diff->settings.ignoreFullyTransparentRgb = ignoreTransparentRgb_->isChecked();
   diff->settings.sizeMatch = static_cast<DiffSizeMatch>(sizeMatch_->currentIndex());
   grid_->setCellDiff(kDiffCell, diff);
@@ -474,7 +492,9 @@ void ImageComparisonDialog::updateComparisonControls() {
   calculation_->setEnabled(comparingImages_);
   sizeMatch_->setEnabled(comparingImages_);
   threshold_->setEnabled(comparingImages_);
-  ignoreTransparentRgb_->setEnabled(comparingImages_);
+  comparisonBasis_->setEnabled(comparingImages_);
+  ignoreTransparentRgb_->setEnabled(comparingImages_ &&
+                                    comparisonBasis() == DiffComparisonBasis::PixelValues);
   fit_->setEnabled(preview_->currentWidget() == grid_);
   previousDifference_->setEnabled(changes);
   nextDifference_->setEnabled(changes);
@@ -490,9 +510,24 @@ void ImageComparisonDialog::updateComparisonControls() {
   } else {
     differences_->setText(tr("No changed pixels."));
   }
-  if (ready && grid_->diffHasAlphaChanges(kDiffCell)) {
+  if (ready && comparisonBasis() == DiffComparisonBasis::PixelValues &&
+      grid_->diffHasAlphaChanges(kDiffCell)) {
     differences_->setText(differences_->text() + '\n' + tr("Opacity differs."));
   }
+}
+
+DiffComparisonBasis ImageComparisonDialog::comparisonBasis() const {
+  return static_cast<DiffComparisonBasis>(comparisonBasis_->currentData().toInt());
+}
+
+void ImageComparisonDialog::updatePixelStatus() {
+  if (!pixelsStarted_ || pixelTask_.isCanceled() || pixelTask_.future().resultCount() == 0) {
+    return;
+  }
+  const QString result = pixelTask_.result();
+  pixelStatus_->setText(comparisonBasis() == DiffComparisonBasis::PixelValues
+                            ? result
+                            : tr("Source images:\n%1").arg(result));
 }
 
 void ImageComparisonDialog::checkPixels() {

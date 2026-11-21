@@ -41,6 +41,8 @@ private:
   void applyDisplayMode();
   void applyDiffSettings();
   void updateComparisonControls();
+  heiran::domain::DiffComparisonBasis comparisonBasis() const;
+  void updatePixelStatus();
   void checkPixels();
   QString fileStatus(heiran::app::FileComparisonStatus status) const;
   const heiran::app::FolderComparisonEntry *currentEntry() const;
@@ -58,6 +60,7 @@ private:
   QPushButton *externalViewer_;
   QComboBox *display_;
   QComboBox *calculation_;
+  QComboBox *comparisonBasis_;
   QComboBox *sizeMatch_;
   QDoubleSpinBox *threshold_;
   QCheckBox *ignoreTransparentRgb_;

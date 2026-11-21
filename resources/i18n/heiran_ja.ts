@@ -3942,5 +3942,32 @@ Right: %2</source>
         <source>Ignore RGB differences where both images are fully transparent.</source>
         <translation>両方の画像でアルファ値が 0 の画素の RGB 差を無視します。</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="121"/>
+        <source>Pixel values</source>
+        <translation>画素値で比較</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="122"/>
+        <source>Composite on white</source>
+        <translation>白背景に合成</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="124"/>
+        <source>Composite on black</source>
+        <translation>黒背景に合成</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="126"/>
+        <source>Transparency comparison</source>
+        <translation>透明度の比較</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="529"/>
+        <source>Source images:
+%1</source>
+        <translation>原画像の確認
+%1</translation>
+    </message>
 </context>
 </TS>

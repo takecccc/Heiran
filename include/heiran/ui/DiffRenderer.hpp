@@ -49,6 +49,9 @@ enum class DiffFieldKind {
 struct DiffInspection {
   QSize baseSize;
   QSize targetSize;
+  heiran::domain::DiffComparisonBasis comparisonBasis =
+      heiran::domain::DiffComparisonBasis::PixelValues;
+  QImage compositedBase;
   bool ignoreFullyTransparentRgb = false;
   std::vector<unsigned char> alphaChanged;
   std::vector<unsigned char> bothTransparent;
@@ -68,6 +71,9 @@ QVector<QRect> findDiffRegions(const DiffField &field, double threshold);
 std::array<QImage, 2> prepareDiffBlinkFrames(const QImage &base, const QImage &target,
                                              heiran::domain::DiffSizeMatch sizeMatch,
                                              bool includeOutsideOverlap = false);
+std::array<QImage, 2> prepareDiffCompositeFrames(const DiffInput &base, const DiffInput &target,
+                                                 heiran::domain::DiffSizeMatch sizeMatch,
+                                                 heiran::domain::DiffComparisonBasis basis);
 
 DiffFieldKind diffFieldKindOf(heiran::domain::DiffMode mode);
 

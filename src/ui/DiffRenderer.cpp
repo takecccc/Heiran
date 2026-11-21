@@ -5,6 +5,7 @@
 #include "heiran/infra/ParallelRows.hpp"
 
 #include <QCoreApplication>
+#include <QPainter>
 #include <QRect>
 #include <QVector>
 #include <algorithm>
@@ -18,6 +19,7 @@ namespace heiran::ui {
 
 namespace {
 
+using heiran::domain::DiffComparisonBasis;
 using heiran::domain::DiffMode;
 using heiran::domain::DiffViewMode;
 
@@ -422,11 +424,14 @@ QImage renderInspection(const DiffField &field, const QImage &base, double thres
                         heiran::domain::DiffMetrics &metrics) {
   const auto size = diffCanvasSize(field);
   const bool overlapOnly = field.sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
-  QImage result = matchDisplayImage(base, size, overlapOnly);
+  const auto &inspection = *field.inspection;
+  const bool composited = inspection.comparisonBasis != DiffComparisonBasis::PixelValues;
+  QImage result =
+      composited ? inspection.compositedBase : matchDisplayImage(base, size, overlapOnly);
   if (result.isNull()) {
     return {};
   }
-  if (overlapOnly) {
+  if (overlapOnly && !composited) {
     const auto area = [](const QSize &s) { return qint64(s.width()) * s.height(); };
     metrics.pixelCount =
         area(field.inspection->baseSize) + area(field.inspection->targetSize) - area(field.size);
@@ -474,6 +479,45 @@ std::array<QImage, 2> prepareDiffBlinkFrames(const QImage &base, const QImage &t
   const QSize size = overlapOnly && includeOutsideOverlap ? base.size().expandedTo(target.size())
                                                           : comparisonSize(base, target, sizeMatch);
   return {matchDisplayImage(base, size, overlapOnly), matchDisplayImage(target, size, overlapOnly)};
+}
+
+std::array<QImage, 2> prepareDiffCompositeFrames(const DiffInput &base, const DiffInput &target,
+                                                 heiran::domain::DiffSizeMatch sizeMatch,
+                                                 DiffComparisonBasis basis) {
+  if (base.image.isNull() || target.image.isNull() || basis == DiffComparisonBasis::PixelValues) {
+    return {};
+  }
+  const bool overlapOnly = sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
+  const QSize canvas = overlapOnly ? base.image.size().expandedTo(target.image.size())
+                                   : comparisonSize(base.image, target.image, sizeMatch);
+  const Qt::GlobalColor background =
+      basis == DiffComparisonBasis::WhiteBackground ? Qt::white : Qt::black;
+  const QColorSpace srgb(QColorSpace::SRgb);
+  const auto compose = [&](const DiffInput &input) {
+    QImage foreground = input.image;
+    const auto &sourceSpace = input.sampler.decodedImage.colorSpace;
+    if (sourceSpace.isValid() && foreground.colorSpace() != sourceSpace) {
+      foreground.setColorSpace(sourceSpace);
+    }
+    if (foreground.colorSpace().isValid() && foreground.colorSpace() != srgb) {
+      foreground = foreground.convertedToColorSpace(srgb, QImage::Format_RGBA8888);
+    }
+    if (foreground.isNull()) {
+      return QImage();
+    }
+    QImage result(canvas, QImage::Format_RGBA8888);
+    if (result.isNull()) {
+      return result;
+    }
+    result.setColorSpace(srgb);
+    result.fill(background);
+    QPainter painter(&result);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, !overlapOnly);
+    painter.drawImage(QRect(QPoint(), overlapOnly ? foreground.size() : canvas), foreground);
+    painter.end();
+    return result;
+  };
+  return {compose(base), compose(target)};
 }
 
 QVector<QRect> findDiffRegions(const DiffField &field, double threshold) {
@@ -558,10 +602,11 @@ bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings 
   return settings.mode != DiffMode::Wipe && field.kind == diffFieldKindOf(settings.mode) &&
          field.sizeMatch == settings.sizeMatch &&
          (!field.inspection ||
-          field.inspection->ignoreFullyTransparentRgb == settings.ignoreFullyTransparentRgb);
+          (field.inspection->comparisonBasis == settings.comparisonBasis &&
+           field.inspection->ignoreFullyTransparentRgb == settings.ignoreFullyTransparentRgb));
 }
 
-DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
+DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &originalTarget,
                               const heiran::domain::DiffSettings &settings, QString *error,
                               bool inspectCoverageAndAlpha) {
   const auto fail = [&](const QString &message) -> DiffFieldPtr {
@@ -570,10 +615,28 @@ DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
     }
     return nullptr;
   };
-  if (base.image.isNull() || target.image.isNull()) {
+  if (originalBase.image.isNull() || originalTarget.image.isNull()) {
     return fail(
         QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
   }
+  const bool composited =
+      inspectCoverageAndAlpha && settings.comparisonBasis != DiffComparisonBasis::PixelValues;
+  std::array<DiffInput, 2> compositedInputs;
+  if (composited) {
+    const auto frames = prepareDiffCompositeFrames(originalBase, originalTarget, settings.sizeMatch,
+                                                   settings.comparisonBasis);
+    if (frames[0].isNull() || frames[1].isNull()) {
+      return fail(
+          QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
+    }
+    for (size_t i = 0; i < frames.size(); ++i) {
+      compositedInputs[i] = {
+          .image = frames[i],
+          .sampler = {.decodedImage = {.displayImage = frames[i]}, .sourceSize = frames[i].size()}};
+    }
+  }
+  const auto &base = composited ? compositedInputs[0] : originalBase;
+  const auto &target = composited ? compositedInputs[1] : originalTarget;
   const QSize size = comparisonSize(base.image, target.image, settings.sizeMatch);
   const int width = size.width();
   const int height = size.height();
@@ -589,13 +652,18 @@ DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
   field->sizeMatch = settings.sizeMatch;
   field->values.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
   const size_t pixelCount = field->values.size();
-  const bool ignoreTransparent = inspectCoverageAndAlpha && settings.ignoreFullyTransparentRgb;
+  const bool ignoreTransparent = !composited && settings.ignoreFullyTransparentRgb;
   QVector<float> baseAlpha;
   QVector<float> targetAlpha;
   if (inspectCoverageAndAlpha) {
-    field->inspection = DiffInspection{.baseSize = base.image.size(),
-                                       .targetSize = target.image.size(),
-                                       .ignoreFullyTransparentRgb = ignoreTransparent};
+    field->inspection =
+        DiffInspection{.baseSize = originalBase.image.size(),
+                       .targetSize = originalTarget.image.size(),
+                       .comparisonBasis = settings.comparisonBasis,
+                       .compositedBase = composited ? base.image : QImage(),
+                       .ignoreFullyTransparentRgb = settings.ignoreFullyTransparentRgb};
+  }
+  if (inspectCoverageAndAlpha && !composited) {
     const auto alphaPlane = [](const DiffInput &input, const QSize &region) {
       AnalysisSampler sampler = input.sampler;
       sampler.valueSpace = AnalysisValueSpace::Source;

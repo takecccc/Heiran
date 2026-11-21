@@ -31,6 +31,64 @@ class DiffRendererTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void comparesOpacityByItsAppearanceOnTheSelectedBackground_data() {
+    QTest::addColumn<int>("mode");
+    QTest::addColumn<double>("threshold");
+    QTest::newRow("luma") << int(DiffMode::Absolute) << 8.0;
+    QTest::newRow("delta-e") << int(DiffMode::DeltaE) << 2.3;
+    QTest::newRow("ssim") << int(DiffMode::Ssim) << 0.99;
+  }
+
+  void comparesOpacityByItsAppearanceOnTheSelectedBackground() {
+    QFETCH(int, mode);
+    QFETCH(double, threshold);
+    using heiran::domain::DiffComparisonBasis;
+    auto base = solid({32, 24}, 255);
+    auto target = base;
+    base.setPixelColor(9, 10, QColor(255, 255, 255, 64));
+    target.setPixelColor(9, 10, QColor(255, 255, 255, 192));
+    DiffSettings settings{
+        .mode = static_cast<DiffMode>(mode), .view = DiffViewMode::Overlay, .threshold = threshold};
+    settings.comparisonBasis = DiffComparisonBasis::WhiteBackground;
+    const auto white =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(white);
+    const auto whiteResult = renderDiffFromField(*white, makeInput(base), settings);
+    QVERIFY(whiteResult.ok);
+    QCOMPARE(whiteResult.metrics.exceededPixelCount, 0);
+    QCOMPARE(whiteResult.image.pixelColor(9, 10), QColor(Qt::white));
+    QVERIFY(findDiffRegions(*white, settings.threshold).isEmpty());
+
+    settings.comparisonBasis = DiffComparisonBasis::BlackBackground;
+    QVERIFY(!diffFieldServes(*white, settings));
+    const auto black =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(black);
+    const auto blackResult = renderDiffFromField(*black, makeInput(base), settings);
+    QVERIFY(blackResult.ok);
+    QVERIFY(blackResult.metrics.exceededPixelCount > 0);
+    const auto regions = findDiffRegions(*black, settings.threshold);
+    QCOMPARE(regions.size(), 1);
+    QVERIFY(regions.first().contains(QPoint(9, 10)));
+  }
+
+  void comparesVisibleCanvasExtensionsOnTheSelectedBackground() {
+    using heiran::domain::DiffComparisonBasis;
+    const auto base = solid({16, 16}, 255);
+    auto target = solid({32, 16}, 255);
+    target.setPixelColor(31, 7, Qt::black);
+    DiffSettings settings{.view = DiffViewMode::Overlay};
+    settings.comparisonBasis = DiffComparisonBasis::WhiteBackground;
+    const auto field =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(field);
+    const auto result = renderDiffFromField(*field, makeInput(base), settings);
+    QVERIFY(result.ok);
+    QCOMPARE(result.image.size(), target.size());
+    QCOMPARE(result.metrics.exceededPixelCount, 1);
+    QCOMPARE(findDiffRegions(*field, settings.threshold), (QVector<QRect>{QRect(31, 7, 1, 1)}));
+  }
+
   void ignoresHiddenRgbInEveryInspectionMode_data() {
     QTest::addColumn<int>("mode");
     QTest::addColumn<double>("threshold");

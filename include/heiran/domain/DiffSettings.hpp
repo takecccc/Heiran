@@ -34,6 +34,8 @@ enum class WipeOrientation {
   TopBottom,  // 横の境目。上が基準、下が比べる側
 };
 
+enum class DiffComparisonBasis { PixelValues, WhiteBackground, BlackBackground };
+
 struct DiffSettings {
   DiffMode mode = DiffMode::Absolute;
   DiffViewMode view = DiffViewMode::Grayscale;
@@ -50,6 +52,7 @@ struct DiffSettings {
   double wipePosition = 0.5;
   // 専用の画像差分画面で使う。
   bool ignoreFullyTransparentRgb = false;
+  DiffComparisonBasis comparisonBasis = DiffComparisonBasis::PixelValues;
 
   bool operator==(const DiffSettings &) const = default;
 };
