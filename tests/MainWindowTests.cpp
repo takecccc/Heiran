@@ -25,6 +25,7 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
+#include <QPointer>
 #include <QScopeGuard>
 #include <QSignalSpy>
 #include <QSlider>
@@ -1007,6 +1008,32 @@ private Q_SLOTS:
     // 画面の全体へ広がっている。
     auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
     QCOMPARE(welcome->size(), grid->size());
+  }
+
+  void keepsTheCurrentImageReadyWhenChangingLayout() {
+    QTemporaryDir directory;
+    const auto paths = writeImageFiles(directory.path(), 2);
+    QCOMPARE(paths.size(), 2);
+    heiran::ui::MainWindow window;
+    window.openImageFiles({paths.first()});
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    grid->setCurrentPage(1);
+    const QPointer cell = grid->findChild<heiran::ui::ImageViewWidget *>();
+    QVERIFY(cell);
+    QTRY_COMPARE(cell->cellStatus(), heiran::ui::CellStatus::Ready);
+    const QImage image = cell->currentImage();
+
+    auto *layoutMenu = findMenu(window.menuBar(), "&Layout");
+    QVERIFY(layoutMenu);
+    const auto actions = layoutMenu->actions().at(1)->menu()->actions();
+    QCOMPARE(actions.last()->text(), QString("2x1"));
+    actions.last()->trigger();
+
+    QCOMPARE(grid->currentPage(), 1);
+    QCOMPARE(grid->findChildren<heiran::ui::ImageViewWidget *>().size(), 2);
+    QVERIFY(cell);
+    QCOMPARE(cell->cellStatus(), heiran::ui::CellStatus::Ready);
+    QCOMPARE(cell->currentImage(), image);
   }
 
   // 格子を減らしたとき (1x2 から 1x1

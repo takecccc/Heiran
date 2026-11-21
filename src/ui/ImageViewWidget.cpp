@@ -1140,10 +1140,11 @@ void ImageViewWidget::setDiffMenuInfo(const QStringList &cellLabels, bool hasDif
 }
 
 void ImageViewWidget::setCellInfo(const heiran::domain::ImageSet *imageSet, int imageSetIndex,
-                                  int cellIndex) {
+                                  int cellIndex, const QString &sessionDirectory) {
   imageSet_ = imageSet;
   imageSetIndex_ = imageSetIndex;
   cellIndex_ = cellIndex;
+  sessionDirectory_ = sessionDirectory;
   updateColorSpaceOverride();
   updateLumaWeights();
   rebuildDisplayImage();
@@ -1190,18 +1191,6 @@ void ImageViewWidget::setColorLutOptions(const ColorLutOptions &options) {
   colorLutOptions_ = options;
   // 焼き直しが要る。次に引かれたときに作り直す。
   colorLut_.reset();
-  rebuildDisplayImage();
-  update();
-}
-
-void ImageViewWidget::setSessionDirectory(const QString &sessionDirectory) {
-  if (sessionDirectory_ == sessionDirectory) {
-    return;
-  }
-
-  sessionDirectory_ = sessionDirectory;
-  updateColorSpaceOverride();
-  updateLumaWeights();
   rebuildDisplayImage();
   update();
 }

@@ -1910,8 +1910,8 @@ void MainWindow::applyLayout(int rows, int cols) {
     return;
   }
   pushUndo(std::move(before));
-  applyCurrentSessionToUi();
-  viewerGrid_->setCurrentPage(page);
+  viewerGrid_->setSessionPreservingView(currentSession_, page);
+  refreshSessionDependentUi();
   dirtyStateController_.setDirty(true);
 }
 
@@ -1962,7 +1962,8 @@ void MainWindow::applyLayoutOrder(const QString &order) {
     return;
   }
   pushUndo(std::move(before));
-  applyCurrentSessionToUi();
+  viewerGrid_->setSessionPreservingView(currentSession_);
+  refreshSessionDependentUi();
   dirtyStateController_.setDirty(true);
 }
 

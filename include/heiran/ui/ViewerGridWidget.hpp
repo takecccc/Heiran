@@ -231,10 +231,14 @@ protected:
   void showEvent(QShowEvent *event) override;
 
 private:
+  enum class SessionUpdate { Replace, Relayout };
+
+  void updateSession(const heiran::domain::SessionModel &session, int initialPage,
+                     SessionUpdate update, std::shared_ptr<DecodeScheduler> startupScheduler = {});
   void handleDecodeCompleted(const DecodeCompletion &completion);
   void rebuildCellStates();
   void refreshCellStatesFromSession();
-  void rebuildGrid();
+  void rebuildGrid(bool reuseCells);
   // 単独表示の状態に合わせて、セルを格子へ置き直す。
   void applySoloLayout();
   // 操作の対象のセルの枠を、いまの状態に合わせる (複数のセルが見えているときだけ出す)。

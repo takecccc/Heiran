@@ -150,7 +150,18 @@ void ViewerGridWidget::handleDecodeCompleted(const DecodeCompletion &notificatio
 
 void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, int initialPage,
                                   std::shared_ptr<DecodeScheduler> startupScheduler) {
+  updateSession(session, initialPage, SessionUpdate::Replace, std::move(startupScheduler));
+}
+
+void ViewerGridWidget::updateSession(const heiran::domain::SessionModel &session, int initialPage,
+                                     SessionUpdate update,
+                                     std::shared_ptr<DecodeScheduler> startupScheduler) {
   Q_EMIT sessionAboutToChange();
+  const bool relayout = update == SessionUpdate::Relayout;
+  const bool suspendUpdates = relayout && updatesEnabled();
+  if (suspendUpdates) {
+    setUpdatesEnabled(false);
+  }
   session_ = session;
   globalState_ = {};
   pageNavigation_.setPages(std::nullopt);
@@ -169,7 +180,9 @@ void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, i
   previewSelectionReferenceCellIndex_ = -1;
   hoverCursorPosition_.reset();
   hoverReferenceCellIndex_ = -1;
-  clearDecodeCache();
+  if (!relayout) {
+    clearDecodeCache();
+  }
   if (startupScheduler) {
     disconnect(decodeScheduler_.get(), nullptr, this, nullptr);
     decodeScheduler_ = std::move(startupScheduler);
@@ -180,11 +193,11 @@ void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, i
     }
   }
   rebuildCellStates();
-  // 作り直すと、セルは新しくなる。単独表示は、いったん抜ける
+  // 格子を更新するときは、単独表示を抜ける
   // (ファイルを開く、格子の変更、画像セットの編集)。
   const bool wasSolo = soloCell_ >= 0;
   soloCell_ = -1;
-  rebuildGrid();
+  rebuildGrid(relayout);
   if (wasSolo) {
     Q_EMIT soloCellChanged(-1);
   }
@@ -195,6 +208,9 @@ void ViewerGridWidget::setSession(const heiran::domain::SessionModel &session, i
     applyPendingFit();
   }
   updateStatus();
+  if (suspendUpdates) {
+    setUpdatesEnabled(true);
+  }
   Q_EMIT sessionChanged(true);
 }
 
@@ -204,7 +220,8 @@ void ViewerGridWidget::setSessionPreservingView(const heiran::domain::SessionMod
                              session_.viewer.layout.cols != session.viewer.layout.cols ||
                              session_.viewer.layout.order != session.viewer.layout.order;
   if (layoutChanged || cells_.size() != session.viewer.layout.rows * session.viewer.layout.cols) {
-    setSession(session, std::max(0, page));
+    const int targetPage = page >= 0 ? page : globalState_.currentPage;
+    updateSession(session, targetPage, SessionUpdate::Relayout);
     return;
   }
 
@@ -1176,12 +1193,20 @@ void ViewerGridWidget::refreshCellStatesFromSession() {
   }
 }
 
-void ViewerGridWidget::rebuildGrid() {
+void ViewerGridWidget::rebuildGrid(bool reuseCells) {
+  const int rows = session_.viewer.layout.rows;
+  const int cols = session_.viewer.layout.cols;
+  const int cellCount = rows * cols;
   cellSources_.clear();
   cellSourceSerial_.clear();
   diffStates_.clear();
-  qDeleteAll(cells_);
-  cells_.clear();
+  if (!reuseCells) {
+    qDeleteAll(cells_);
+    cells_.clear();
+  }
+  while (cells_.size() > cellCount) {
+    delete cells_.takeLast();
+  }
 
   while (QLayoutItem *item = layout_->takeAt(0)) {
     delete item;
@@ -1197,12 +1222,7 @@ void ViewerGridWidget::rebuildGrid() {
     layout_->setRowMinimumHeight(index, 0);
   }
 
-  const int rows = session_.viewer.layout.rows;
-  const int cols = session_.viewer.layout.cols;
-  const int cellCount = rows * cols;
-  const bool columnFirst = session_.viewer.layout.order == "col-major";
-
-  for (int cellIndex = 0; cellIndex < cellCount; ++cellIndex) {
+  while (cells_.size() < cellCount) {
     auto *view = new ImageViewWidget(this);
     connect(view, &ImageViewWidget::cellResized, this, [this, view]() {
       if (!cells_.isEmpty() && cells_.at(sizeReferenceCell()) == view) {
@@ -1314,13 +1334,16 @@ void ViewerGridWidget::rebuildGrid() {
       setActiveCell(requestedCellIndex);
       clearSelection();
     });
-    view->setChannelMode(cellIndex < channelModes_.size() ? channelModes_.at(cellIndex)
-                                                          : ChannelMode::Color);
+    cells_.push_back(view);
+  }
 
+  const bool columnFirst = session_.viewer.layout.order == "col-major";
+  for (int cellIndex = 0; cellIndex < cellCount; ++cellIndex) {
     const int row = columnFirst ? (cellIndex % rows) : (cellIndex / cols);
     const int col = columnFirst ? (cellIndex / rows) : (cellIndex % cols);
+    auto *view = cells_.at(cellIndex);
+    view->setChannelMode(channelModes_.at(cellIndex));
     layout_->addWidget(view, row, col);
-    cells_.push_back(view);
   }
   // どのセルも同じ大きさにする。差分の帯のように、中身の希望の大きさが違っても揃える。
   for (int row = 0; row < rows; ++row) {
@@ -1333,6 +1356,13 @@ void ViewerGridWidget::rebuildGrid() {
   refreshCellImages();
   refreshCellViewStates();
   refreshSelectionOverlays();
+  if (reuseCells) {
+    updateActiveFrames();
+    for (auto *view : cells_) {
+      view->show();
+    }
+    layout_->activate();
+  }
   schedulePrefetchAroundCurrentPage();
 }
 
@@ -1424,9 +1454,8 @@ void ViewerGridWidget::refreshCellImages() {
     const auto cellConfig = heiran::domain::cellConfigAt(session_, cellIndex);
 
     // ICC ファイルの相対経路は `.hrn` のある場所を基準にする。
-    view->setSessionDirectory(session_.sessionDirectory);
     view->setCellInfo(heiran::domain::imageSetForCell(session_, cellIndex), cellConfig.imageIndex,
-                      cellIndex);
+                      cellIndex, session_.sessionDirectory);
     updateCellImage(cellIndex, true);
     updateDiffUi(cellIndex);
   }

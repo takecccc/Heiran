@@ -34,7 +34,8 @@ public:
   explicit ImageViewWidget(QWidget *parent = nullptr);
   void setFavorite(bool favorite, bool available);
 
-  void setCellInfo(const heiran::domain::ImageSet *imageSet, int imageSetIndex, int cellIndex);
+  void setCellInfo(const heiran::domain::ImageSet *imageSet, int imageSetIndex, int cellIndex,
+                   const QString &sessionDirectory);
   void setAvailableImageNames(const QStringList &imageNames);
   // 差分の帯 (画像の上の小さな設定欄)。`diff` が空なら隠す。`cellLabels` は選べるセルの名前、
   // `ownsImage` は、このセル自身の画像が比べる側か。
@@ -66,7 +67,6 @@ public:
   void setCursorStyle(CursorStyle style);
   bool bordersVisible() const { return bordersVisible_; }
   void setDisplayProfile(DisplayProfileMode mode, const QString &profilePath);
-  void setSessionDirectory(const QString &sessionDirectory);
   void setAnalysisValueSpace(AnalysisValueSpace valueSpace);
   void setColorLutOptions(const ColorLutOptions &options);
   void setViewState(const heiran::domain::GlobalViewState &globalState,
