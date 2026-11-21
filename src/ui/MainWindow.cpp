@@ -1361,7 +1361,7 @@ void MainWindow::openPreparedImages(const PreparedImageSession &prepared,
   // 直接開いた画像は「普通に見る」使い方で、アニメーションは動くものと思って開く。
   // .hrn は比較が目的で、フレームを合わせて見るため止めたまま始める。
   // アニメーションが無いファイルでは何も動かない。
-  viewerGrid_->setAnimationPlaying(true);
+  viewerGrid_->setAnimationPlaying(!prepared.externalDiff);
   updateAnimationActions();
 
   viewerGrid_->setCurrentPage(prepared.initialPage);
@@ -1373,7 +1373,9 @@ void MainWindow::openPreparedImages(const PreparedImageSession &prepared,
   // 画像を直接開いた場合は必ず全体を出す。4K を等倍で出すと隅しか見えない。
   viewerGrid_->requestFitToCells();
 
-  rememberRecentImages(prepared.sourcePaths);
+  if (!prepared.externalDiff) {
+    rememberRecentImages(prepared.sourcePaths);
+  }
 
   // 起動時に開いただけの状態を未保存扱いにすると、閉じるたびに保存を聞かれる。
   // .hrn として残したい場合は Save As を使う。

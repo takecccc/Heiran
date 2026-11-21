@@ -109,6 +109,32 @@
 
 ## 差分
 
+### TortoiseGit などから差分を開く
+
+`--diff` を付けて画像を 2 枚渡すと、左から基準画像、比較画像、差分を表示します。差分は基準画像の上に強調して表示します。
+比較するファイルは指定した 2 枚です。`--left-title` と `--right-title` を使うと、セルの表示名にリビジョン名などを使えます。
+
+```powershell
+& "C:\Program Files\Heiran\bin\heiran.exe" --diff "before.png" "after.png"
+```
+
+TortoiseGit の **設定** (Settings) で **差分ビューアー** (Diff Viewer) を開き、**詳細設定** (Advanced) で `.png` などの拡張子ごとに次のコマンドを登録します。
+実行ファイルのパスはインストール先に合わせてください。`%base`、`%mine`、`%bname`、`%yname` は TortoiseGit が展開します。
+
+```text
+"C:\Program Files\Heiran\bin\heiran.exe" --diff --left-title %bname --right-title %yname %base %mine
+```
+
+[TortoiseGit の設定マニュアル](https://tortoisegit.org/docs/tortoisegit/tgit-dug-settings.html)
+
+Git Bash では、`git difftool` の外部コマンドにも指定できます。
+
+```bash
+git difftool --no-prompt --extcmd='"/c/Program Files/Heiran/bin/heiran.exe" --diff' HEAD -- path/to/image.png
+```
+
+[git difftool のマニュアル](https://git-scm.com/docs/git-difftool)
+
 2 枚の画像の違いを、画像として出します。**比べる側 − 基準** の明るさの差を使います。
 
 ### 差分をセルとして並べる

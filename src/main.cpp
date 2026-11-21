@@ -9,10 +9,12 @@
 #include "heiran/ui/StartupPreparationController.hpp"
 
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QFileInfo>
 #include <QFontMetrics>
 #include <QFutureSynchronizer>
 #include <QIcon>
@@ -88,9 +90,33 @@ int main(int argc, char *argv[]) {
   // .hrn を 1 つ渡された場合はセッションとして開く。それ以外は画像として開く。
   // 関連付けから複数選択で起動された場合は引数が複数並ぶ。
   std::optional<QString> sessionPath;
+  std::optional<heiran::ui::StartupDiffTitles> diffTitles;
   QStringList imagePaths;
   const QStringList arguments = QCoreApplication::arguments();
-  if (arguments.size() == 2 && arguments.at(1).endsWith(".hrn", Qt::CaseInsensitive)) {
+  if (arguments.value(1) == "--diff") {
+    QCommandLineParser parser;
+    parser.addOptions({QCommandLineOption("diff"), QCommandLineOption("left-title", {}, "title"),
+                       QCommandLineOption("right-title", {}, "title")});
+    const auto showError = [](const QString &message) {
+      QMessageBox::critical(nullptr, QCoreApplication::translate("main", "Heiran"), message);
+    };
+    if (!parser.parse(arguments) || parser.positionalArguments().size() != 2) {
+      showError(QCoreApplication::translate(
+          "main", "Image diff requires two file paths.\n"
+                  "Usage: heiran --diff [--left-title title] [--right-title title] left right"));
+      return 1;
+    }
+    imagePaths = parser.positionalArguments();
+    for (const auto &path : imagePaths) {
+      if (!QFileInfo(path).isFile()) {
+        showError(
+            QCoreApplication::translate("main", "Image file could not be found: %1").arg(path));
+        return 1;
+      }
+    }
+    diffTitles = heiran::ui::StartupDiffTitles{.left = parser.value("left-title"),
+                                               .right = parser.value("right-title")};
+  } else if (arguments.size() == 2 && arguments.at(1).endsWith(".hrn", Qt::CaseInsensitive)) {
     sessionPath = arguments.at(1);
   } else {
     imagePaths = arguments.mid(1);
@@ -103,7 +129,7 @@ int main(int argc, char *argv[]) {
   decodeAhead = !qEnvironmentVariableIsSet("HEIRAN_BENCHMARK_SEQUENTIAL_DECODE");
 #endif
   heiran::ui::StartupPreparationController inputPreparation(
-      sessionPath, imagePaths, QDir::currentPath(), parallelInputs, decodeAhead);
+      sessionPath, imagePaths, QDir::currentPath(), parallelInputs, decodeAhead, diffTitles);
 
   QFutureSynchronizer<int> fontWarmup;
   bool parallelFonts = true;

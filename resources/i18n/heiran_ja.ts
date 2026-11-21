@@ -3501,6 +3501,18 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>Heiran</translation>
     </message>
     <message>
+        <location filename="../../src/main.cpp" line="104"/>
+        <source>Image diff requires two file paths.
+Usage: heiran --diff [--left-title title] [--right-title title] left right</source>
+        <translation>画像差分の表示にはファイルのパスを 2 つ指定してください。
+使い方: heiran --diff [--left-title title] [--right-title title] left right</translation>
+    </message>
+    <message>
+        <location filename="../../src/main.cpp" line="113"/>
+        <source>Image file could not be found: %1</source>
+        <translation>画像ファイルが見つかりませんでした: %1</translation>
+    </message>
+    <message>
         <location filename="../../src/main.cpp" line="142"/>
         <source>Failed to load %1.</source>
         <translation>%1 を読み込めませんでした。</translation>

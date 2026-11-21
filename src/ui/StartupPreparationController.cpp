@@ -6,17 +6,45 @@
 #include "heiran/ui/SessionMutationController.hpp"
 
 #include <QDir>
+#include <QFileInfo>
 #include <QtConcurrentRun>
 #include <utility>
 
 namespace heiran::ui {
+namespace {
 
-StartupPreparationController::StartupPreparationController(std::optional<QString> sessionPath,
-                                                           QStringList imagePaths,
-                                                           QString directory, bool parallel,
-                                                           bool decodeAhead)
+PreparedImageSession prepareExternalDiff(const QStringList &paths, const QString &directory,
+                                         const StartupDiffTitles &titles) {
+  using namespace heiran::domain;
+  PreparedImageSession prepared;
+  prepared.sourcePaths = paths;
+  prepared.externalDiff = true;
+  auto &session = prepared.session;
+  session.sessionDirectory = directory;
+  session.viewer.layout = {.rows = 1, .cols = 3};
+  session.cells.resize(3);
+  const QString labels[] = {titles.left, titles.right};
+  for (int i = 0; i < 2; ++i) {
+    const auto &path = paths.at(i);
+    session.images.push_back({.name = QString::number(i + 1),
+                              .label = labels[i].isEmpty() ? QFileInfo(path).fileName() : labels[i],
+                              .path = path,
+                              .labelVisible = true,
+                              .resolvedPaths = {path}});
+    session.cells[i].imageIndex = i;
+  }
+  session.cells[2].diff =
+      CellDiff{.baseCell = 0, .targetCell = 1, .settings = {.view = DiffViewMode::Overlay}};
+  return prepared;
+}
+
+}  // namespace
+
+StartupPreparationController::StartupPreparationController(
+    std::optional<QString> sessionPath, QStringList imagePaths, QString directory, bool parallel,
+    bool decodeAhead, std::optional<StartupDiffTitles> diffTitles)
     : sessionPath_(std::move(sessionPath)), imagePaths_(std::move(imagePaths)),
-      directory_(std::move(directory)) {
+      directory_(std::move(directory)), diffTitles_(std::move(diffTitles)) {
   if (sessionPath_) {
     sessionPath_ = QDir(directory_).absoluteFilePath(*sessionPath_);
   }
@@ -28,8 +56,9 @@ StartupPreparationController::StartupPreparationController(std::optional<QString
   }
   if (parallel && (sessionPath_ || !imagePaths_.isEmpty())) {
     future_ = QtConcurrent::run([sessionPath = sessionPath_, imagePaths = imagePaths_,
-                                 directory = directory_, scheduler = decodeScheduler_.get()]() {
-      return prepare(sessionPath, imagePaths, directory, scheduler);
+                                 directory = directory_, scheduler = decodeScheduler_.get(),
+                                 diffTitles = diffTitles_]() {
+      return prepare(sessionPath, imagePaths, directory, scheduler, diffTitles);
     });
     tasks_.addFuture(future_);
   }
@@ -37,7 +66,7 @@ StartupPreparationController::StartupPreparationController(std::optional<QString
 
 StartupPreparationResult StartupPreparationController::takeResult() {
   if (!future_.isValid()) {
-    return prepare(sessionPath_, imagePaths_, directory_, decodeScheduler_.get());
+    return prepare(sessionPath_, imagePaths_, directory_, decodeScheduler_.get(), diffTitles_);
   }
   tasks_.waitForFinished();
   auto result = future_.result();
@@ -53,10 +82,13 @@ std::shared_ptr<DecodeScheduler> StartupPreparationController::takeDecodeSchedul
 
 StartupPreparationResult StartupPreparationController::prepare(
     const std::optional<QString> &sessionPath, const QStringList &imagePaths,
-    const QString &directory, DecodeScheduler *scheduler) {
+    const QString &directory, DecodeScheduler *scheduler,
+    const std::optional<StartupDiffTitles> &diffTitles) {
   StartupPreparationResult result;
   result.startup = heiran::app::ApplicationController().prepareStartup(sessionPath);
-  if (!imagePaths.isEmpty()) {
+  if (diffTitles && imagePaths.size() == 2) {
+    result.images = prepareExternalDiff(imagePaths, directory, *diffTitles);
+  } else if (!imagePaths.isEmpty()) {
     result.images = prepareImages(imagePaths, directory);
   }
   if (scheduler != nullptr && !result.startup.loadFailed) {

@@ -1,3 +1,4 @@
+#include "heiran/domain/SessionPages.hpp"
 #include "heiran/ui/DecodeCache.hpp"
 #include "heiran/ui/DecodeScheduler.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
@@ -74,6 +75,38 @@ private Q_SLOTS:
     QCOMPARE(result.images->session.cells.first().imageIndex, 0);
     QVERIFY(!result.images->session.images.first().labelVisible);
     QCOMPARE(QSettings().value("recent_images"), history);
+  }
+
+  void preparesOnlyTheTwoExplicitDiffFilesInArgumentOrder() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    QDir subdirectory(directory.path());
+    QVERIFY(subdirectory.mkdir("temp revisions"));
+    const QString left = "temp revisions/change 2.png";
+    const QString right = "temp revisions/change 1.png";
+    for (const auto &relative : {left, right, QString("temp revisions/change 3.png")}) {
+      QFile file(directory.filePath(relative));
+      QVERIFY(file.open(QIODevice::WriteOnly));
+    }
+
+    StartupPreparationController preparation(
+        std::nullopt, {left, right}, directory.path(), true, false,
+        heiran::ui::StartupDiffTitles{.left = "Previous revision", .right = {}});
+    const auto result = preparation.takeResult();
+    QVERIFY(result.images.has_value());
+    QVERIFY(result.images->externalDiff);
+    const auto &session = result.images->session;
+    QCOMPARE(session.viewer.layout.rows, 1);
+    QCOMPARE(session.viewer.layout.cols, 3);
+    QCOMPARE(session.images.size(), 2);
+    QCOMPARE(session.images[0].label, "Previous revision");
+    QCOMPARE(session.images[1].label, "change 1.png");
+    QCOMPARE(heiran::domain::cellPageAt(session, 0, 0).path, directory.filePath(left));
+    QCOMPARE(heiran::domain::cellPageAt(session, 1, 0).path, directory.filePath(right));
+    QCOMPARE(heiran::domain::totalPageCount(session), 1);
+    QVERIFY(session.cells[2].diff.has_value());
+    QCOMPARE(session.cells[2].diff->baseCell, 0);
+    QCOMPARE(session.cells[2].diff->targetCell, 1);
   }
 
   void doesNotRememberASessionUntilPreparationIsAccepted() {
