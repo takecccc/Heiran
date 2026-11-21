@@ -1,6 +1,6 @@
 {
   "name": "heiran",
-  "version-string": "1.1.1",
+  "version-string": "1.2.0",
   "dependencies": [
     "lcms",
     "libspng",

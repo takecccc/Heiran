@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.27)
 
-project(Heiran VERSION 1.1.1 LANGUAGES CXX)
+project(Heiran VERSION 1.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
