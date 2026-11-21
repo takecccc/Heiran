@@ -1348,36 +1348,120 @@ private Q_SLOTS:
             << "ms";
   }
 
-  void offersDirectCellCountsAndSeparateGridChoices() {
+  void offersDirectCellCountsWithGridSubmenus() {
     heiran::ui::MainWindow window;
     auto *layoutMenu = findMenu(window.menuBar(), "&Layout");
     QVERIFY(layoutMenu != nullptr);
 
     QStringList countTitles;
+    QMap<QString, QStringList> gridsByTitle;
     for (const auto *action : layoutMenu->actions()) {
-      if (action->text().contains("Cell")) {
-        QVERIFY(!action->menu() && action->isCheckable());
-        countTitles.push_back(action->text());
+      if (!action->text().contains("Cell"))
+        continue;
+      QVERIFY(action->isCheckable());
+      countTitles.push_back(action->text());
+      if (action->text() == "1 Cell") {
+        QVERIFY(!action->menu());
+        continue;
       }
+      QVERIFY(action->menu());
+      for (const auto *grid : action->menu()->actions())
+        gridsByTitle[action->text()].push_back(grid->text());
     }
     QCOMPARE(countTitles.size(), 16);
     QCOMPARE(countTitles.first(), QString("1 Cell"));
     QCOMPARE(countTitles.at(1), QString("2 Cells"));
     QCOMPARE(countTitles.last(), QString("16 Cells"));
-    auto *gridMenu = layoutMenu->findChild<QMenu *>("gridDimensionsMenu");
-    QVERIFY(gridMenu);
-    QMap<QString, QStringList> gridsByTitle;
-    for (const auto *action : gridMenu->actions()) {
-      QVERIFY(action->menu());
-      for (const auto *grid : action->menu()->actions())
-        gridsByTitle[action->text()].push_back(grid->text());
-    }
     QCOMPARE(gridsByTitle.size(), 15);
     QVERIFY(!gridsByTitle.contains("1 Cell"));
     QCOMPARE(gridsByTitle.value("7 Cells"), QStringList({"1x7", "7x1"}));
     QCOMPARE(gridsByTitle.value("12 Cells"),
              QStringList({"1x12", "2x6", "3x4", "4x3", "6x2", "12x1"}));
     QCOMPARE(gridsByTitle.value("16 Cells"), QStringList({"1x16", "2x8", "4x4", "8x2", "16x1"}));
+  }
+
+  void usesMouseAndKeyboardToApplyLayoutsOrOpenGridChoices() {
+    const auto organization = QCoreApplication::organizationName();
+    QCoreApplication::setOrganizationName("HeiranLayoutMenuTests");
+    const auto restore = qScopeGuard([organization]() {
+      QSettings().clear();
+      QCoreApplication::setOrganizationName(organization);
+    });
+    QSettings().clear();
+
+    heiran::ui::MainWindow window;
+    auto *menu = findMenu(window.menuBar(), "&Layout");
+    QVERIFY(menu);
+    auto *sixCells = menu->actions().at(5);
+    QCOMPARE(sixCells->text(), QString("6 Cells"));
+    auto *choices = sixCells->menu();
+    QVERIFY(choices);
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    const auto currentSize = [grid]() {
+      const auto layout = grid->sessionSnapshot().viewer.layout;
+      return QSize(layout.cols, layout.rows);
+    };
+    const auto initialSize = currentSize();
+    const auto popupPosition = window.mapToGlobal(QPoint(50, 50));
+
+    menu->popup(popupPosition);
+    const QRect row = menu->actionGeometry(sixCells);
+    const QPoint label = row.center();
+    const QPoint arrow(row.right() - 5, label.y());
+    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, arrow);
+    QTRY_VERIFY(choices->isVisible());
+    QCOMPARE(currentSize(), initialSize);
+    QTest::keyClick(choices, Qt::Key_Left);
+    QTRY_VERIFY(!choices->isVisible());
+    QVERIFY(menu->isVisible());
+
+    menu->setActiveAction(menu->actions().first());
+    for (int step = 0; step < 5; ++step)
+      QTest::keyClick(menu, Qt::Key_Down);
+    QCOMPARE(menu->activeAction(), sixCells);
+    QTest::keyClick(menu, Qt::Key_Right);
+    QTRY_VERIFY(choices->isVisible());
+    QCOMPARE(currentSize(), initialSize);
+    const auto *gridChoice = choices->actions().at(2);
+    QCOMPARE(gridChoice->text(), QString("3x2"));
+    QTest::keyClick(choices, Qt::Key_Down);
+    QTest::keyClick(choices, Qt::Key_Down);
+    QCOMPARE(choices->activeAction(), gridChoice);
+    QTest::keyClick(choices, Qt::Key_Return);
+    QTRY_VERIFY(!menu->isVisible());
+    QCOMPARE(currentSize(), QSize(2, 3));
+
+    menu->popup(popupPosition);
+    menu->setActiveAction(menu->actions().first());
+    QTest::keyClick(menu, Qt::Key_Return);
+    QCOMPARE(currentSize(), QSize(1, 1));
+    menu->popup(popupPosition);
+    QTest::keyClick(menu, Qt::Key_Down);
+    for (int step = 0; step < 5; ++step)
+      QTest::keyClick(menu, Qt::Key_Down);
+    QCOMPARE(menu->activeAction(), sixCells);
+    QTest::keyClick(menu, Qt::Key_Enter);
+    QTRY_VERIFY(!menu->isVisible());
+    QCOMPARE(currentSize(), QSize(2, 3));
+
+    menu->actions().first()->trigger();
+    menu->popup(popupPosition);
+    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, label);
+    QTRY_VERIFY(!menu->isVisible());
+    QVERIFY(!choices->isVisible());
+    QCOMPARE(currentSize(), QSize(2, 3));
+
+    menu->actions().first()->trigger();
+    menu->popup(popupPosition);
+    QTest::mouseMove(menu->windowHandle(), label - QPoint(1, 0));
+    QTest::mouseMove(menu->windowHandle(), label);
+    QTRY_VERIFY(choices->isVisible());
+    QCOMPARE(currentSize(), QSize(1, 1));
+    const auto labelFromSubmenu = choices->mapFromGlobal(menu->mapToGlobal(label));
+    QTest::mouseClick(choices, Qt::LeftButton, Qt::NoModifier, labelFromSubmenu);
+    QTRY_VERIFY(!menu->isVisible());
+    QVERIFY(!choices->isVisible());
+    QCOMPARE(currentSize(), QSize(2, 3));
   }
 
   void remembersGridDimensionsIndependentlyForEachCellCount() {
@@ -1395,7 +1479,7 @@ private Q_SLOTS:
                                   int cols) {
       const auto actions = window.findChildren<QAction *>();
       const auto action = std::ranges::find_if(
-          actions, [&text](const auto *entry) { return entry->text() == text && !entry->menu(); });
+          actions, [&text](const auto *entry) { return entry->text() == text; });
       QVERIFY(action != actions.end());
       (*action)->trigger();
       const auto layout =

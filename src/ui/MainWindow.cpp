@@ -20,6 +20,7 @@
 #include "heiran/ui/ImageListPanelController.hpp"
 #include "heiran/ui/ImagePrinter.hpp"
 #include "heiran/ui/ImageSetManagerDialog.hpp"
+#include "heiran/ui/LayoutMenu.hpp"
 #include "heiran/ui/LoupeWidget.hpp"
 #include "heiran/ui/ManualLocator.hpp"
 #include "heiran/ui/PageListing.hpp"
@@ -302,10 +303,12 @@ void MainWindow::createImagesMenu() {
 
 // Layout メニュー。
 void MainWindow::createLayoutMenu() {
-  auto *layoutMenu = menuBar()->addMenu(QCoreApplication::translate("MainWindow", "&Layout"));
   layoutActionGroup_ = new QActionGroup(this);
   layoutActionGroup_->setExclusive(true);
   layoutCountActionGroup_ = new QActionGroup(this);
+  auto *layoutMenu = new LayoutMenu(QCoreApplication::translate("MainWindow", "&Layout"),
+                                    layoutCountActionGroup_, menuBar());
+  menuBar()->addMenu(layoutMenu);
 
   const auto chooseGrid = [this](int rows, int cols) {
     SessionLayoutController::rememberLayout(rows, cols);
@@ -326,7 +329,18 @@ void MainWindow::createLayoutMenu() {
                       : QCoreApplication::translate("MainWindow", "%1 Cells").arg(count);
   };
   for (int cellCount = 1; cellCount <= SessionLayoutController::kMaxCellCount; ++cellCount) {
-    auto *action = layoutMenu->addAction(countLabel(cellCount));
+    const auto label = countLabel(cellCount);
+    QAction *action = nullptr;
+    if (cellCount == 1) {
+      action = layoutMenu->addAction(label);
+    } else {
+      auto *countMenu = layoutMenu->addMenu(label);
+      action = countMenu->menuAction();
+      for (const auto &layout : SessionLayoutController::layoutsForCellCount(cellCount)) {
+        addLayoutAction(countMenu, QString("%1x%2").arg(layout.rows).arg(layout.cols), layout.rows,
+                        layout.cols);
+      }
+    }
     action->setCheckable(true);
     action->setData(cellCount);
     layoutCountActionGroup_->addAction(action);
@@ -337,16 +351,6 @@ void MainWindow::createLayoutMenu() {
   }
 
   layoutMenu->addSeparator();
-  auto *gridMenu =
-      layoutMenu->addMenu(QCoreApplication::translate("MainWindow", "Grid Dimensions"));
-  gridMenu->setObjectName("gridDimensionsMenu");
-  for (int cellCount = 2; cellCount <= SessionLayoutController::kMaxCellCount; ++cellCount) {
-    auto *countMenu = gridMenu->addMenu(countLabel(cellCount));
-    for (const auto &layout : SessionLayoutController::layoutsForCellCount(cellCount)) {
-      addLayoutAction(countMenu, QString("%1x%2").arg(layout.rows).arg(layout.cols), layout.rows,
-                      layout.cols);
-    }
-  }
   auto *customLayoutAction =
       layoutMenu->addAction(QCoreApplication::translate("MainWindow", "Custom..."));
   connect(customLayoutAction, &QAction::triggered, this, [this, chooseGrid]() {

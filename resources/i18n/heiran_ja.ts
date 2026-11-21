@@ -1508,11 +1508,6 @@ Click to follow the other cells again.</source>
         <translation>%1 セル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/MainWindow.cpp" line="341"/>
-        <source>Grid Dimensions</source>
-        <translation>行×列を指定</translation>
-    </message>
-    <message>
         <location filename="../../src/ui/MainWindow.cpp" line="351"/>
         <location filename="../../src/ui/MainWindow.cpp" line="400"/>
         <source>Custom...</source>
