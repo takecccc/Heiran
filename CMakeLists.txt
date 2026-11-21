@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.27)
 
 project(Heiran VERSION 1.1.1 LANGUAGES CXX)
 
@@ -225,7 +225,9 @@ add_library(heiran_core
   src/ui/ThumbnailItemDelegate.cpp
   src/ui/ImageListDragViews.cpp
   src/ui/ImageListPanelController.cpp
-  src/ui/ImageComparisonDialog.cpp
+  src/ui/ImageComparisonWidget.cpp
+  src/ui/ComparisonSetupDialog.cpp
+  src/ui/ComparisonWorkspaceController.cpp
   src/ui/ComparisonDiffController.cpp
   src/ui/ComparisonNavigationController.cpp
   src/ui/PixelInfoText.cpp
@@ -233,6 +235,7 @@ add_library(heiran_core
   src/ui/ProfileAccumulator.cpp
   src/ui/SessionIssueDialog.cpp
   src/ui/SettingsDialog.cpp
+  src/ui/ThemeEditor.cpp
   src/ui/SettingsHelpController.cpp
   src/ui/TransientMessageWidget.cpp
   src/ui/WelcomeWidget.cpp
@@ -345,7 +348,9 @@ target_sources(heiran_core
     include/heiran/ui/ThumbnailItemDelegate.hpp
     include/heiran/ui/ImageListDragViews.hpp
     include/heiran/ui/ImageListPanelController.hpp
-    include/heiran/ui/ImageComparisonDialog.hpp
+    include/heiran/ui/ImageComparisonWidget.hpp
+    include/heiran/ui/ComparisonSetupDialog.hpp
+    include/heiran/ui/ComparisonWorkspaceController.hpp
     include/heiran/ui/ComparisonDiffController.hpp
     include/heiran/app/FolderComparison.hpp
     include/heiran/ui/ComparisonNavigationController.hpp
@@ -354,6 +359,7 @@ target_sources(heiran_core
     include/heiran/ui/ProfileAccumulator.hpp
     include/heiran/ui/SessionIssueDialog.hpp
     include/heiran/ui/SettingsDialog.hpp
+    include/heiran/ui/ThemeEditor.hpp
     include/heiran/ui/SettingsHelpController.hpp
     include/heiran/ui/TransientMessageWidget.hpp
     include/heiran/ui/WelcomeWidget.hpp
@@ -1157,9 +1163,9 @@ install(RUNTIME_DEPENDENCY_SET heiran_runtime_dependencies
 
 # Qt libraries and plugins. Let Qt decide what a Qt application needs.
 # ソフトウェアの OpenGL (opengl32sw.dll、約 21 MB) も入れない。Heiran は、GPU と、OpenGL 3.0 以上のドライバを要件にする (起動時に確かめる。src/app/OpenGlCheck.cpp)。
-# Visual C++ ランタイム (vc_redist.x64.exe、約 19 MB。圧縮済みで、LZMA にかけても縮まない) も入れない。代わりに、インストーラが、入っているかを確かめて、案内を出す (resources/nsis/vcruntime_check.nsh.in)。
+# Visual C++ ランタイム (vc_redist.x64.exe、約 19 MB。圧縮済みで、LZMA にかけても縮まない) も入れない。代わりに、インストーラが、入っているかを確かめて、案内を出す (resources/installer/setup.pas)。
 # Direct3D のシェーダコンパイラ (d3dcompiler_47、dxcompiler、dxil。合わせて約 19 MB) は入れない。Heiran の描画は OpenGL で、Direct3D のシェーダは使わない
-# (入れると、配布物が大きくなり、NSIS の圧縮にも約 8 秒余計にかかる)。Direct3D の描画 (QRhi の D3D11 / D3D12) へ移すときは、外す。
+# (入れると、配布物が大きくなり)。Direct3D の描画 (QRhi の D3D11 / D3D12) へ移すときは、外す。
 qt_generate_deploy_app_script(
   TARGET heiran
   OUTPUT_SCRIPT heiran_deploy_script
@@ -1168,7 +1174,7 @@ qt_generate_deploy_app_script(
 )
 install(SCRIPT ${heiran_deploy_script} COMPONENT application)
 
-# NSIS shows the license during installation and wants a .txt file.
+# The installer displays the same license included in the package.
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.txt" COPYONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.txt" DESTINATION . COMPONENT application)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/README.md" DESTINATION . COMPONENT application)
@@ -1189,77 +1195,14 @@ set(CPACK_CREATE_DESKTOP_LINKS "heiran")
 set(CPACK_VERBATIM_VARIABLES ON)
 
 if(WIN32)
-  set(CPACK_GENERATOR "NSIS;ZIP")
-  include(cmake/InstallerLocalization.cmake)
-  set(heiran_cpack_template_dir "${CMAKE_CURRENT_BINARY_DIR}/cpack-templates")
-  heiran_localize_nsis_template("${heiran_cpack_template_dir}")
-  set(CPACK_MODULE_PATH "${heiran_cpack_template_dir};${CMAKE_MODULE_PATH}")
-  add_test(NAME heiran_installer_localization_tests
-    COMMAND ${CMAKE_COMMAND}
-      "-DHEIRAN_CPACK_TEMPLATE=${heiran_cpack_template_dir}/NSIS.template.in"
-      "-DHEIRAN_CPACK_CONFIG=${CMAKE_CURRENT_BINARY_DIR}/CPackConfig.cmake"
-      -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/InstallerLocalizationTests.cmake")
-  find_program(HEIRAN_MAKENSIS_EXECUTABLE NAMES makensis)
-  if(HEIRAN_MAKENSIS_EXECUTABLE)
-    add_test(NAME heiran_installer_association_selection_tests
-      COMMAND ${CMAKE_COMMAND}
-        "-DHEIRAN_MAKENSIS=${HEIRAN_MAKENSIS_EXECUTABLE}"
-        "-DHEIRAN_NSIS_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis"
-        "-DHEIRAN_ASSOCIATION_TEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/association-selection-test"
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/InstallerAssociationSelectionTests.cmake")
-  endif()
-  set(CPACK_NSIS_PACKAGE_NAME "Heiran")
-  set(CPACK_NSIS_DISPLAY_NAME "Heiran")
-  # The installer, the uninstaller and the entry in the installed programs list.
-  set(CPACK_NSIS_MUI_ICON "${HEIRAN_APP_ICON}")
-  set(CPACK_NSIS_MUI_UNIICON "${HEIRAN_APP_ICON}")
-  set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\heiran.exe")
-  set(CPACK_NSIS_MANIFEST_DPI_AWARE ON)
-  set(CPACK_NSIS_BRANDING_TEXT "Heiran ${PROJECT_VERSION}")
-  file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis" heiran_nsis_asset_dir)
-  file(TO_NATIVE_PATH "${HEIRAN_APP_ICON}" heiran_nsis_icon)
-  string(CONCAT CPACK_NSIS_INSTALLER_MUI_ICON_CODE
-    "!define MUI_ICON \"${heiran_nsis_icon}\"\n"
-    "!define MUI_UNICON \"${heiran_nsis_icon}\"\n"
-    "!define HEIRAN_NSIS_ASSET_DIR \"${heiran_nsis_asset_dir}\"\n"
-    "!include \"${heiran_nsis_asset_dir}\\appearance.nsh\"")
-  # Keep the installed application intact until the user starts installation.
-  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL OFF)
-  set(CPACK_NSIS_MODIFY_PATH OFF)
-
-  # Association-only sections and categories are shared with the design preview.
-  # The VC++ runtime is not shipped. The installer checks for a runtime at least as new as the toolset
-  # used to build Heiran. Read the CRT headers because Clang's version is unrelated to the runtime.
-  find_file(HEIRAN_CRT_VERSION_HEADER crtversion.h
-    PATHS ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES} ENV INCLUDE NO_DEFAULT_PATH REQUIRED)
-  file(STRINGS "${HEIRAN_CRT_VERSION_HEADER}" heiran_crt_minor_definition
-    REGEX "^#define[ \t]+_VC_CRT_MINOR_VERSION[ \t]+[0-9]+")
-  if(NOT heiran_crt_minor_definition)
-    message(FATAL_ERROR "Could not determine the VC++ runtime version from crtversion.h.")
-  endif()
-  string(REGEX REPLACE ".*_VC_CRT_MINOR_VERSION[ \t]+([0-9]+).*" "\\1"
-    HEIRAN_VCRUNTIME_MINOR "${heiran_crt_minor_definition}")
-  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis/vcruntime_check.nsh.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/vcruntime_check.nsh" @ONLY)
-  file(READ "${CMAKE_CURRENT_BINARY_DIR}/vcruntime_check.nsh" CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS)
-
-  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis/associations_install.nsh"
-    CPACK_NSIS_EXTRA_INSTALL_COMMANDS)
-  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/resources/nsis/associations_uninstall.nsh"
-    CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS)
+  include(cmake/WindowsInstaller.cmake)
 else()
   set(CPACK_GENERATOR "TGZ")
 endif()
 
-set(CPACK_COMPONENTS_ALL application)
+set(CPACK_MONOLITHIC_INSTALL ON)
 include(CPack)
 
-cpack_add_component(application
-  DISPLAY_NAME "Heiran"
-  DESCRIPTION "$(HeiranApplicationDescription)"
-  REQUIRED
-  HIDDEN
-)
 add_executable(heiran_page_listing_tests
   tests/PageListingTests.cpp
 )

@@ -18,19 +18,18 @@ constexpr double kOutlineExtraWidth = 2.0;
 constexpr QColor kLabelBackgroundColor(18, 20, 24, 180);
 constexpr QColor kLabelTextColor(245, 247, 250);
 
-// 選択範囲は画像座標のまま描く。線の太さは倍率で割り戻して、拡大しても
-// 太くならないようにする。
-void drawHistogramHighlight(QPainter *painter, const CellOverlayInput &input) {
-  if (!input.histogramHighlight || input.histogramHighlight->isNull()) {
+void drawHighlight(QPainter *painter, const CellOverlayInput &input, const QImage *mask,
+                   const QSize &imageSize = {}) {
+  if (!mask || mask->isNull()) {
     return;
   }
-  const auto &mask = *input.histogramHighlight;
-  const QRectF destination((mask.offset().x() - input.offsetX) * input.scale,
-                           (mask.offset().y() - input.offsetY) * input.scale,
-                           mask.width() * input.scale, mask.height() * input.scale);
+  const QSize size = imageSize.isEmpty() ? mask->size() : imageSize;
+  const QRectF destination((mask->offset().x() - input.offsetX) * input.scale,
+                           (mask->offset().y() - input.offsetY) * input.scale,
+                           size.width() * input.scale, size.height() * input.scale);
   painter->save();
   painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
-  painter->drawImage(destination, mask, mask.rect());
+  painter->drawImage(destination, *mask, mask->rect());
   painter->restore();
 }
 
@@ -180,7 +179,8 @@ void paintCellOverlays(QPainter *painter, const CellOverlayInput &input) {
     return;
   }
 
-  drawHistogramHighlight(painter, input);
+  drawHighlight(painter, input, input.histogramHighlight);
+  drawHighlight(painter, input, input.comparisonHighlight, input.comparisonHighlightSize);
   drawSelections(painter, input);
   drawSharedCursor(painter, input);
   drawLabel(painter, input);

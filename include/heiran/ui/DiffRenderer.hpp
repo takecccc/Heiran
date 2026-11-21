@@ -34,6 +34,14 @@ struct DiffOutput {
   heiran::domain::DiffMetrics metrics;
 };
 
+struct ComparisonDiffImages {
+  QImage highlight;
+  QImage map;
+};
+
+inline constexpr QRgb kFocusedDifferenceColor = qRgb(255, 64, 64);
+QImage focusComparisonHighlight(const QImage &mask, const QRect &region);
+
 // 輝度の平面 (幅 x 高さ、行の順) を、別の大きさへ変える。縮める軸は、元の画素の重なりで
 // 平均し (エイリアシングを避ける)、広げる軸は、線形に補間する。水平、垂直の順に分けて行う。
 QVector<float> resizeLumaPlane(const QVector<float> &plane, QSize from, QSize to);
@@ -55,8 +63,9 @@ struct DiffInspection {
       heiran::domain::DiffComparisonBasis::PixelValues;
   QImage compositedBase;
   bool ignoreFullyTransparentRgb = false;
-  std::vector<unsigned char> alphaChanged;
+  std::vector<unsigned char> alphaMagnitude;
   std::vector<unsigned char> bothTransparent;
+  QImage magnitudeMap;
 };
 
 struct DiffField {
@@ -69,7 +78,7 @@ struct DiffField {
 
 using DiffFieldPtr = std::shared_ptr<const DiffField>;
 
-QVector<QRect> findDiffRegions(const DiffField &field, double threshold);
+QVector<QRect> findDiffRegions(const DiffField &field, double threshold, int blockSize = 1);
 std::array<QImage, 2> prepareDiffBlinkFrames(const QImage &base, const QImage &target,
                                              heiran::domain::DiffSizeMatch sizeMatch,
                                              bool includeOutsideOverlap = false);
@@ -78,6 +87,8 @@ std::array<QImage, 2> prepareDiffCompositeFrames(const DiffInput &base, const Di
                                                  heiran::domain::DiffComparisonBasis basis);
 
 DiffFieldKind diffFieldKindOf(heiran::domain::DiffMode mode);
+double differenceMapWhiteLevel(DiffFieldKind kind);
+QImage amplifyDifferenceMap(const QImage &map, int gain);
 
 // この場で、`settings` の絵を作れるか
 // (計算の種類と、大きさの合わせ方が同じか)。ワイプは、場を使わない。
@@ -90,9 +101,10 @@ DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
                               const std::function<bool()> &isCanceled = {});
 
 // 場から、絵と指標を作る (色の付け方、倍率、閾値は、`settings` に従う)。`base`
-// は、重ね合わせの下地。
+// は、重ね合わせの下地。専用比較では、下地、強調マスク、差分マップを別々に返す。
 DiffOutput renderDiffFromField(const DiffField &field, const DiffInput &base,
-                               const heiran::domain::DiffSettings &settings);
+                               const heiran::domain::DiffSettings &settings,
+                               ComparisonDiffImages *comparisonImages = nullptr);
 
 // 2 枚から、差分の絵と数値指標を作る (差は target - base の輝度)。
 DiffOutput renderDiff(const DiffInput &base, const DiffInput &target,

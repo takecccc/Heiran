@@ -8,6 +8,7 @@
 #include "heiran/ui/CellOverlayPainter.hpp"
 #include "heiran/ui/CellStatusPainter.hpp"
 #include "heiran/ui/ColorManagement.hpp"
+#include "heiran/ui/DiffRenderer.hpp"
 #include "heiran/ui/DisplayProfile.hpp"
 #include "heiran/ui/ImageInfoText.hpp"
 #include "heiran/ui/PixelInfoText.hpp"
@@ -671,26 +672,29 @@ protected:
         const QRectF outline = projected.adjusted(-2, -2, 2, 2);
         painter.setPen(QPen(Qt::black, 3));
         painter.drawRect(outline);
-        painter.setPen(QPen(palette().color(QPalette::Highlight), 1));
+        painter.setPen(QPen(QColor::fromRgb(kFocusedDifferenceColor), 1));
         painter.drawRect(outline);
       }
-      paintCellOverlays(&painter,
-                        {.scale = finalState.scale,
-                         .offsetX = finalState.offsetX,
-                         .offsetY = finalState.offsetY,
-                         .canvasSize = size(),
-                         .histogramHighlight = &owner_->histogramHighlight_,
-                         .selectionRect = owner_->selectionRect_,
-                         .previewSelectionRect = owner_->previewSelectionRect_,
-                         .sharedCursorPosition = owner_->sharedCursorPosition_,
-                         .cursorStyle = owner_->cursorStyle_,
-                         // 色を取るときだけ表示用画像を作る (GPU 描画では普段は作らない)。
-                         .sampleImage = owner_->cursorStyle_ == CursorStyle::Contrast &&
-                                                owner_->sharedCursorPosition_
-                                            ? &owner_->displayImage()
-                                            : nullptr,
-                         .labelText = owner_->cachedExpandedLabel_,
-                         .labelRect = labelRectForCurrentState()});
+      paintCellOverlays(
+          &painter, {.scale = finalState.scale,
+                     .offsetX = finalState.offsetX,
+                     .offsetY = finalState.offsetY,
+                     .canvasSize = size(),
+                     .histogramHighlight = &owner_->histogramHighlight_,
+                     .comparisonHighlight = &owner_->comparisonHighlight(),
+                     .comparisonHighlightSize =
+                         owner_->scaleComparisonHighlight_ ? owner_->displayImageSize() : QSize(),
+                     .selectionRect = owner_->selectionRect_,
+                     .previewSelectionRect = owner_->previewSelectionRect_,
+                     .sharedCursorPosition = owner_->sharedCursorPosition_,
+                     .cursorStyle = owner_->cursorStyle_,
+                     // 色を取るときだけ表示用画像を作る (GPU 描画では普段は作らない)。
+                     .sampleImage = owner_->cursorStyle_ == CursorStyle::Contrast &&
+                                            owner_->sharedCursorPosition_
+                                        ? &owner_->displayImage()
+                                        : nullptr,
+                     .labelText = owner_->cachedExpandedLabel_,
+                     .labelRect = labelRectForCurrentState()});
     }
 
     if (owner_->bordersVisible_) {
@@ -1526,6 +1530,15 @@ void ImageViewWidget::setViewState(const heiran::domain::GlobalViewState &global
 void ImageViewWidget::setHistogramHighlight(const QImage &mask) {
   if (histogramHighlight_.cacheKey() != mask.cacheKey()) {
     histogramHighlight_ = mask;
+    canvasWidget_->requestCoalescedUpdate();
+  }
+}
+
+void ImageViewWidget::setComparisonHighlight(const QImage &mask, bool scaleToImage) {
+  if (comparisonHighlight_.cacheKey() != mask.cacheKey() ||
+      scaleComparisonHighlight_ != scaleToImage) {
+    comparisonHighlight_ = mask;
+    scaleComparisonHighlight_ = scaleToImage;
     canvasWidget_->requestCoalescedUpdate();
   }
 }

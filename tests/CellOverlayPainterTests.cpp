@@ -68,6 +68,21 @@ private Q_SLOTS:
     QCOMPARE(output.pixelColor(12, 6), QColor(Qt::black));
   }
 
+  void projectsTheComparisonMaskAtThePaneImageSize() {
+    QImage mask(2, 1, QImage::Format_Indexed8);
+    mask.setColorTable({0, qRgba(255, 196, 0, 128)});
+    mask.fill(0);
+    mask.setPixel(1, 0, 1);
+    const auto output = renderOverlays({.scale = 2.0,
+                                        .offsetX = -1.0,
+                                        .comparisonHighlight = &mask,
+                                        .comparisonHighlightSize = {4, 2}});
+    QCOMPARE(paintedPixelCount(output), 16);
+    QCOMPARE(output.pixelColor(5, 0), QColor(Qt::black));
+    QCOMPARE(output.pixelColor(6, 0), QColor(128, 98, 0));
+    QCOMPARE(output.pixelColor(10, 0), QColor(Qt::black));
+  }
+
   // 倍率が 0 以下なら描かないこと。座標の写しが成り立たない。
   void drawsNothingForANonPositiveScale() {
     heiran::ui::CellOverlayInput input;

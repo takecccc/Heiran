@@ -23,6 +23,8 @@ using heiran::domain::DiffComparisonBasis;
 using heiran::domain::DiffMode;
 using heiran::domain::DiffViewMode;
 
+constexpr float kDeltaEFullScale = 10.0F;
+
 // 1 つの軸を変える重み。縮めるなら、元の区間と先の区間の重なり (面積) で平均する。
 // 広げるなら、画素の中心どうしの線形補間。
 struct AxisTap {
@@ -394,19 +396,20 @@ int ssimBorder(const DiffField &field) {
              : 0;
 }
 
+bool differsInCoverage(const DiffInspection &inspection, int x, int y) {
+  const auto covers = [x, y](const QSize &size) { return x < size.width() && y < size.height(); };
+  return covers(inspection.baseSize) != covers(inspection.targetSize);
+}
+
 bool marksDifference(const DiffField &field, int x, int y, double threshold, int border) {
   const int width = field.size.width();
   const int height = field.size.height();
   if (x >= width || y >= height) {
-    if (!field.inspection) {
-      return false;
-    }
-    const auto covers = [&](const QSize &size) { return x < size.width() && y < size.height(); };
-    return covers(field.inspection->baseSize) != covers(field.inspection->targetSize);
+    return field.inspection && differsInCoverage(*field.inspection, x, y);
   }
   const auto index = static_cast<size_t>(y) * width + x;
-  if (field.inspection && !field.inspection->alphaChanged.empty() &&
-      field.inspection->alphaChanged[index]) {
+  if (field.inspection && !field.inspection->alphaMagnitude.empty() &&
+      field.inspection->alphaMagnitude[index]) {
     return true;
   }
   if (field.inspection && !field.inspection->bothTransparent.empty() &&
@@ -421,8 +424,88 @@ bool marksDifference(const DiffField &field, int x, int y, double threshold, int
   return std::abs(difference) > static_cast<float>(threshold);
 }
 
-QImage renderInspection(const DiffField &field, const QImage &base, double threshold,
-                        heiran::domain::DiffMetrics &metrics) {
+unsigned char magnitudeLevel(float scaled) {
+  return scaled > 0.0F ? static_cast<unsigned char>(std::max(1, qRound(std::min(scaled, 255.0F))))
+                       : 0;
+}
+
+QImage renderMagnitudeMap(const DiffField &field, const std::function<bool()> &isCanceled) {
+  QImage result(diffCanvasSize(field), QImage::Format_Indexed8);
+  if (result.isNull()) {
+    return {};
+  }
+  QList<QRgb> colors(256);
+  for (int level = 0; level < 256; ++level) {
+    colors[level] = qRgb(level, level, level);
+  }
+  result.setColorTable(colors);
+  const auto &inspection = *field.inspection;
+  const float scale = static_cast<float>(255.0 / differenceMapWhiteLevel(field.kind));
+  const int width = result.width();
+  const int overlapWidth = field.size.width();
+  const qsizetype stride = result.bytesPerLine();
+  auto *bits = result.bits();
+  heiran::infra::forEachRowBand(result.height(), [&](int firstRow, int lastRow) {
+    if (isCanceled()) {
+      return;
+    }
+    for (int y = firstRow; y < lastRow; ++y) {
+      auto *row = bits + static_cast<qsizetype>(y) * stride;
+      const int validWidth = y < field.size.height() ? overlapWidth : 0;
+      for (int x = 0; x < validWidth; ++x) {
+        const auto index = static_cast<size_t>(y) * overlapWidth + x;
+        if (!inspection.bothTransparent.empty() && inspection.bothTransparent[index]) {
+          row[x] = 0;
+          continue;
+        }
+        const float value = field.values[index];
+        auto level =
+            magnitudeLevel((field.kind == DiffFieldKind::Ssim ? value : std::abs(value)) * scale);
+        if (!inspection.alphaMagnitude.empty()) {
+          level = std::max(level, inspection.alphaMagnitude[index]);
+        }
+        row[x] = level;
+      }
+      for (int x = validWidth; x < width; ++x) {
+        row[x] = differsInCoverage(inspection, x, y) ? 255 : 0;
+      }
+    }
+  });
+  return result;
+}
+
+void expandDiffBlocks(QImage &mask, int blockSize) {
+  const int width = mask.width();
+  const int height = mask.height();
+  const qsizetype stride = mask.bytesPerLine();
+  auto *bits = mask.bits();
+  const int rows = (height - 1) / blockSize + 1;
+  heiran::infra::forEachRowBand(rows, [&](int firstRow, int lastRow) {
+    for (int row = firstRow; row < lastRow; ++row) {
+      const int top = row * blockSize;
+      const int bottom = std::min(top + blockSize, height);
+      for (int left = 0; left < width; left += blockSize) {
+        const int right = std::min(left + blockSize, width);
+        const auto line = [=](int y) { return bits + y * stride; };
+        bool changed = false;
+        for (int y = top; y < bottom && !changed; ++y) {
+          const auto *pixels = line(y);
+          changed = std::find(pixels + left, pixels + right, 1) != pixels + right;
+        }
+        if (changed) {
+          for (int y = top; y < bottom; ++y) {
+            std::fill(line(y) + left, line(y) + right, 1);
+          }
+        }
+      }
+    }
+  });
+}
+
+QImage renderInspection(const DiffField &field, const QImage &base,
+                        const heiran::domain::DiffSettings &settings,
+                        heiran::domain::DiffMetrics &metrics,
+                        ComparisonDiffImages *comparisonImages) {
   const auto size = diffCanvasSize(field);
   const bool overlapOnly = field.sizeMatch == heiran::domain::DiffSizeMatch::Overlap;
   const auto &inspection = *field.inspection;
@@ -439,8 +522,17 @@ QImage renderInspection(const DiffField &field, const QImage &base, double thres
   } else {
     metrics.pixelCount = qint64(size.width()) * size.height();
   }
-  uchar *bits = result.bits();
+  QImage mask;
+  if (comparisonImages) {
+    mask = QImage(size, QImage::Format_Indexed8);
+    if (mask.isNull()) {
+      return {};
+    }
+    mask.fill(0);
+  }
+  uchar *outputBits = comparisonImages ? mask.bits() : result.bits();
   const qsizetype stride = result.bytesPerLine();
+  const qsizetype outputStride = comparisonImages ? mask.bytesPerLine() : stride;
   const int border = ssimBorder(field);
   struct Count {
     qint64 pixels = 0;
@@ -449,22 +541,39 @@ QImage renderInspection(const DiffField &field, const QImage &base, double thres
   metrics.exceededPixelCount =
       reduceRows<Count>(size.height(), [&](int firstRow, int lastRow, Count *count) {
         for (int y = firstRow; y < lastRow; ++y) {
-          uchar *row = bits + static_cast<qsizetype>(y) * stride;
+          uchar *outputRow = outputBits + static_cast<qsizetype>(y) * outputStride;
           for (int x = 0; x < size.width(); ++x) {
-            if (!marksDifference(field, x, y, threshold, border)) {
+            if (!marksDifference(field, x, y, settings.threshold, border)) {
               continue;
             }
-            uchar *pixel = row + static_cast<qsizetype>(x) * 4;
-            if (pixel[3] == 0) {
-              put(pixel, 255, 196, 0);
+            if (comparisonImages) {
+              outputRow[x] = 1;
             } else {
-              put(pixel, blendHalf(pixel[0], 255), blendHalf(pixel[1], 196),
-                  blendHalf(pixel[2], 0));
+              uchar *pixel = outputRow + static_cast<qsizetype>(x) * 4;
+              if (pixel[3] == 0) {
+                put(pixel, 255, 196, 0);
+              } else {
+                put(pixel, blendHalf(pixel[0], 255), blendHalf(pixel[1], 196),
+                    blendHalf(pixel[2], 0));
+              }
             }
             ++count->pixels;
           }
         }
       }).pixels;
+  if (comparisonImages) {
+    if (metrics.exceededPixelCount > 0) {
+      if (settings.highlightBlockSize > 1) {
+        expandDiffBlocks(mask, std::min(settings.highlightBlockSize, 128));
+      }
+      const int alpha = qRound(std::clamp(settings.highlightOpacity, 0, 100) * 255.0 / 100.0);
+      if (alpha > 0) {
+        comparisonImages->highlight = mask;
+        comparisonImages->highlight.setColorTable({0, qRgba(255, 196, 0, alpha)});
+      }
+    }
+    comparisonImages->map = inspection.magnitudeMap;
+  }
   return result;
 }
 
@@ -521,11 +630,12 @@ std::array<QImage, 2> prepareDiffCompositeFrames(const DiffInput &base, const Di
   return {compose(base), compose(target)};
 }
 
-QVector<QRect> findDiffRegions(const DiffField &field, double threshold) {
+QVector<QRect> findDiffRegions(const DiffField &field, double threshold, int blockSize) {
   if (field.size.isEmpty()) {
     return {};
   }
-  constexpr int tileSize = 16;
+  const bool expand = blockSize > 1;
+  const int tileSize = expand ? std::min(blockSize, 128) : 16;
   const auto size = diffCanvasSize(field);
   const int width = size.width();
   const int height = size.height();
@@ -544,6 +654,14 @@ QVector<QRect> findDiffRegions(const DiffField &field, double threshold) {
         for (int x = scanBorder; x < width - scanBorder; ++x) {
           if (marksDifference(field, x, y, threshold, border)) {
             rects[x / tileSize] |= QRect(x, y, 1, 1);
+          }
+        }
+      }
+      if (expand) {
+        for (int column = 0; column < columns; ++column) {
+          if (!rects[column].isEmpty()) {
+            const int x = column * tileSize;
+            rects[column] = QRect(x, firstY, std::min(tileSize, width - x), lastY - firstY);
           }
         }
       }
@@ -599,6 +717,48 @@ DiffFieldKind diffFieldKindOf(DiffMode mode) {
     default:
       return DiffFieldKind::Luma;
   }
+}
+
+double differenceMapWhiteLevel(DiffFieldKind kind) {
+  switch (kind) {
+    case DiffFieldKind::DeltaE:
+      return kDeltaEFullScale;
+    case DiffFieldKind::Ssim:
+      return 1.0;
+    default:
+      return 255.0;
+  }
+}
+
+QImage focusComparisonHighlight(const QImage &mask, const QRect &region) {
+  const QRect clipped = region.intersected(mask.rect());
+  if (clipped.isEmpty() || mask.format() != QImage::Format_Indexed8 || mask.colorCount() != 2) {
+    return mask;
+  }
+  auto colors = mask.colorTable();
+  colors.append(qRgba(qRed(kFocusedDifferenceColor), qGreen(kFocusedDifferenceColor),
+                      qBlue(kFocusedDifferenceColor), qAlpha(colors.at(1))));
+  QImage focused = mask;
+  focused.setColorTable(colors);
+  for (int y = clipped.top(); y <= clipped.bottom(); ++y) {
+    auto *row = focused.scanLine(y);
+    std::replace(row + clipped.left(), row + clipped.right() + 1, uchar(1), uchar(2));
+  }
+  return focused;
+}
+
+QImage amplifyDifferenceMap(const QImage &map, int gain) {
+  if (gain <= 1 || map.format() != QImage::Format_Indexed8) {
+    return map;
+  }
+  auto colors = map.colorTable();
+  for (auto &color : colors) {
+    const int level = std::min(255, qRed(color) * std::min(gain, 255));
+    color = qRgb(level, level, level);
+  }
+  QImage result = map;
+  result.setColorTable(colors);
+  return result;
 }
 
 bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings &settings) {
@@ -687,13 +847,16 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
           QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
     }
     if (leftAlpha != rightAlpha) {
-      auto &changed = field->inspection->alphaChanged;
+      auto &changed = field->inspection->alphaMagnitude;
       changed.resize(pixelCount);
       const float tolerance = baseRegion == size && targetRegion == size ? 0.0F : 1.0e-6F;
       std::transform(leftAlpha.cbegin(), leftAlpha.cend(), rightAlpha.cbegin(), changed.begin(),
-                     [tolerance](float a, float b) {
-                       return a != b &&
-                              (std::isnan(a) != std::isnan(b) || std::abs(a - b) > tolerance);
+                     [tolerance](float a, float b) -> unsigned char {
+                       if (std::isnan(a) != std::isnan(b)) {
+                         return 255;
+                       }
+                       const float difference = std::abs(a - b);
+                       return difference > tolerance ? magnitudeLevel(difference * 255.0F) : 0;
                      });
       if (std::ranges::none_of(changed, [](unsigned char value) { return value != 0; })) {
         changed.clear();
@@ -716,6 +879,13 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
       targetAlpha = {};
     }
   }
+
+  const auto finish = [&]() -> DiffFieldPtr {
+    if (field->inspection && !canceled()) {
+      field->inspection->magnitudeMap = renderMagnitudeMap(*field, canceled);
+    }
+    return canceled() ? DiffFieldPtr{} : field;
+  };
 
   const auto preparePlane = [&](QVector<float> &plane, const QSize &region,
                                 const QVector<float> &alpha) {
@@ -782,10 +952,7 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
         }
       }
     });
-    if (canceled()) {
-      return {};
-    }
-    return field;
+    return finish();
   }
 
   // 輝度は画素ごとに取らず、走査の前にまとめて作る。画素ごとに取ると、型と
@@ -826,7 +993,7 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
         *value = 1.0F - *value;
       }
     });
-    return canceled() ? DiffFieldPtr{} : field;
+    return finish();
   }
 
   // 輝度の差 (比べる側 - 基準)。帯ごとに、並列に求める。
@@ -843,12 +1010,16 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
       out[index] = targetData[index] - baseData[index];
     }
   });
-  return canceled() ? DiffFieldPtr{} : field;
+  return finish();
 }
 
 DiffOutput renderDiffFromField(const DiffField &field, const DiffInput &base,
-                               const heiran::domain::DiffSettings &settings) {
+                               const heiran::domain::DiffSettings &settings,
+                               ComparisonDiffImages *comparisonImages) {
   DiffOutput output;
+  if (comparisonImages) {
+    *comparisonImages = {};
+  }
   const QSize size = field.size;
   const int width = size.width();
   const int height = size.height();
@@ -862,7 +1033,7 @@ DiffOutput renderDiffFromField(const DiffField &field, const DiffInput &base,
 
   output.metrics = metricsOf(field, settings.threshold);
   if (field.inspection) {
-    output.image = renderInspection(field, base.image, settings.threshold, output.metrics);
+    output.image = renderInspection(field, base.image, settings, output.metrics, comparisonImages);
     output.ok = !output.image.isNull();
     if (!output.ok) {
       output.error =
@@ -873,7 +1044,6 @@ DiffOutput renderDiffFromField(const DiffField &field, const DiffInput &base,
   const bool colorDifference = field.kind == DiffFieldKind::DeltaE;
 
   // 自動の範囲合わせを切ったときの尺度。輝度は 0-255 のまま、色差は ΔE 10 を最も明るい階調にする。
-  constexpr double kDeltaEFullScale = 10.0;
   const double rangeScale =
       settings.autoRange && output.metrics.maxAbsDiff > 0.0
           ? 255.0 / output.metrics.maxAbsDiff

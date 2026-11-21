@@ -36,7 +36,9 @@ PreparedImageSession StartupPreparationController::prepareDiffImages(
   }
   if (session.images.size() == 2) {
     session.cells[2].diff =
-        CellDiff{.baseCell = 0, .targetCell = 1, .settings = {.view = DiffViewMode::Overlay}};
+        CellDiff{.baseCell = 0,
+                 .targetCell = 1,
+                 .settings = {.mode = DiffMode::RgbMax, .view = DiffViewMode::Overlay}};
   }
   return prepared;
 }

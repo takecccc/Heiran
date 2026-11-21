@@ -8,6 +8,7 @@
 #include <QEvent>
 #include <QFileInfo>
 #include <QFont>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QMimeData>
 #include <QPainter>
@@ -55,7 +56,7 @@ WelcomeWidget::WelcomeWidget(QWidget *parent) : QWidget(parent) {
       "#welcome QLabel { color: #b4b9c2; }"
       "#welcome QLabel#welcomeTitle { color: #e4e7ec; }"
       "#welcome QLabel#welcomeHint { color: #8d929b; }"
-      "#welcome QPushButton#welcomeOpen { padding: 8px 22px; }"
+      "#welcome QPushButton#welcomeOpen, #welcome QPushButton#welcomeCompare { padding: 8px 16px; }"
       "#welcome QPushButton#welcomeRecent { border: none; color: #8fb8d8; padding: 2px 8px;"
       " background: transparent; }"
       "#welcome QPushButton#welcomeRecent:hover { color: #c4defa; text-decoration: underline; }");
@@ -90,7 +91,16 @@ WelcomeWidget::WelcomeWidget(QWidget *parent) : QWidget(parent) {
   openButton->setObjectName("welcomeOpen");
   openButton->setCursor(Qt::PointingHandCursor);
   connect(openButton, &QPushButton::clicked, this, &WelcomeWidget::openImageRequested);
-  layout->addWidget(openButton, 0, Qt::AlignHCenter);
+  auto *compareButton = new QPushButton(tr("Compare..."), this);
+  compareButton->setObjectName("welcomeCompare");
+  compareButton->setCursor(Qt::PointingHandCursor);
+  connect(compareButton, &QPushButton::clicked, this, &WelcomeWidget::comparisonRequested);
+  auto *buttons = new QHBoxLayout;
+  buttons->addStretch();
+  buttons->addWidget(openButton);
+  buttons->addWidget(compareButton);
+  buttons->addStretch();
+  layout->addLayout(buttons);
 
   auto *hint =
       makeLabel(tr("Ctrl+O  open     F1  manual     Tab  compare one by one"), 9, false, this);

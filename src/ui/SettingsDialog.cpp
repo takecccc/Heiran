@@ -1,5 +1,7 @@
 #include "heiran/ui/SettingsDialog.hpp"
+#include "heiran/ui/AppStyle.hpp"
 #include "heiran/ui/SettingsHelpController.hpp"
+#include "heiran/ui/ThemeEditor.hpp"
 
 #include <QCheckBox>
 #include <QColorDialog>
@@ -14,13 +16,16 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPixmap>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStackedWidget>
+#include <QStyleHints>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -54,25 +59,25 @@ void addSettingsPage(QStackedWidget *pages, QGroupBox *group) {
   pages->addWidget(scroll);
 }
 
+void updateBackgroundColorButton(QPushButton *button, const QColor &color) {
+  QPixmap swatch(24, 16);
+  swatch.fill(color);
+  button->setIcon(QIcon(swatch));
+  button->setText(color.name());
+}
+
 QPushButton *backgroundColorButton(QColor *color, QWidget *parent, const QString &title,
                                    const char *objectName) {
   auto *button = new QPushButton(parent);
   button->setObjectName(objectName);
   button->setToolTip(title);
   button->setAccessibleName(title);
-  const auto refresh = [button, color]() {
-    QPixmap swatch(24, 16);
-    swatch.fill(*color);
-    button->setIcon(QIcon(swatch));
-    button->setText(color->name());
-  };
-  refresh();
-  QObject::connect(button, &QPushButton::clicked, button, [button, color, title, refresh]() {
+  QObject::connect(button, &QPushButton::clicked, button, [button, color, title]() {
     const QColor chosen =
         QColorDialog::getColor(*color, button, title, QColorDialog::DontUseNativeDialog);
     if (chosen.isValid()) {
       *color = chosen;
-      refresh();
+      updateBackgroundColorButton(button, *color);
     }
   });
   return button;
@@ -89,6 +94,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
     initialSize = initialSize.boundedTo(screen->availableGeometry().size() - QSize(40, 80));
   }
   dialog.resize(initialSize);
+  AppSettings pending = current;
 
   auto *layout = new QVBoxLayout(&dialog);
   auto *content = new QHBoxLayout;
@@ -99,6 +105,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   const QStringList categoryTitles{
       QCoreApplication::translate("SettingsDialog", "General"),
       QCoreApplication::translate("SettingsDialog", "Display and playback"),
+      QCoreApplication::translate("SettingsDialog", "Theme"),
       QCoreApplication::translate("SettingsDialog", "Color management"),
       QCoreApplication::translate("SettingsDialog", "Cache")};
   int categoryWidth = 140;
@@ -125,8 +132,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   auto *pixelValueCombo = new QComboBox(displayGroup);
   pixelValueCombo->addItem("0 - 255", static_cast<int>(PixelValueFormat::Normalized255));
   pixelValueCombo->addItem("0.0 - 1.0", static_cast<int>(PixelValueFormat::Normalized01));
-  pixelValueCombo->setCurrentIndex(current.pixelValueFormat == PixelValueFormat::Normalized01 ? 1
-                                                                                              : 0);
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Pixel value unit"),
                       pixelValueCombo);
 
@@ -134,14 +139,12 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
       new QCheckBox(QCoreApplication::translate("SettingsDialog",
                                                 "Fit the images into their cells on page change"),
                     displayGroup);
-  fitCheckBox->setChecked(current.fitOnPageChange);
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Page change"), fitCheckBox);
 
   auto *wrapNavigationCheckBox =
       new QCheckBox(QCoreApplication::translate("SettingsDialog", "Use two rows in narrow windows"),
                     displayGroup);
   wrapNavigationCheckBox->setObjectName("wrapNavigation");
-  wrapNavigationCheckBox->setChecked(current.wrapNavigation);
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Navigation"),
                       wrapNavigationCheckBox);
 
@@ -149,11 +152,12 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
       new QCheckBox(QCoreApplication::translate(
                         "SettingsDialog", "Separate the cells with a dark gutter and an outline"),
                     displayGroup);
-  bordersCheckBox->setChecked(current.showCellBorders);
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Cell borders"),
                       bordersCheckBox);
 
-  auto *themeCombo = new QComboBox(generalGroup);
+  auto *themeGroup = new QGroupBox(categoryTitles.at(2), &dialog);
+  auto *themeForm = new QFormLayout(themeGroup);
+  auto *themeCombo = new QComboBox(themeGroup);
   themeCombo->setObjectName("colorTheme");
   themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "System"),
                       static_cast<int>(ColorTheme::System));
@@ -167,20 +171,23 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                       static_cast<int>(ColorTheme::Sand));
   themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "Sakura"),
                       static_cast<int>(ColorTheme::Sakura));
-  themeCombo->setCurrentIndex(themeCombo->findData(static_cast<int>(current.colorTheme)));
+  themeCombo->addItem(QCoreApplication::translate("SettingsDialog", "Custom"),
+                      static_cast<int>(ColorTheme::Custom));
   themeCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
       "The area that shows the images keeps its neutral dark backdrop either way, so images are "
       "judged against the same background."));
+  themeForm->addRow(QCoreApplication::translate("SettingsDialog", "Color theme"), themeCombo);
+  auto *themeEditor = new ThemeEditor(themeGroup);
+  themeForm->addRow(themeEditor);
 
-  TransparencyBackground background = current.transparencyBackground;
+  auto &background = pending.transparencyBackground;
   auto *backgroundCombo = new QComboBox(displayGroup);
   backgroundCombo->setObjectName("transparencyPattern");
   backgroundCombo->addItem(QCoreApplication::translate("SettingsDialog", "Solid color"),
                            static_cast<int>(TransparencyPattern::Solid));
   backgroundCombo->addItem(QCoreApplication::translate("SettingsDialog", "Checkerboard"),
                            static_cast<int>(TransparencyPattern::Checkerboard));
-  backgroundCombo->setCurrentIndex(backgroundCombo->findData(static_cast<int>(background.pattern)));
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Transparency background"),
                       backgroundCombo);
   auto *backgroundColors = new QWidget(displayGroup);
@@ -209,7 +216,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
     checker1Button->setVisible(checkerboard);
     checker2Button->setVisible(checkerboard);
   };
-  updateBackgroundButtons();
   QObject::connect(backgroundCombo, &QComboBox::currentIndexChanged, &dialog,
                    updateBackgroundButtons);
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Background colors"),
@@ -223,13 +229,11 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                          QStringLiteral("auto"));
   languageCombo->addItem(QStringLiteral("English"), QStringLiteral("en"));
   languageCombo->addItem(QStringLiteral("日本語"), QStringLiteral("ja"));
-  languageCombo->setCurrentIndex(std::max(0, languageCombo->findData(current.language)));
   languageCombo->setToolTip(
       QCoreApplication::translate("SettingsDialog", "Takes effect the next time Heiran starts."));
   generalForm->addRow(QCoreApplication::translate("SettingsDialog", "Language"), languageCombo);
   auto *languageNote =
       addSettingsNote(generalForm, languageCombo->toolTip(), "languageRestartNote");
-  generalForm->addRow(QCoreApplication::translate("SettingsDialog", "Color theme"), themeCombo);
 
   auto *magnifyCombo = new QComboBox(displayGroup);
   magnifyCombo->setObjectName("magnifyFilter");
@@ -237,7 +241,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                         static_cast<int>(MagnifyFilter::Nearest));
   magnifyCombo->addItem(QCoreApplication::translate("SettingsDialog", "Smooth"),
                         static_cast<int>(MagnifyFilter::Smooth));
-  magnifyCombo->setCurrentIndex(current.magnifyFilter == MagnifyFilter::Smooth ? 1 : 0);
   magnifyCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog", "Nearest keeps pixel edges visible. Smooth interpolates neighbours."));
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Magnify filter"),
@@ -251,8 +254,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                               static_cast<int>(AnimationSyncMode::Locked));
   animationSyncCombo->addItem(QCoreApplication::translate("SettingsDialog", "Independent"),
                               static_cast<int>(AnimationSyncMode::Independent));
-  animationSyncCombo->setCurrentIndex(
-      animationSyncCombo->findData(static_cast<int>(current.animationSyncMode)));
   animationSyncCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
       "How animations advance when several cells show one. Auto syncs the cells when the "
@@ -268,14 +269,13 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                        static_cast<int>(MinifyFilter::Area));
   minifyCombo->addItem(QCoreApplication::translate("SettingsDialog", "Nearest"),
                        static_cast<int>(MinifyFilter::Nearest));
-  minifyCombo->setCurrentIndex(current.minifyFilter == MinifyFilter::Nearest ? 1 : 0);
   minifyCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
       "Area averages 2x2 blocks step by step, which avoids flicker while panning. "
       "Nearest picks a single pixel, which flickers but shows the original values."));
   displayForm->addRow(QCoreApplication::translate("SettingsDialog", "Minify filter"), minifyCombo);
 
-  auto *colorGroup = new QGroupBox(categoryTitles.at(2), &dialog);
+  auto *colorGroup = new QGroupBox(categoryTitles.at(3), &dialog);
   auto *colorForm = new QFormLayout(colorGroup);
 
   auto *profileModeCombo = new QComboBox(colorGroup);
@@ -286,8 +286,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                             static_cast<int>(DisplayProfileMode::SRgb));
   profileModeCombo->addItem(QCoreApplication::translate("SettingsDialog", "ICC file"),
                             static_cast<int>(DisplayProfileMode::File));
-  profileModeCombo->setCurrentIndex(
-      profileModeCombo->findData(static_cast<int>(current.displayProfileMode)));
   profileModeCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
       "Display profile uses the profile assigned to the screen. sRGB ignores it, which helps "
@@ -298,7 +296,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   auto *profilePathRow = new QWidget(colorGroup);
   auto *profilePathLayout = new QHBoxLayout(profilePathRow);
   profilePathLayout->setContentsMargins(0, 0, 0, 0);
-  auto *profilePathEdit = new QLineEdit(current.displayProfilePath, profilePathRow);
+  auto *profilePathEdit = new QLineEdit(profilePathRow);
   profilePathEdit->setObjectName("displayProfilePath");
   profilePathEdit->setPlaceholderText(
       QCoreApplication::translate("SettingsDialog", "Path to an .icc or .icm file"));
@@ -319,7 +317,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
     profilePathRow->setEnabled(fileMode);
     profilePathNote->setVisible(!fileMode);
   };
-  updateProfilePathState();
   QObject::connect(profileModeCombo, &QComboBox::currentIndexChanged, &dialog,
                    [updateProfilePathState](int) { updateProfilePathState(); });
   QObject::connect(browseButton, &QPushButton::clicked, &dialog, [&dialog, profilePathEdit]() {
@@ -342,7 +339,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                        static_cast<int>(RenderingIntent::Saturation));
   intentCombo->addItem(QCoreApplication::translate("SettingsDialog", "Absolute colorimetric"),
                        static_cast<int>(RenderingIntent::AbsoluteColorimetric));
-  intentCombo->setCurrentIndex(intentCombo->findData(static_cast<int>(current.renderingIntent)));
   intentCombo->setEnabled(supportsRenderingIntents());
   intentCombo->setToolTip(
       supportsRenderingIntents()
@@ -356,7 +352,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
 
   auto *blackPointCheckBox = new QCheckBox(
       QCoreApplication::translate("SettingsDialog", "Black point compensation"), colorGroup);
-  blackPointCheckBox->setChecked(current.blackPointCompensation);
   blackPointCheckBox->setEnabled(supportsRenderingIntents());
   blackPointCheckBox->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
@@ -374,8 +369,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                               static_cast<int>(AnalysisValueSpace::Source));
   analysisSpaceCombo->addItem(QCoreApplication::translate("SettingsDialog", "Linear light"),
                               static_cast<int>(AnalysisValueSpace::Linear));
-  analysisSpaceCombo->setCurrentIndex(
-      analysisSpaceCombo->findData(static_cast<int>(current.analysisValueSpace)));
   analysisSpaceCombo->setToolTip(QCoreApplication::translate(
       "SettingsDialog",
       "Source values reports the numbers as stored in the file. Linear light decodes them first, "
@@ -383,7 +376,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   colorForm->addRow(QCoreApplication::translate("SettingsDialog", "Analysis values"),
                     analysisSpaceCombo);
 
-  auto *cacheGroup = new QGroupBox(categoryTitles.at(3), &dialog);
+  auto *cacheGroup = new QGroupBox(categoryTitles.at(4), &dialog);
   auto *cacheForm = new QFormLayout(cacheGroup);
 
   auto *cacheBudgetSpinBox = new QSpinBox(cacheGroup);
@@ -391,7 +384,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   cacheBudgetSpinBox->setRange(kMinDecodeCacheBudgetMib, kMaxDecodeCacheBudgetMib);
   cacheBudgetSpinBox->setSingleStep(64);
   cacheBudgetSpinBox->setSuffix(QCoreApplication::translate("SettingsDialog", " MiB"));
-  cacheBudgetSpinBox->setValue(clampDecodeCacheBudgetMib(current.decodeCacheBudgetMib));
   cacheForm->addRow(QCoreApplication::translate("SettingsDialog", "Decode cache budget"),
                     cacheBudgetSpinBox);
 
@@ -399,7 +391,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   textureBudgetSpinBox->setRange(kMinGpuTextureBudgetMib, kMaxGpuTextureBudgetMib);
   textureBudgetSpinBox->setSingleStep(64);
   textureBudgetSpinBox->setSuffix(QCoreApplication::translate("SettingsDialog", " MiB"));
-  textureBudgetSpinBox->setValue(clampGpuTextureBudgetMib(current.gpuTextureBudgetMib));
   cacheForm->addRow(QCoreApplication::translate("SettingsDialog", "GPU texture budget"),
                     textureBudgetSpinBox);
 
@@ -408,8 +399,6 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
                              kMaxAnimationStreamingThresholdMib);
   streamingSpinBox->setSingleStep(16);
   streamingSpinBox->setSuffix(QCoreApplication::translate("SettingsDialog", " MiB"));
-  streamingSpinBox->setValue(
-      clampAnimationStreamingThresholdMib(current.animationStreamingThresholdMib));
   cacheForm->addRow(QCoreApplication::translate("SettingsDialog", "Animation streaming threshold"),
                     streamingSpinBox);
 
@@ -417,7 +406,7 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
       cacheForm,
       QCoreApplication::translate("SettingsDialog", "Applies to files opened afterwards."),
       "animationStreamingNote");
-  for (auto *group : {generalGroup, displayGroup, colorGroup, cacheGroup}) {
+  for (auto *group : {generalGroup, displayGroup, themeGroup, colorGroup, cacheGroup}) {
     addSettingsPage(pages, group);
   }
   QObject::connect(categories, &QListWidget::currentRowChanged, pages,
@@ -455,7 +444,15 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   auto *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
   QObject::connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
   QObject::connect(buttonBox, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-  layout->addWidget(buttonBox);
+  auto *resetAllButton = new QPushButton(
+      QCoreApplication::translate("SettingsDialog", "Restore All Defaults..."), &dialog);
+  resetAllButton->setObjectName("restoreAllSettingsDefaults");
+  resetAllButton->setAutoDefault(false);
+  auto *buttonRow = new QHBoxLayout;
+  buttonRow->addWidget(resetAllButton);
+  buttonRow->addStretch();
+  buttonRow->addWidget(buttonBox);
+  layout->addLayout(buttonRow);
 
   SettingsHelpController help(&dialog, helpTitle, helpDescription);
   const auto bindHelp = [&help](QFormLayout *form, QWidget *field, const QString &description,
@@ -472,7 +469,9 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   bindHelp(generalForm, languageCombo, languageCombo->toolTip());
   help.setHelp(languageNote, QCoreApplication::translate("SettingsDialog", "Language"),
                languageCombo->toolTip());
-  bindHelp(generalForm, themeCombo, themeCombo->toolTip());
+  bindHelp(themeForm, themeCombo, themeCombo->toolTip());
+  help.setHelp(themeEditor, QCoreApplication::translate("SettingsDialog", "Color theme"),
+               themeEditor->toolTip());
   bindHelp(displayForm, pixelValueCombo,
            QCoreApplication::translate("SettingsDialog",
                                        "Changes the unit used for pixel values: 0-255 "
@@ -556,17 +555,99 @@ std::optional<AppSettings> showSettingsDialog(QWidget *parent, const AppSettings
   const auto selectedTheme = [themeCombo]() {
     return static_cast<ColorTheme>(themeCombo->currentData().toInt());
   };
-  QObject::connect(themeCombo, &QComboBox::currentIndexChanged, &dialog,
-                   [selectedTheme]() { applyColorTheme(selectedTheme()); });
+  auto &customTheme = pending.customColorTheme;
+  const auto updateEditor = [selectedTheme, themeEditor, &customTheme]() {
+    if (selectedTheme() == ColorTheme::Custom) {
+      themeEditor->setTheme(customTheme, false);
+      return;
+    }
+    const auto tokens = AppStyleTokens::current();
+    themeEditor->setTheme({.dark = tokens.window.lightness() < 128,
+                           .window = tokens.window,
+                           .panel = tokens.panel,
+                           .input = tokens.input,
+                           .text = tokens.text,
+                           .accent = tokens.accent},
+                          true);
+  };
+  const auto previewTheme = [selectedTheme, updateEditor, &customTheme]() {
+    applyColorTheme(selectedTheme(), customTheme);
+    updateEditor();
+  };
+  QObject::connect(themeCombo, &QComboBox::currentIndexChanged, &dialog, previewTheme);
+  QObject::connect(themeEditor, &ThemeEditor::themeChanged, &dialog,
+                   [themeCombo, themeEditor, selectedTheme, &customTheme]() {
+                     customTheme = themeEditor->theme();
+                     if (selectedTheme() == ColorTheme::Custom) {
+                       applyColorTheme(ColorTheme::Custom, customTheme);
+                     } else {
+                       themeCombo->setCurrentIndex(
+                           themeCombo->findData(static_cast<int>(ColorTheme::Custom)));
+                     }
+                   });
+  QObject::connect(
+      QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, &dialog,
+      [selectedTheme, updateEditor]() {
+        if (selectedTheme() == ColorTheme::System) {
+          updateEditor();
+        }
+      },
+      Qt::QueuedConnection);
+  const auto populate = [&](const AppSettings &settings) {
+    pending = settings;
+    const auto select = [](QComboBox *combo, auto value) {
+      combo->setCurrentIndex(combo->findData(static_cast<int>(value)));
+    };
+    languageCombo->setCurrentIndex(std::max(0, languageCombo->findData(settings.language)));
+    select(pixelValueCombo, settings.pixelValueFormat);
+    fitCheckBox->setChecked(settings.fitOnPageChange);
+    wrapNavigationCheckBox->setChecked(settings.wrapNavigation);
+    bordersCheckBox->setChecked(settings.showCellBorders);
+    select(backgroundCombo, background.pattern);
+    updateBackgroundColorButton(solidButton, background.solidColor);
+    updateBackgroundColorButton(checker1Button, background.checkerColor1);
+    updateBackgroundColorButton(checker2Button, background.checkerColor2);
+    updateBackgroundButtons();
+    select(magnifyCombo, settings.magnifyFilter);
+    select(minifyCombo, settings.minifyFilter);
+    select(animationSyncCombo, settings.animationSyncMode);
+    select(profileModeCombo, settings.displayProfileMode);
+    profilePathEdit->setText(settings.displayProfilePath);
+    updateProfilePathState();
+    select(intentCombo, settings.renderingIntent);
+    blackPointCheckBox->setChecked(settings.blackPointCompensation);
+    select(analysisSpaceCombo, settings.analysisValueSpace);
+    cacheBudgetSpinBox->setValue(clampDecodeCacheBudgetMib(settings.decodeCacheBudgetMib));
+    textureBudgetSpinBox->setValue(clampGpuTextureBudgetMib(settings.gpuTextureBudgetMib));
+    streamingSpinBox->setValue(
+        clampAnimationStreamingThresholdMib(settings.animationStreamingThresholdMib));
+    const QSignalBlocker blocker(themeCombo);
+    select(themeCombo, settings.colorTheme);
+    previewTheme();
+  };
+  const auto resetTitle = QCoreApplication::translate("SettingsDialog", "Restore All Defaults");
+  const auto resetDescription = QCoreApplication::translate(
+      "SettingsDialog", "Restore all application settings to their default values? Select OK in "
+                        "App Settings to save the changes.");
+  help.setHelp(resetAllButton, resetTitle, resetDescription);
+  QObject::connect(resetAllButton, &QPushButton::clicked, &dialog, [&]() {
+    if (QMessageBox::question(&dialog, resetTitle, resetDescription,
+                              QMessageBox::Ok | QMessageBox::Cancel,
+                              QMessageBox::Cancel) == QMessageBox::Ok) {
+      populate(AppSettings{});
+    }
+  });
+  populate(current);
   if (dialog.exec() != QDialog::Accepted) {
-    if (selectedTheme() != current.colorTheme)
-      applyColorTheme(current.colorTheme);
+    if (selectedTheme() != current.colorTheme || customTheme != current.customColorTheme) {
+      applyColorTheme(current.colorTheme, current.customColorTheme);
+    }
     return std::nullopt;
   }
 
-  AppSettings updated = current;
-  background.pattern = static_cast<TransparencyPattern>(backgroundCombo->currentData().toInt());
-  updated.transparencyBackground = background;
+  AppSettings updated = pending;
+  updated.transparencyBackground.pattern =
+      static_cast<TransparencyPattern>(backgroundCombo->currentData().toInt());
   updated.pixelValueFormat = static_cast<PixelValueFormat>(pixelValueCombo->currentData().toInt());
   updated.fitOnPageChange = fitCheckBox->isChecked();
   updated.wrapNavigation = wrapNavigationCheckBox->isChecked();

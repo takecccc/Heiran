@@ -15,7 +15,7 @@
 ## 前提
 
 - Windows (64bit)、Visual Studio (C++ ツール、Windows SDK、C++ Clang tools for Windows)、Ninja
-- CMake 3.24 以上
+- CMake 3.27 以上
 - C++20 対応コンパイラ
 - Qt 6.5 以上 (`Core`, `Gui`, `Widgets`, `Test`)
 - 画像の復号ライブラリ (libavif、libjxl、OpenEXR、libtiff、libwebp、libspng) は vcpkg で入る。
@@ -200,57 +200,41 @@ uv run python tools/generate_example_images.py
 
 ## 配布物の作成
 
+インストーラーの生成には [Inno Setup](https://jrsoftware.org/inno-setup/downloads) 6.3 以降が必要です。
+パッケージ作成時に、リポジトリ内の `.tools/inno-setup/ISCC.exe`、Windows の標準インストール先、`PATH` からコンパイラを探します。
+ポータブル版を使う場合は、`ISCC.exe` と付属のファイルをまとめて `.tools/inno-setup/` に置きます。
+この場所や `PATH` に追加した後は、パッケージ作成を再実行すれば見つかります。
+別の場所を固定で使う場合は、CMake の `HEIRAN_ISCC_EXECUTABLE` に `ISCC.exe` のパスを指定します。
+
 ```powershell
 ./scripts/configure.ps1 -BuildConfig Release
 ./scripts/package.ps1
 ```
 
-`build/Heiran-<version>-win64.exe` (NSIS インストーラ) と `build/Heiran-<version>-win64.zip` ができます。
-詳細は [AGENTS.md](./AGENTS.md) の「配布物の作成」にあります。
+`build/Heiran-<version>-win64.exe` (Inno Setup) と `build/Heiran-<version>-win64.zip` ができます。
+インストーラーだけを手早く作るには `./scripts/package.ps1 -Fast -Generator INNOSETUP` を使います。
+ZIP のみなら `./scripts/package.ps1 -Generator ZIP` で、Inno Setup は不要です。
 
-### インストーラーの外観
+### インストーラーの設定と確認
 
-外観は `resources/nsis/appearance.nsh`、歓迎・完了画面とヘッダーの画像は
-`resources/nsis/sidebar.bmp` と `header.bmp` で管理します。画像はビルド入力としてコミットし、
-通常のビルドでは再生成しません。アプリアイコンを変更した場合は、次で画像も再生成します
-(Windows 標準の System.Drawing と Segoe UI を使用)。
+CPack がアプリと DLL を集め、`resources/installer/` のスクリプトからインストーラーを生成します。
+生成されたスクリプトは `build/_CPack_Packages/win64/INNOSETUP/ISScript.iss` で確認できます。
+独自の文言は `messages.iss`、関連付けは `associations.iss.in` と `cmake/WindowsInstaller.cmake` で管理します。
+外観を変える場合は標準ウィザードと `sidebar.bmp`、`header.bmp` を調整します。
+アプリアイコンを変更した場合は `./tools/generate_installer_artwork.ps1` で画像を再生成します。
 
-```powershell
-./tools/generate_installer_artwork.ps1
-```
-
-ファイルやレジストリを書き換えずに各ページを確認できるプレビューを用意しています。
-`build` を作成したうえで、次を実行します。
-
-```powershell
-$preview = Join-Path (Resolve-Path build) "installer-preview.exe"
-makensis "/DHEIRAN_PREVIEW_OUTPUT=$preview" resources/nsis/preview.nsi
-& $preview
-```
-
-英語で確認する場合は `/DHEIRAN_PREVIEW_ENGLISH`、完了画面だけを確認する場合は
-`/DHEIRAN_PREVIEW_FINISH` を `makensis` に追加します。
-起動時の旧版削除は無効にし、同じインストール先へ上書き更新します。［インストール］を押す前のキャンセルでは既存版を変更しません。
-コピー開始後の失敗に対する自動ロールバックはありません。旧版だけにあるファイルは残すため、配布構成の変更時は不要ファイルの影響を確認してください。
-`/DHEIRAN_PREVIEW_UPGRADE` は CPack 標準の旧版削除メッセージの翻訳確認用です。通常の配布物では表示せず、プレビューでも削除を実行しません。
-関連付けのページだけを確認する場合は `/DHEIRAN_PREVIEW_ASSOCIATIONS` を追加します。
-プレビューにはインストール処理がなく、歓迎、ライセンス、関連付け、保存先、完了画面の配置を確認できます。
-実際の配布物は `./scripts/package.ps1 -Fast -Generator NSIS` で生成し、最終確認は上記の通常手順に従います。
-
-インストーラー独自の文言は `resources/nsis/strings_en.nsh` と `strings_ja.nsh` で管理します。
-日本語の OS では日本語、それ以外では英語になります。アプリ内の言語設定とは独立しています。
-`cmake/InstallerLocalization.cmake` は、利用中の CPack テンプレートの確認文・対応言語・関連付けページの案内を調整します。
-CPack の該当部分が変わった場合は configure を失敗させるため、CMake 更新時にテンプレートの差分を確認してください。
-関連付けページの見出しと案内は `resources/nsis/association_page.nsh` で設定します。
-カテゴリと拡張子は `association_sections.nsh`、共通の拡張子一覧は `association_formats.nsh` にあります。
-`.hrn`、一般画像、高精度画像の順で表示し、すべて既定で選択します。画像はカテゴリ単位でも拡張子単位でも切り替えられます。
-関連付けには CPack のコンポーネントや配布用のダミーファイルを使いません。
-`heiran_installer_association_selection_tests` は実際の選択判定を使い、登録先をテスト用ファイルに置き換えて検証します (makensis がある環境だけで登録)。
+セットアップの言語は `/LANG=japanese` と `/LANG=english`、範囲は `/CURRENTUSER` と `/ALLUSERS` でも指定できます。
+配布前に、標準ユーザーのアカウントでユーザー単位のインストール、管理者への昇格を伴う全ユーザー向けインストール、
+両方のアンインストールを確認します。旧 NSIS 版のある環境では全ユーザー向けで上書きし、旧アンインストール登録が
+更新完了後に消えることを確認します。UAC とウィザードをキャンセルして旧版が起動することも確かめます。
+上書きで旧版だけにあるファイルは残るため、配布構成を変えたときは不要ファイルの影響を確認します。
+関連付けは言語ごとの表示、カテゴリの一括操作、拡張子ごとの登録・解除とアンインストール時の削除を確認します。
+`heiran_installer_configuration_tests` は範囲と各言語の設定、関連付けのタスクと登録・削除の対応を検査します。
 
 ## リリース
 
 配布物は、リポジトリへ入れず、GitHub の Releases に添付する。手順は `scripts/release.ps1` が二段に分けて行う。
-前提は、`main` にいること、作業ツリーがきれいなこと、`uv` と `makensis` があること、公開には `gh` (GitHub CLI) へログイン済みなこと。
+前提は、`main` にいること、作業ツリーがきれいなこと、`uv` と `ISCC.exe` があること、公開には `gh` (GitHub CLI) へログイン済みなこと。
 
 1. **リリースノートを用意する。** `manual/release-notes/v1.0.0.md` に、版名をレベル 1 の見出し (`# Heiran 1.0.0`) として置き、変更点と配布案内を書く。
    [リリースノートの目次](./manual/release-notes/index.md) の先頭にその版を加え、`./scripts/build-manual.ps1` で表示を確認し、配布準備の前にコミットする。

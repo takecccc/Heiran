@@ -35,6 +35,8 @@ struct CellOverlayInput {
 
   // 表示画像の画素座標。切り出したマスクの左上は QImage::offset() で持つ。
   const QImage *histogramHighlight = nullptr;
+  const QImage *comparisonHighlight = nullptr;
+  QSize comparisonHighlightSize;
 
   // 確定した選択範囲と、ドラッグ中の仮の選択範囲。画像座標で持つ。
   std::optional<QRectF> selectionRect;

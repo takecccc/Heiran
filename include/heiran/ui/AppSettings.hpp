@@ -83,6 +83,7 @@ struct AppSettings {
   bool blackPointCompensation = false;
   // 画面の配色。既定は OS の設定に従う。
   ColorTheme colorTheme = ColorTheme::System;
+  CustomColorTheme customColorTheme;
   // 共有カーソルの描き方。縁付きの固定色か、画素の色から離れた色か。
   CursorStyle cursorStyle = CursorStyle::Outline;
 

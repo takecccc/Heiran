@@ -101,6 +101,11 @@ QSet<QByteArray> imageSuffixes() {
 
 }  // namespace
 
+bool hasComparisonImageSuffix(const QString &path) {
+  static const auto suffixes = imageSuffixes();
+  return suffixes.contains(QFileInfo(path).suffix().toLower().toLatin1());
+}
+
 FolderComparisonResult compareFolders(const QString &left, const QString &right,
                                       const std::function<bool()> &isCanceled) {
   const auto canceled = [&]() { return isCanceled && isCanceled(); };
@@ -111,7 +116,6 @@ FolderComparisonResult compareFolders(const QString &left, const QString &right,
   enumerateFiles(QDir(left), true, entries, result.unreadableDirectories, unreadableLeft, canceled);
   enumerateFiles(QDir(right), false, entries, result.unreadableDirectories, unreadableRight,
                  canceled);
-  const auto suffixes = imageSuffixes();
   result.entries.reserve(entries.size());
   for (auto &entry : entries) {
     if (canceled()) {
@@ -123,7 +127,7 @@ FolderComparisonResult compareFolders(const QString &left, const QString &right,
                               inUnreadableDirectory(entry.relativePath, unreadableRight);
     entry.status = unknownLeft || unknownRight ? FileComparisonStatus::Unreadable
                                                : compareFileContents(entry, canceled);
-    entry.image = suffixes.contains(QFileInfo(entry.relativePath).suffix().toLower().toLatin1());
+    entry.image = hasComparisonImageSuffix(entry.relativePath);
     result.entries.append(std::move(entry));
   }
   return canceled() ? FolderComparisonResult{} : result;

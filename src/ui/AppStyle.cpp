@@ -11,6 +11,13 @@ namespace heiran::ui {
 namespace {
 
 ColorTheme activeTheme = ColorTheme::System;
+CustomColorTheme activeCustomTheme;
+
+QColor mix(const QColor &base, const QColor &shade, double weight) {
+  return QColor::fromRgbF(base.redF() + (shade.redF() - base.redF()) * weight,
+                          base.greenF() + (shade.greenF() - base.greenF()) * weight,
+                          base.blueF() + (shade.blueF() - base.blueF()) * weight);
+}
 
 QString css(const QColor &color) {
   return QString("rgba(%1, %2, %3, %4)")
@@ -39,7 +46,8 @@ AppStyleTokens AppStyleTokens::forDarkScheme(bool dark) {
         .accent = QColor(92, 156, 245),
         .accentSoft = QColor(92, 156, 245, 48),
         .accentText = QColor(150, 195, 255),
-        .input = QColor(26, 28, 32),
+        .input = QColor(45, 49, 56),
+        .inputBorder = QColor(105, 115, 130),
     };
   }
   return {
@@ -54,11 +62,14 @@ AppStyleTokens AppStyleTokens::forDarkScheme(bool dark) {
       .accentSoft = QColor(47, 111, 224, 34),
       .accentText = QColor(30, 86, 192),
       .input = QColor(255, 255, 255),
+      .inputBorder = QColor(130, 141, 156),
   };
 }
 
 AppStyleTokens AppStyleTokens::current() {
   switch (activeTheme) {
+    case ColorTheme::Custom:
+      return forCustomTheme(activeCustomTheme);
     case ColorTheme::Slate:
       return {
           .window = QColor(27, 35, 43),
@@ -71,7 +82,8 @@ AppStyleTokens AppStyleTokens::current() {
           .accent = QColor(112, 181, 174),
           .accentSoft = QColor(112, 181, 174, 42),
           .accentText = QColor(165, 223, 213),
-          .input = QColor(29, 39, 48),
+          .input = QColor(42, 55, 66),
+          .inputBorder = QColor(113, 137, 151),
       };
     case ColorTheme::Sand:
       return {
@@ -85,7 +97,8 @@ AppStyleTokens AppStyleTokens::current() {
           .accent = QColor(156, 106, 57),
           .accentSoft = QColor(156, 106, 57, 37),
           .accentText = QColor(116, 72, 34),
-          .input = QColor(255, 251, 242),
+          .input = QColor(255, 252, 246),
+          .inputBorder = QColor(151, 129, 102),
       };
     case ColorTheme::Sakura:
       return {
@@ -99,7 +112,8 @@ AppStyleTokens AppStyleTokens::current() {
           .accent = QColor(157, 75, 105),
           .accentSoft = QColor(157, 75, 105, 38),
           .accentText = QColor(118, 45, 75),
-          .input = QColor(255, 250, 252),
+          .input = QColor(255, 251, 253),
+          .inputBorder = QColor(151, 118, 135),
       };
     case ColorTheme::Light:
       return forDarkScheme(false);
@@ -115,6 +129,30 @@ AppStyleTokens AppStyleTokens::current() {
   return forDarkScheme(isDarkPalette());
 }
 
+AppStyleTokens AppStyleTokens::forCustomTheme(const CustomColorTheme &custom) {
+  auto tokens = forDarkScheme(custom.dark);
+  const auto apply = [](QColor &target, const QColor &color) {
+    if (color.isValid()) {
+      target = color.toRgb();
+      target.setAlpha(255);
+    }
+  };
+  apply(tokens.window, custom.window);
+  apply(tokens.panel, custom.panel);
+  apply(tokens.input, custom.input);
+  apply(tokens.text, custom.text);
+  apply(tokens.accent, custom.accent);
+  tokens.border = mix(tokens.panel, tokens.text, 0.23);
+  tokens.inputBorder = mix(tokens.input, tokens.text, 0.48);
+  tokens.dimText = mix(tokens.window, tokens.text, 0.65);
+  tokens.hover = mix(tokens.panel, tokens.text, 0.12);
+  tokens.pressed = mix(tokens.panel, tokens.text, 0.19);
+  tokens.accentSoft = tokens.accent;
+  tokens.accentSoft.setAlpha(42);
+  tokens.accentText = mix(tokens.accent, tokens.text, 0.58);
+  return tokens;
+}
+
 QColor AppStyleTokens::viewerBackground() {
   return QColor(56, 60, 66);
 }
@@ -122,6 +160,11 @@ QColor AppStyleTokens::viewerBackground() {
 QString buildAppStyleSheet(const AppStyleTokens &t) {
   // 角丸と余白は、要素をまたいで揃える。
   return QString(R"(
+QMainWindow, QDialog { background-color: %13; color: %2; }
+QLabel, QCheckBox, QRadioButton { color: %2; }
+QLabel:disabled, QCheckBox:disabled, QRadioButton:disabled { color: %6; }
+QPlainTextEdit, QTextEdit { background-color: %10; color: %2; }
+
 QToolTip {
   background-color: %1; color: %2; border: 1px solid %3; padding: 4px 6px;
 }
@@ -155,26 +198,40 @@ QToolButton[exposureActive="true"] { background-color: %7; color: %8; border-col
 QStatusBar { background-color: %1; color: %6; border-top: 1px solid %3; }
 QStatusBar::item { border: none; }
 
-QDockWidget { color: %2; }
+QDockWidget { background-color: %13; color: %2; }
 QDockWidget::title { background-color: %1; padding: 6px 8px; border-bottom: 1px solid %3; }
 
 QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; padding: 5px 16px; min-width: 64px; }
 QPushButton:hover { background-color: %4; }
 QPushButton:pressed { background-color: %5; }
-QPushButton:default { border-color: %9; }
+QPushButton:default:enabled { border-color: %9; }
 QPushButton:disabled { color: %6; }
 QPushButton#compareSelectedImages { padding: 5px 6px; }
 QToolButton#imageListFavoritesOnly { border-color: %3; }
 QToolButton#imageListFavoritesOnly:checked { border-color: %9; }
+QPushButton:focus, QToolButton:focus { border-color: %9; }
 
 QGroupBox { border: 1px solid %3; border-radius: 6px; margin-top: 12px; padding: 12px 10px 8px 10px; }
-QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 10px; padding: 0 6px; color: %6; }
+QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 10px; padding: 0 6px; color: %2; }
 
-QListWidget#settingsCategories { background-color: %1; color: %2; border-color: %3; }
-QListWidget#settingsCategories::item:selected { background-color: %7; color: %8; }
+QAbstractItemView { selection-background-color: %7; selection-color: %8; }
+QListWidget#settingsCategories { background-color: %1; color: %2; border-color: %3; outline: none; }
+QListWidget#settingsCategories::item { border-left: 3px solid transparent; padding: 0 12px; }
+QListWidget#settingsCategories::item:selected { background-color: %7; color: %8; border-left-color: %9; }
+QListWidget#settingsCategories::item:focus:!selected { border-left-color: %9; }
 
-QLineEdit { background-color: %10; color: %2; border: 1px solid %3; border-radius: 4px; padding: 3px 6px; selection-background-color: %9; }
-QLineEdit:focus { border-color: %9; }
+QLineEdit {
+  background-color: %10; color: %2; border: 1px solid %14; border-radius: 4px;
+  padding: 3px 6px; selection-background-color: %7; selection-color: %8;
+}
+QLineEdit:focus { border: 2px solid %9; padding: 2px 5px; }
+QLineEdit:disabled { background-color: %1; color: %6; border-color: %3; }
+QComboBox, QAbstractSpinBox { background-color: %10; color: %2; }
+QComboBox:disabled, QAbstractSpinBox:disabled { background-color: %1; color: %6; }
+QComboBox QLineEdit, QComboBox QLineEdit:focus,
+QAbstractSpinBox QLineEdit, QAbstractSpinBox QLineEdit:focus {
+  background: transparent; border: none; padding: 0;
+}
 
 QScrollBar:vertical { background: transparent; width: 10px; margin: 0; }
 QScrollBar::handle:vertical { background: %3; min-height: 24px; border-radius: 4px; margin: 1px; }
@@ -196,11 +253,14 @@ QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
       .arg(css(t.accent))                                        // %9
       .arg(css(t.input))                                         // %10
       .arg(css(AppStyleTokens::forDarkScheme(true).accentText))  // %11
-      .arg(css(AppStyleTokens::viewerBackground()));             // %12
+      .arg(css(AppStyleTokens::viewerBackground()))              // %12
+      .arg(css(t.window))                                        // %13
+      .arg(css(t.inputBorder));                                  // %14
 }
 
-void installAppStyle(ColorTheme theme) {
+void installAppStyle(ColorTheme theme, const CustomColorTheme &custom) {
   activeTheme = theme;
+  activeCustomTheme = custom;
   static bool connected = false;
   auto *hints = QGuiApplication::styleHints();
   const auto apply = []() {

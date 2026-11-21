@@ -567,7 +567,8 @@ int ViewerGridWidget::zoomAnchorCellIndex() const {
 }
 
 void ViewerGridWidget::zoomBy(double zoomFactor) {
-  const int cellIndex = zoomAnchorCellIndex();
+  const int cellIndex =
+      comparisonPresentation_ && soloCell_ >= 0 ? soloCell_ : zoomAnchorCellIndex();
   if (cellIndex < 0 || zoomFactor <= 0.0 || cellIndex >= cells_.size()) {
     return;
   }
@@ -1071,7 +1072,7 @@ void ViewerGridWidget::applySoloLayout() {
   for (int cellIndex = 0; cellIndex < cells_.size(); ++cellIndex) {
     auto *view = cells_.at(cellIndex);
     layout_->removeWidget(view);
-    if (soloCell_ < 0 && (!comparisonPresentation_ || cellIndex < 2)) {
+    if (soloCell_ < 0 && (!comparisonPresentation_ || cellIndex < 2 || comparisonMapVisible_)) {
       const int row = columnFirst ? (cellIndex % rows) : (cellIndex / cols);
       const int col = columnFirst ? (cellIndex / rows) : (cellIndex % cols);
       layout_->addWidget(view, row, col);
@@ -1082,6 +1083,12 @@ void ViewerGridWidget::applySoloLayout() {
     } else {
       view->hide();
     }
+  }
+  if (comparisonPresentation_) {
+    if (cols > 2) {
+      layout_->setColumnStretch(2, comparisonMapVisible_ && soloCell_ < 0 ? 1 : 0);
+    }
+    updateComparisonHighlights();
   }
   layout_->invalidate();
   updateActiveFrames();
@@ -1205,6 +1212,7 @@ void ViewerGridWidget::rebuildGrid(bool reuseCells) {
     comparisonDiff_->invalidate();
   }
   diffStates_.clear();
+  updateComparisonHighlights();
   if (!reuseCells) {
     qDeleteAll(cells_);
     cells_.clear();
@@ -1375,7 +1383,6 @@ void ViewerGridWidget::rebuildGrid(bool reuseCells) {
     layout_->activate();
   }
   if (comparisonPresentation_) {
-    layout_->setColumnStretch(2, 0);
     applySoloLayout();
     layout_->activate();
   }
@@ -2471,7 +2478,9 @@ void ViewerGridWidget::updateDiffUi(int cellIndex) {
   if (config.diff) {
     // 差は、比べる側から基準を引いたもの。
     const int target = config.diff->targetCell >= 0 ? config.diff->targetCell : cellIndex;
-    if (config.diff->settings.mode == heiran::domain::DiffMode::Wipe) {
+    if (comparisonMapVisible_) {
+      view->setDiffTitle(tr("Difference map"));
+    } else if (config.diff->settings.mode == heiran::domain::DiffMode::Wipe) {
       // 基準は、左 / 上の側。
       view->setDiffTitle(
           tr("Wipe: Cell %1 | Cell %2").arg(config.diff->baseCell + 1).arg(target + 1));
@@ -2549,6 +2558,95 @@ void ViewerGridWidget::setComparisonPresentation() {
   }
 }
 
+void ViewerGridWidget::setComparisonHighlightsVisible(bool visible) {
+  if (comparisonHighlightsVisible_ != visible) {
+    comparisonHighlightsVisible_ = visible;
+    updateComparisonHighlights();
+  }
+}
+
+void ViewerGridWidget::updateComparisonHighlights() {
+  if (!comparisonPresentation_) {
+    return;
+  }
+  auto *state = diffStates_.size() > 2 ? &diffStates_[2] : nullptr;
+  const bool ready = comparisonHighlightsVisible_ && state && state->metrics;
+  const bool scaleToImage =
+      ready && state->settings.sizeMatch != heiran::domain::DiffSizeMatch::Overlap;
+  QImage highlight;
+  if (ready) {
+    highlight = state->comparisonHighlight;
+    if (!highlight.isNull() && state->regionIndex >= 0 &&
+        state->regionIndex < state->regions.size()) {
+      const auto &region = state->regions.at(state->regionIndex);
+      if (state->focusedHighlightSourceKey != highlight.cacheKey() ||
+          state->focusedHighlightRegion != region) {
+        state->focusedHighlightSourceKey = highlight.cacheKey();
+        state->focusedHighlightRegion = region;
+        state->focusedComparisonHighlight = focusComparisonHighlight(highlight, region);
+      }
+      highlight = state->focusedComparisonHighlight;
+    }
+  }
+  for (int cellIndex = 0; cellIndex < cells_.size(); ++cellIndex) {
+    const bool show = ready && (soloCell_ < 0 ? cellIndex < 2 : cellIndex == soloCell_);
+    cells_.at(cellIndex)->setComparisonHighlight(show ? highlight : QImage(), show && scaleToImage);
+  }
+}
+
+void ViewerGridWidget::setComparisonMapVisible(bool visible) {
+  if (!comparisonPresentation_ || comparisonMapVisible_ == visible) {
+    return;
+  }
+  const bool wasFitted = soloCell_ < 0 && isViewFitted();
+  comparisonMapVisible_ = visible;
+  if (const auto diff = cellDiff(2)) {
+    if (cellDiffMetrics(2)) {
+      const auto &state = diffStates_.at(2);
+      const auto image =
+          visible ? comparisonMapForDisplay(state.comparisonMap) : state.comparisonBase;
+      if (!image.isNull()) {
+        setRenderedDiffImage(2, image, *diff);
+      }
+    }
+    updateDiffUi(2);
+  }
+  if (soloCell_ < 0) {
+    applySoloLayout();
+    if (wasFitted) {
+      fitPending_ = true;
+      QMetaObject::invokeMethod(this, [this]() { applyPendingFit(); }, Qt::QueuedConnection);
+    }
+  }
+}
+
+void ViewerGridWidget::setComparisonMapGain(int gain) {
+  gain = std::clamp(gain, 1, 32);
+  if (!comparisonPresentation_ || comparisonMapGain_ == gain) {
+    return;
+  }
+  comparisonMapGain_ = gain;
+  amplifiedComparisonMap_ = {};
+  comparisonMapSourceKey_ = 0;
+  if (comparisonMapVisible_ && cellDiffMetrics(2)) {
+    const auto &map = diffStates_.at(2).comparisonMap;
+    if (const auto diff = cellDiff(2); diff && !map.isNull()) {
+      setRenderedDiffImage(2, comparisonMapForDisplay(map), *diff);
+    }
+  }
+}
+
+QImage ViewerGridWidget::comparisonMapForDisplay(const QImage &map) {
+  if (map.isNull() || comparisonMapGain_ == 1) {
+    return map;
+  }
+  if (comparisonMapSourceKey_ != map.cacheKey()) {
+    comparisonMapSourceKey_ = map.cacheKey();
+    amplifiedComparisonMap_ = amplifyDifferenceMap(map, comparisonMapGain_);
+  }
+  return amplifiedComparisonMap_;
+}
+
 const heiran::infra::DecodedImage *ViewerGridWidget::comparisonSource(int cellIndex) const {
   if (cellIndex < 0 || cellIndex >= cellSources_.size() ||
       cellSources_.at(cellIndex).displayImage.isNull()) {
@@ -2570,7 +2668,7 @@ bool ViewerGridWidget::diffHasAlphaChanges(int cellIndex) const {
     return false;
   }
   const auto &field = diffStates_.at(cellIndex).field;
-  return field && field->inspection && !field->inspection->alphaChanged.empty();
+  return field && field->inspection && !field->inspection->alphaMagnitude.empty();
 }
 
 void ViewerGridWidget::setDiffRegionOnSources(const QRect &region, const QSize &comparisonSize,
@@ -2616,6 +2714,7 @@ void ViewerGridWidget::moveToDiffRegion(int cellIndex, int direction) {
   const QRect region = state.regions.at(state.regionIndex);
   cells_.at(cellIndex)->setDiffRegion(region, state.regionIndex, count);
   setDiffRegionOnSources(region, state.field->size, state.settings.sizeMatch);
+  updateComparisonHighlights();
   const auto panToRegion = [&](int index) {
     const auto finalState =
         heiran::domain::computeFinalViewState(globalState_, cellStates_.at(index));
@@ -2630,8 +2729,11 @@ void ViewerGridWidget::moveToDiffRegion(int cellIndex, int direction) {
   fitPending_ = false;
   if (comparisonPresentation_ && soloCell_ < 0) {
     const QPointF left = panToRegion(0);
-    const QPointF rightDelta = panToRegion(1) - left;
-    heiran::domain::applyPanToCell(&cellStates_[1], rightDelta.x(), rightDelta.y());
+    const int visibleCells = comparisonMapVisible_ ? 3 : 2;
+    for (int index = 1; index < visibleCells; ++index) {
+      const QPointF delta = panToRegion(index) - left;
+      heiran::domain::applyPanToCell(&cellStates_[index], delta.x(), delta.y());
+    }
     handlePanRequest(0, left.x(), left.y());
   } else {
     const QPointF pan = panToRegion(cellIndex);
@@ -2782,7 +2884,8 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
   // 入力も設定も変わっていなければ、作り直さない。
   const bool sameInputs = state.computed && state.baseSerial == cellSourceSerial_.at(baseCell) &&
                           state.targetSerial == cellSourceSerial_.at(targetCell);
-  if (sameInputs && state.settings == diff.settings && state.metrics) {
+  if (sameInputs && state.settings == diff.settings && state.metrics &&
+      (!comparisonDiff_ || !comparisonDiff_->isBusy())) {
     return;
   }
   const ComparisonDiffKey key{.cell = cellIndex,
@@ -2798,11 +2901,18 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
     view->setDiffBlinkFrames();
   }
   if (!sameInputs || !state.field || !diffFieldServes(*state.field, diff.settings) ||
-      state.settings.threshold != diff.settings.threshold) {
+      state.settings.threshold != diff.settings.threshold ||
+      state.settings.highlightBlockSize != diff.settings.highlightBlockSize) {
+    const bool wasFocused = state.regionIndex >= 0;
     state.regions.clear();
     state.regionIndex = -1;
     view->setDiffRegion();
     setDiffRegionOnSources();
+    if (wasFocused) {
+      state.focusedComparisonHighlight = {};
+      state.focusedHighlightSourceKey = 0;
+      updateComparisonHighlights();
+    }
   }
 
   const DiffInput baseInput{.image = baseSource.displayImage,
@@ -2813,9 +2923,15 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
                                  : DiffInput{.image = targetSource.displayImage,
                                              .sampler = samplerForSource(targetSource)};
   if (comparisonDiff_) {
-    state.metrics.reset();
-    state.message = tr("Calculating differences…");
-    view->setDecodedImage({}, {}, CellStatusInfo::empty(state.message));
+    if (!reuseField) {
+      state.metrics.reset();
+      state.comparisonBase = {};
+      state.comparisonHighlight = {};
+      state.comparisonMap = {};
+      updateComparisonHighlights();
+      state.message = tr("Calculating differences…");
+      view->setDecodedImage({}, {}, CellStatusInfo::empty(state.message));
+    }
     if (!field && diff.settings.mode != heiran::domain::DiffMode::Wipe) {
       ++diffFieldComputeCount_;
     }
@@ -2850,6 +2966,7 @@ void ViewerGridWidget::failDiffCell(int cellIndex, const QString &message) {
   }
   state = {};
   state.message = message;
+  updateComparisonHighlights();
   auto *view = cells_.at(cellIndex);
   view->setDiffRegion();
   setDiffRegionOnSources();
@@ -2859,25 +2976,13 @@ void ViewerGridWidget::failDiffCell(int cellIndex, const QString &message) {
   Q_EMIT cellDiffChanged(cellIndex);
 }
 
-void ViewerGridWidget::applyDiffResult(const ComparisonDiffKey &key,
-                                       const ComparisonDiffResult &result) {
-  const int cellIndex = key.cell;
-  if (cellIndex >= diffStates_.size() || key.base >= cellSourceSerial_.size() ||
-      key.target >= cellSourceSerial_.size() || cellDiff(cellIndex) != key.diff ||
-      cellSourceSerial_.at(key.base) != key.baseSerial ||
-      cellSourceSerial_.at(key.target) != key.targetSerial) {
-    return;
-  }
-  const auto &output = result.output;
-  if (!output.ok) {
-    failDiffCell(cellIndex, output.error);
-    return;
-  }
-
+void ViewerGridWidget::setRenderedDiffImage(int cellIndex, const QImage &rendered,
+                                            const heiran::domain::CellDiff &diff) {
   auto *view = cells_.at(cellIndex);
-  const auto &diff = key.diff;
   heiran::infra::DecodedImage image;
-  image.displayImage = output.image.convertToFormat(QImage::Format_RGBA8888);
+  image.displayImage = rendered.format() == QImage::Format_Indexed8
+                           ? rendered
+                           : rendered.convertToFormat(QImage::Format_RGBA8888);
   image.decoderBackend = diff.settings.mode == heiran::domain::DiffMode::Wipe
                              ? QStringLiteral("wipe")
                              : QStringLiteral("diff");
@@ -2889,7 +2994,30 @@ void ViewerGridWidget::applyDiffResult(const ComparisonDiffKey &key,
   view->setDecodedImage(image, path, CellStatusInfo::ready());
   view->setChannelMode(cellIndex < channelModes_.size() ? channelModes_.at(cellIndex)
                                                         : ChannelMode::Color);
+}
 
+void ViewerGridWidget::applyDiffResult(const ComparisonDiffKey &key,
+                                       const ComparisonDiffResult &result) {
+  const int cellIndex = key.cell;
+  const auto requestedDiff = cellDiff(cellIndex);
+  if (cellIndex >= diffStates_.size() || key.base >= cellSourceSerial_.size() ||
+      key.target >= cellSourceSerial_.size() || !requestedDiff ||
+      cellSourceSerial_.at(key.base) != key.baseSerial ||
+      cellSourceSerial_.at(key.target) != key.targetSerial) {
+    return;
+  }
+  const auto &output = result.output;
+  if (requestedDiff != key.diff && (!comparisonPresentation_ || !output.ok || !result.field ||
+                                    requestedDiff->baseCell != key.diff.baseCell ||
+                                    requestedDiff->targetCell != key.diff.targetCell ||
+                                    !diffFieldServes(*result.field, requestedDiff->settings))) {
+    return;
+  }
+  if (!output.ok) {
+    failDiffCell(cellIndex, output.error);
+    return;
+  }
+  const auto &diff = key.diff;
   auto &state = diffStates_[cellIndex];
   state.computed = true;
   state.baseSerial = key.baseSerial;
@@ -2899,9 +3027,19 @@ void ViewerGridWidget::applyDiffResult(const ComparisonDiffKey &key,
   state.field = result.field;
   if (comparisonPresentation_) {
     state.regions = result.regions;
+    state.comparisonBase = output.image;
+    state.comparisonHighlight = result.images.highlight;
+    state.comparisonMap = result.images.map;
   }
   state.message.clear();
+  const bool showMap = comparisonMapVisible_ && !state.comparisonMap.isNull();
+  const auto rendered = showMap ? comparisonMapForDisplay(state.comparisonMap) : output.image;
+  if (!comparisonPresentation_ ||
+      cells_.at(cellIndex)->currentDecodedImage().displayImage.cacheKey() != rendered.cacheKey()) {
+    setRenderedDiffImage(cellIndex, rendered, diff);
+  }
   if (comparisonPresentation_) {
+    updateComparisonHighlights();
     applyPendingFit();
   }
   updateDiffUi(cellIndex);

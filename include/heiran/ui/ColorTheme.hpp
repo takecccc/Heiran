@@ -14,6 +14,18 @@ enum class ColorTheme {
   Slate,
   Sand,
   Sakura,
+  Custom,
+};
+
+struct CustomColorTheme {
+  bool dark = false;
+  QColor window;
+  QColor panel;
+  QColor input;
+  QColor text;
+  QColor accent;
+
+  bool operator==(const CustomColorTheme &) const = default;
 };
 
 QString colorThemeToString(ColorTheme theme);
@@ -23,7 +35,7 @@ ColorTheme colorThemeFromString(const QString &text);
 //
 // ウィジェットの配色は Qt が持つ仕組みへ委ねる。自前でパレットを組むと、
 // 標準のダイアログやメニューだけ浮くことになる。
-void applyColorTheme(ColorTheme theme);
+void applyColorTheme(ColorTheme theme, const CustomColorTheme &custom = {});
 
 // 解析グラフの配色。
 //

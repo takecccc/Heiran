@@ -5,7 +5,7 @@
 #include "heiran/infra/ImageDecoder.hpp"
 #include "heiran/ui/AppSettings.hpp"
 #include "heiran/ui/ColorTheme.hpp"
-#include "heiran/ui/ImageComparisonDialog.hpp"
+#include "heiran/ui/ImageComparisonWidget.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
@@ -206,8 +206,11 @@ int main(int argc, char *argv[]) {
   };
 
   if (diffTitles) {
-    heiran::ui::applyColorTheme(startupSettings.colorTheme);
-    heiran::ui::ImageComparisonDialog comparison;
+    heiran::ui::applyColorTheme(startupSettings.colorTheme, startupSettings.customColorTheme);
+    heiran::ui::ImageComparisonWidget comparison;
+    comparison.resize(1160, 700);
+    QObject::connect(&comparison, &heiran::ui::ImageComparisonWidget::endRequested, &comparison,
+                     &QWidget::close);
     recordStartup("window-construction");
     auto prepared = inputPreparation.takeResult();
     auto scheduler = inputPreparation.takeDecodeScheduler();

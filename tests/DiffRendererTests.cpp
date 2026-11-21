@@ -31,6 +31,60 @@ class DiffRendererTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void paintsOnlyHighlightedPixelsInsideTheFocusedRegionRed() {
+    QImage mask(4, 2, QImage::Format_Indexed8);
+    const QColor yellow(255, 196, 0, 128);
+    const QColor red(255, 64, 64, 128);
+    mask.setColorTable({0, yellow.rgba()});
+    mask.fill(0);
+    mask.setPixel(0, 0, 1);
+    mask.setPixel(1, 0, 1);
+    mask.setPixel(3, 1, 1);
+    const auto focused = focusComparisonHighlight(mask, QRect(-1, 0, 3, 2));
+    QCOMPARE(focused.pixelColor(0, 0), red);
+    QCOMPARE(focused.pixelColor(1, 0), red);
+    QCOMPARE(focused.pixelColor(1, 1), QColor(Qt::transparent));
+    QCOMPARE(focused.pixelColor(3, 1), yellow);
+    QCOMPARE(mask.pixelColor(0, 0), yellow);
+  }
+
+  void marksWholeBlocksWithoutChangingThePixelCount() {
+    QImage base = solid({9, 7}, 0);
+    base.setPixelColor(2, 0, QColor(4, 4, 4));
+    QImage target = base;
+    target.setPixelColor(0, 0, QColor(4, 4, 4));
+    target.setPixelColor(1, 0, QColor(64, 64, 64));
+    target.setPixelColor(2, 0, Qt::black);
+    target.setPixelColor(5, 2, Qt::white);
+    target.setPixelColor(8, 6, Qt::white);
+    const DiffSettings settings{.highlightBlockSize = 4, .highlightOpacity = 25};
+    const auto field =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(field);
+    ComparisonDiffImages images;
+    const auto output = renderDiffFromField(*field, makeInput(base), settings, &images);
+    QVERIFY(output.ok);
+    QCOMPARE(output.metrics.exceededPixelCount, 3);
+    QCOMPARE(images.highlight.pixelColor(4, 0).alpha(), 64);
+    QCOMPARE(images.highlight.pixelColor(3, 0).alpha(), 64);
+    QCOMPARE(images.map.pixelColor(0, 0), QColor(4, 4, 4));
+    QCOMPARE(images.map.pixelColor(1, 0), QColor(64, 64, 64));
+    QCOMPARE(images.map.pixelColor(2, 0), QColor(4, 4, 4));
+    QCOMPARE(images.map.pixelColor(8, 4), QColor(Qt::black));
+    QCOMPARE(images.map.pixelColor(8, 6), QColor(Qt::white));
+    auto blockSettings = settings;
+    blockSettings.threshold = 65;
+    QCOMPARE(findDiffRegions(*field, settings.threshold, settings.highlightBlockSize),
+             (QVector<QRect>{QRect(0, 0, 8, 4), QRect(8, 4, 1, 3)}));
+
+    const auto mapKey = images.map.cacheKey();
+    blockSettings.highlightOpacity = 0;
+    blockSettings.highlightBlockSize = 1;
+    QVERIFY(renderDiffFromField(*field, makeInput(base), blockSettings, &images).ok);
+    QVERIFY(images.highlight.isNull());
+    QCOMPARE(images.map.cacheKey(), mapKey);
+  }
+
   void rgbMaximumFindsAnAlmostEquiluminantColorChange() {
     const QImage base = solid({40, 32}, 100);
     QImage target = base;
@@ -45,7 +99,11 @@ private Q_SLOTS:
     const auto rgb = computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
     QVERIFY(rgb);
     QVERIFY(std::abs(rgb->values.at(18 * 40 + 17) - 100.0F) < 0.01F);
-    QCOMPARE(renderDiffFromField(*rgb, makeInput(base), settings).metrics.exceededPixelCount, 1);
+    ComparisonDiffImages images;
+    QCOMPARE(
+        renderDiffFromField(*rgb, makeInput(base), settings, &images).metrics.exceededPixelCount,
+        1);
+    QCOMPARE(images.map.pixelColor(17, 18), QColor(100, 100, 100));
     QCOMPARE(findDiffRegions(*rgb, 8.0), (QVector<QRect>{QRect(17, 18, 1, 1)}));
     QVERIFY(findDiffRegions(*rgb, 101.0).isEmpty());
   }
@@ -165,6 +223,11 @@ private Q_SLOTS:
     QCOMPARE(result.metrics.exceededPixelCount, 16 * 24 + 2);
     QCOMPARE(findDiffRegions(*field, settings.threshold),
              (QVector<QRect>{QRect(80, 0, 16, 24), QRect(1, 2, 1, 1), QRect(47, 2, 1, 1)}));
+    ComparisonDiffImages images;
+    QVERIFY(renderDiffFromField(*field, makeInput(base), settings, &images).ok);
+    QCOMPARE(images.map.pixelColor(1, 2), QColor(80, 80, 80));
+    QCOMPARE(images.map.pixelColor(19, 2), QColor(5, 5, 5));
+    QCOMPARE(images.map.pixelColor(80, 2), QColor(Qt::white));
 
     settings.threshold = 25.0;
     result = renderDiffFromField(*field, makeInput(base), settings);

@@ -2,6 +2,7 @@
 
 #include <QSettings>
 #include <algorithm>
+#include <utility>
 
 namespace heiran::ui {
 
@@ -24,12 +25,19 @@ constexpr auto kAnalysisValueSpaceKey = "analysis/valueSpace";
 constexpr auto kRenderingIntentKey = "display/renderingIntent";
 constexpr auto kBlackPointCompensationKey = "display/blackPointCompensation";
 constexpr auto kColorThemeKey = "display/colorTheme";
+constexpr auto kCustomThemeGroup = "display/customTheme";
 constexpr auto kLanguageKey = "general/language";
 constexpr auto kCursorStyleKey = "display/cursorStyle";
 constexpr auto kTransparencyPatternKey = "display/transparencyPattern";
 constexpr auto kTransparencySolidKey = "display/transparencySolidColor";
 constexpr auto kTransparencyChecker1Key = "display/transparencyCheckerColor1";
 constexpr auto kTransparencyChecker2Key = "display/transparencyCheckerColor2";
+
+constexpr std::pair<const char *, QColor CustomColorTheme::*> customThemeColors[] = {
+    {"window", &CustomColorTheme::window}, {"panel", &CustomColorTheme::panel},
+    {"input", &CustomColorTheme::input},   {"text", &CustomColorTheme::text},
+    {"accent", &CustomColorTheme::accent},
+};
 
 QColor loadBackgroundColor(const QSettings &settings, const char *key, const QColor &fallback) {
   QColor color(settings.value(key, fallback.name()).toString());
@@ -121,6 +129,12 @@ AppSettings AppSettings::load() {
       renderingIntentFromString(settings.value(kRenderingIntentKey).toString());
   appSettings.blackPointCompensation = settings.value(kBlackPointCompensationKey, false).toBool();
   appSettings.colorTheme = colorThemeFromString(settings.value(kColorThemeKey).toString());
+  settings.beginGroup(kCustomThemeGroup);
+  appSettings.customColorTheme.dark = settings.value("dark", false).toBool();
+  for (const auto &[key, member] : customThemeColors) {
+    appSettings.customColorTheme.*member = QColor(settings.value(key).toString());
+  }
+  settings.endGroup();
   appSettings.cursorStyle = cursorStyleFromString(settings.value(kCursorStyleKey).toString());
   appSettings.language = settings.value(kLanguageKey, QStringLiteral("auto")).toString();
   return appSettings;
@@ -153,6 +167,17 @@ void AppSettings::save() const {
   settings.setValue(kRenderingIntentKey, renderingIntentToString(renderingIntent));
   settings.setValue(kBlackPointCompensationKey, blackPointCompensation);
   settings.setValue(kColorThemeKey, colorThemeToString(colorTheme));
+  settings.beginGroup(kCustomThemeGroup);
+  settings.setValue("dark", customColorTheme.dark);
+  for (const auto &[key, member] : customThemeColors) {
+    const auto &color = customColorTheme.*member;
+    if (color.isValid()) {
+      settings.setValue(key, color.name());
+    } else {
+      settings.remove(key);
+    }
+  }
+  settings.endGroup();
   settings.setValue(kCursorStyleKey, cursorStyleToString(cursorStyle));
   settings.setValue(kLanguageKey, language);
 }

@@ -1,4 +1,5 @@
 #include "heiran/ui/AppSettings.hpp"
+#include "heiran/ui/AppStyle.hpp"
 #include "heiran/ui/SettingsDialog.hpp"
 
 #include <QApplication>
@@ -12,6 +13,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScopeGuard>
@@ -186,7 +188,12 @@ private Q_SLOTS:
       QCOMPARE(title->text(), QString("Animation sync"));
       QVERIFY(description->verticalScrollBar()->maximum() > 0);
       QCOMPARE(information->height(), height);
-      categories->setCurrentRow(3);
+      categories->setCurrentRow(2);
+      auto *theme = dialog->findChild<QComboBox *>("colorTheme");
+      hover(theme);
+      QCOMPARE(title->text(), QString("Color theme"));
+      QCOMPARE(description->toPlainText(), theme->toolTip());
+      categories->setCurrentRow(4);
       auto *cache = dialog->findChild<QSpinBox *>("decodeCacheBudget");
       auto *editor = cache->findChild<QLineEdit *>();
       QVERIFY(editor != nullptr);
@@ -195,7 +202,7 @@ private Q_SLOTS:
       QCOMPARE(title->text(), QString("Decode cache budget"));
       QVERIFY(description->toPlainText().contains("HEIRAN_DECODE_CACHE_BUDGET_MB"));
       QVERIFY(dialog->findChild<QLabel *>("animationStreamingNote")->isVisible());
-      categories->setCurrentRow(2);
+      categories->setCurrentRow(3);
       QVERIFY(dialog->findChild<QLabel *>("displayProfileFileNote")->isVisible());
       auto *intent = dialog->findChild<QComboBox *>("renderingIntent");
       hover(intent);
@@ -220,27 +227,40 @@ private Q_SLOTS:
       QVERIFY(dialog != nullptr);
       auto *categories = dialog->findChild<QListWidget *>("settingsCategories");
       auto *pages = dialog->findChild<QStackedWidget *>("settingsPages");
+      auto closeDialog = qScopeGuard([dialog]() { dialog->reject(); });
       QVERIFY(categories != nullptr);
       QVERIFY(pages != nullptr);
-      QCOMPARE(categories->count(), 4);
+      QCOMPARE(categories->count(), 5);
       QCOMPARE(categories->item(0)->text(), QString("General"));
       QCOMPARE(categories->item(1)->text(), QString("Display and playback"));
-      QCOMPARE(categories->item(2)->text(), QString("Color management"));
-      QCOMPARE(categories->item(3)->text(), QString("Cache"));
+      QCOMPARE(categories->item(2)->text(), QString("Theme"));
+      QCOMPARE(categories->item(3)->text(), QString("Color management"));
+      QCOMPARE(categories->item(4)->text(), QString("Cache"));
+      QCOMPARE(categories->currentRow(), 0);
+      categories->setFocus(Qt::TabFocusReason);
+      QTest::keyClick(categories, Qt::Key_Down);
+      QCOMPARE(categories->currentRow(), 1);
+      QCOMPARE(pages->currentIndex(), 1);
+      QTest::keyClick(categories, Qt::Key_Up);
       QCOMPARE(categories->currentRow(), 0);
       auto *theme = dialog->findChild<QComboBox *>("colorTheme");
       auto *language = dialog->findChild<QComboBox *>("language");
-      theme->setCurrentIndex(theme->findData(static_cast<int>(heiran::ui::ColorTheme::Dark)));
       language->setCurrentIndex(language->findData("ja"));
+      QVERIFY(!theme->isVisible());
       categories->setCurrentRow(1);
       QCOMPARE(pages->currentIndex(), 1);
       auto *background = dialog->findChild<QComboBox *>("transparencyPattern");
       background->setCurrentIndex(1);
       categories->setCurrentRow(2);
+      QVERIFY(theme->isVisible());
+      QVERIFY(dialog->findChild<QWidget *>("customThemeEditor")->isVisible());
+      QVERIFY(!language->isVisible());
+      theme->setCurrentIndex(theme->findData(static_cast<int>(heiran::ui::ColorTheme::Dark)));
+      categories->setCurrentRow(3);
       auto *profile = dialog->findChild<QComboBox *>("displayProfileMode");
       profile->setCurrentIndex(
           profile->findData(static_cast<int>(heiran::ui::DisplayProfileMode::SRgb)));
-      categories->setCurrentRow(3);
+      categories->setCurrentRow(4);
       auto *cache = dialog->findChild<QSpinBox *>("decodeCacheBudget");
       cache->setValue(2048);
       categories->setCurrentRow(0);
@@ -263,9 +283,8 @@ private Q_SLOTS:
         QVERIFY(dialog->height() <= 420);
       }
       if (accept) {
+        closeDialog.dismiss();
         dialog->accept();
-      } else {
-        dialog->reject();
       }
     });
     const auto updated = heiran::ui::showSettingsDialog(nullptr, current);
@@ -337,8 +356,9 @@ private Q_SLOTS:
       auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
       QVERIFY(dialog);
       const auto cancel = qScopeGuard([dialog]() { dialog->reject(); });
+      dialog->findChild<QListWidget *>("settingsCategories")->setCurrentRow(2);
       auto *theme = dialog->findChild<QComboBox *>("colorTheme");
-      QVERIFY(theme);
+      QVERIFY(theme && theme->isVisible());
       theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Slate)));
       slateStyle = qApp->styleSheet();
       theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Sand)));
@@ -353,6 +373,237 @@ private Q_SLOTS:
     QVERIFY(sakuraStyle != sandStyle);
     QCOMPARE(storedDuringPreview, ColorTheme::Dark);
     QCOMPARE(qApp->styleSheet(), initialStyle);
+  }
+
+  void keepsCustomColorsAcrossThemeChanges() {
+    QSettings().clear();
+    AppSettings settings;
+    using heiran::ui::ColorTheme;
+    settings.customColorTheme = {.dark = true,
+                                 .window = QColor("#19222b"),
+                                 .input = QColor("#30404a"),
+                                 .accent = QColor("#79aed8")};
+    settings.colorTheme = ColorTheme::Custom;
+    settings.save();
+    QCOMPARE(AppSettings::load().colorTheme, ColorTheme::Custom);
+    QCOMPARE(AppSettings::load().customColorTheme, settings.customColorTheme);
+    const auto tokens = heiran::ui::AppStyleTokens::forCustomTheme(settings.customColorTheme);
+    QCOMPARE(tokens.input, settings.customColorTheme.input);
+    QCOMPARE(tokens.panel, heiran::ui::AppStyleTokens::forDarkScheme(true).panel);
+    settings.colorTheme = ColorTheme::Light;
+    settings.save();
+    QCOMPARE(AppSettings::load().customColorTheme, settings.customColorTheme);
+  }
+
+  void cancelsPreviewedCustomThemeEditsWithTheSettingsDialog() {
+    using heiran::ui::ColorTheme;
+    const auto restore = qScopeGuard([]() { heiran::ui::applyColorTheme(ColorTheme::System); });
+    AppSettings current;
+    current.colorTheme = ColorTheme::Custom;
+    current.customColorTheme.window = QColor("#ede7df");
+    current.save();
+    heiran::ui::applyColorTheme(current.colorTheme, current.customColorTheme);
+    const auto initialStyle = qApp->styleSheet();
+    bool previewChanged = false;
+    QTimer::singleShot(0, [&]() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog);
+      const auto cancel = qScopeGuard([dialog]() { dialog->reject(); });
+      auto *categories = dialog->findChild<QListWidget *>("settingsCategories");
+      categories->setCurrentRow(2);
+      auto *editor = dialog->findChild<QWidget *>("customThemeEditor");
+      QVERIFY(editor && editor->isVisible());
+      auto *scheme = editor->findChild<QComboBox *>("customThemeBaseScheme");
+      auto *reset = editor->findChild<QPushButton *>("resetCustomThemeColors");
+      QVERIFY(scheme && scheme->isVisible() && reset && reset->isVisible());
+      scheme->setCurrentIndex(1);
+      reset->click();
+      previewChanged = qApp->styleSheet() != initialStyle;
+      QCOMPARE(heiran::ui::AppStyleTokens::current().window,
+               heiran::ui::AppStyleTokens::forDarkScheme(true).window);
+      auto *theme = dialog->findChild<QComboBox *>("colorTheme");
+      theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Light)));
+      QVERIFY(editor->isVisible());
+      QCOMPARE(scheme->currentIndex(), 0);
+      QVERIFY(!reset->isEnabled());
+      theme->setCurrentIndex(theme->findData(static_cast<int>(ColorTheme::Custom)));
+      QVERIFY(editor->isVisible());
+      QVERIFY(reset->isEnabled());
+      QCOMPARE(scheme->currentIndex(), 1);
+      QCOMPARE(heiran::ui::AppStyleTokens::current().window,
+               heiran::ui::AppStyleTokens::forDarkScheme(true).window);
+      QCOMPARE(AppSettings::load().customColorTheme, current.customColorTheme);
+    });
+    QVERIFY(!heiran::ui::showSettingsDialog(nullptr, current));
+    QVERIFY(previewChanged);
+    QCOMPARE(qApp->styleSheet(), initialStyle);
+  }
+
+  void editsTheSelectedPresetAsCustom() {
+    using heiran::ui::AppStyleTokens;
+    using heiran::ui::ColorTheme;
+    const auto restore = qScopeGuard([]() { heiran::ui::applyColorTheme(ColorTheme::System); });
+    AppSettings current;
+    current.colorTheme = ColorTheme::Sakura;
+    const QColor newAccent("#7651a1");
+    AppStyleTokens preset;
+    QTimer::singleShot(0, [&]() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog);
+      auto cancel = qScopeGuard([dialog]() { dialog->reject(); });
+      dialog->findChild<QListWidget *>("settingsCategories")->setCurrentRow(2);
+      auto *theme = dialog->findChild<QComboBox *>("colorTheme");
+      auto *accent = dialog->findChild<QPushButton *>("customThemeAccent");
+      QVERIFY(theme && accent && accent->isVisible());
+      preset = AppStyleTokens::current();
+      QCOMPARE(accent->text(), preset.accent.name());
+      QTimer::singleShot(0, []() {
+        auto *picker = qobject_cast<QColorDialog *>(QApplication::activeModalWidget());
+        QVERIFY(picker);
+        picker->accept();
+      });
+      accent->click();
+      QCOMPARE(theme->currentData().toInt(), static_cast<int>(ColorTheme::Sakura));
+      QTimer::singleShot(0, [&]() {
+        auto *picker = qobject_cast<QColorDialog *>(QApplication::activeModalWidget());
+        QVERIFY(picker);
+        picker->setCurrentColor(newAccent);
+        picker->accept();
+      });
+      accent->click();
+      QCOMPARE(theme->currentData().toInt(), static_cast<int>(ColorTheme::Custom));
+      QCOMPARE(AppStyleTokens::current().accent, newAccent);
+      cancel.dismiss();
+      dialog->accept();
+    });
+    const auto updated = heiran::ui::showSettingsDialog(nullptr, current);
+    QVERIFY(updated);
+    QCOMPARE(updated->colorTheme, ColorTheme::Custom);
+    QVERIFY(!updated->customColorTheme.dark);
+    QCOMPARE(updated->customColorTheme.accent, newAccent);
+    QCOMPARE(updated->customColorTheme.window, preset.window);
+    QCOMPARE(updated->customColorTheme.panel, preset.panel);
+    QCOMPARE(updated->customColorTheme.input, preset.input);
+    QCOMPARE(updated->customColorTheme.text, preset.text);
+  }
+
+  void restoresAllDefaultsOnlyWhenAccepted_data() {
+    QTest::addColumn<bool>("accept");
+    QTest::newRow("OK") << true;
+    QTest::newRow("Cancel") << false;
+  }
+
+  void restoresAllDefaultsOnlyWhenAccepted() {
+    QFETCH(bool, accept);
+    using namespace heiran::ui;
+    QSettings().clear();
+    const auto cleanup = qScopeGuard([]() {
+      QSettings().clear();
+      applyColorTheme(ColorTheme::System);
+    });
+    const AppSettings defaults;
+    AppSettings current;
+    current.language = "ja";
+    current.transparencyBackground = {TransparencyPattern::Checkerboard, Qt::red, Qt::green,
+                                      Qt::blue};
+    current.pixelValueFormat = PixelValueFormat::Normalized01;
+    current.fitOnPageChange = true;
+    current.loopPages = true;
+    current.wrapNavigation = true;
+    current.showCellBorders = false;
+    current.magnifyFilter = MagnifyFilter::Smooth;
+    current.minifyFilter = MinifyFilter::Nearest;
+    current.animationSyncMode = AnimationSyncMode::Independent;
+    current.colorTheme = ColorTheme::Custom;
+    current.customColorTheme = {.dark = true, .accent = QColor("#e68feb")};
+    current.cursorStyle = CursorStyle::Contrast;
+    current.displayProfileMode = DisplayProfileMode::File;
+    current.displayProfilePath = "sample.icc";
+    current.renderingIntent = RenderingIntent::Perceptual;
+    current.blackPointCompensation = true;
+    current.analysisValueSpace = AnalysisValueSpace::Linear;
+    current.decodeCacheBudgetMib = 512;
+    current.gpuTextureBudgetMib = 512;
+    current.animationStreamingThresholdMib = 64;
+    current.save();
+    applyColorTheme(current.colorTheme, current.customColorTheme);
+    const auto initialStyle = qApp->styleSheet();
+
+    QTimer::singleShot(0, [&]() {
+      auto *dialog = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(dialog);
+      auto close = qScopeGuard([dialog]() { dialog->reject(); });
+      auto *reset = dialog->findChild<QPushButton *>("restoreAllSettingsDefaults");
+      QVERIFY(reset && reset->isVisible());
+      const auto confirmReset = [reset](QMessageBox::StandardButton response) {
+        QTimer::singleShot(0, [response]() {
+          auto *confirmation = qobject_cast<QMessageBox *>(QApplication::activeModalWidget());
+          QVERIFY(confirmation);
+          const bool defaultsToCancel =
+              confirmation->defaultButton() == confirmation->button(QMessageBox::Cancel);
+          confirmation->button(response)->click();
+          QVERIFY(defaultsToCancel);
+        });
+        reset->click();
+      };
+      auto *language = dialog->findChild<QComboBox *>("language");
+      auto *background = dialog->findChild<QComboBox *>("transparencyPattern");
+      auto *theme = dialog->findChild<QComboBox *>("colorTheme");
+      auto *profilePath = dialog->findChild<QLineEdit *>("displayProfilePath");
+      auto *cache = dialog->findChild<QSpinBox *>("decodeCacheBudget");
+      QVERIFY(language && background && theme && profilePath && cache);
+      language->setCurrentIndex(language->findData("en"));
+      confirmReset(QMessageBox::Cancel);
+      QCOMPARE(language->currentData().toString(), QString("en"));
+      QCOMPARE(qApp->styleSheet(), initialStyle);
+      confirmReset(QMessageBox::Ok);
+      QCOMPARE(language->currentData().toString(), defaults.language);
+      QCOMPARE(background->currentData().toInt(),
+               static_cast<int>(defaults.transparencyBackground.pattern));
+      QCOMPARE(dialog->findChild<QPushButton *>("transparencySolidColor")->text(),
+               defaults.transparencyBackground.solidColor.name());
+      QCOMPARE(theme->currentData().toInt(), static_cast<int>(defaults.colorTheme));
+      QVERIFY(qApp->styleSheet() != initialStyle);
+      QVERIFY(profilePath->text().isEmpty() && !profilePath->isEnabled());
+      QCOMPARE(cache->value(), defaults.decodeCacheBudgetMib);
+      QCOMPARE(AppSettings::load().language, current.language);
+      QCOMPARE(AppSettings::load().customColorTheme, current.customColorTheme);
+      if (accept) {
+        close.dismiss();
+        dialog->accept();
+      }
+    });
+    const auto updated = showSettingsDialog(nullptr, current);
+    QCOMPARE(updated.has_value(), accept);
+    if (!accept) {
+      QCOMPARE(qApp->styleSheet(), initialStyle);
+      QCOMPARE(AppSettings::load().transparencyBackground, current.transparencyBackground);
+      QCOMPARE(AppSettings::load().decodeCacheBudgetMib, current.decodeCacheBudgetMib);
+      return;
+    }
+    updated->save();
+    const auto saved = AppSettings::load();
+    QCOMPARE(saved.language, defaults.language);
+    QCOMPARE(saved.transparencyBackground, defaults.transparencyBackground);
+    QCOMPARE(saved.pixelValueFormat, defaults.pixelValueFormat);
+    QCOMPARE(saved.fitOnPageChange, defaults.fitOnPageChange);
+    QCOMPARE(saved.loopPages, defaults.loopPages);
+    QCOMPARE(saved.wrapNavigation, defaults.wrapNavigation);
+    QCOMPARE(saved.showCellBorders, defaults.showCellBorders);
+    QCOMPARE(saved.magnifyFilter, defaults.magnifyFilter);
+    QCOMPARE(saved.minifyFilter, defaults.minifyFilter);
+    QCOMPARE(saved.animationSyncMode, defaults.animationSyncMode);
+    QCOMPARE(saved.colorTheme, defaults.colorTheme);
+    QCOMPARE(saved.customColorTheme, defaults.customColorTheme);
+    QCOMPARE(saved.cursorStyle, defaults.cursorStyle);
+    QCOMPARE(saved.displayProfileMode, defaults.displayProfileMode);
+    QCOMPARE(saved.displayProfilePath, defaults.displayProfilePath);
+    QCOMPARE(saved.renderingIntent, defaults.renderingIntent);
+    QCOMPARE(saved.blackPointCompensation, defaults.blackPointCompensation);
+    QCOMPARE(saved.analysisValueSpace, defaults.analysisValueSpace);
+    QCOMPARE(saved.decodeCacheBudgetMib, defaults.decodeCacheBudgetMib);
+    QCOMPARE(saved.gpuTextureBudgetMib, defaults.gpuTextureBudgetMib);
+    QCOMPARE(saved.animationStreamingThresholdMib, defaults.animationStreamingThresholdMib);
   }
 
   void storesTheAnimationStreamingThreshold() {

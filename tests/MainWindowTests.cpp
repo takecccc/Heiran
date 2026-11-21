@@ -2,6 +2,7 @@
 #include "heiran/ui/AppSettings.hpp"
 #include "heiran/ui/CellStatus.hpp"
 #include "heiran/ui/HistogramWindow.hpp"
+#include "heiran/ui/ImageComparisonWidget.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
@@ -16,6 +17,7 @@
 #include <QComboBox>
 #include <QContextMenuEvent>
 #include <QCursor>
+#include <QDialog>
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
@@ -33,6 +35,7 @@
 #include <QScreen>
 #include <QSignalSpy>
 #include <QSlider>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QTemporaryDir>
 #include <QTimer>
@@ -998,6 +1001,97 @@ private Q_SLOTS:
   // ---- 案内 (画像を開いていないとき) ----
 
   // 画像が 1 枚も無いときだけ、案内が出る。開くと消え、セルを空にすると、また出る。
+  void opensComparisonFromTheWelcomePageInTheSameWindow() {
+    QTemporaryDir directory;
+    const auto paths = writeImageFiles(directory.path(), 2);
+    QCOMPARE(paths.size(), 2);
+    heiran::ui::MainWindow window;
+    window.setSession({});
+    window.showMaximized();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    QCoreApplication::processEvents();
+    auto *pages = qobject_cast<QStackedWidget *>(window.centralWidget());
+    auto *welcome = window.findChild<QPushButton *>("welcomeCompare");
+    QVERIFY(pages && welcome && welcome->isVisible());
+    auto *viewer = pages->currentWidget();
+    const auto geometry = window.geometry();
+    QTimer::singleShot(0, [&]() {
+      auto *setup = qobject_cast<QDialog *>(QApplication::activeModalWidget());
+      QVERIFY(setup);
+      auto cancel = qScopeGuard([setup]() { setup->reject(); });
+      auto *left = setup->findChild<QLineEdit *>("comparisonFirstPath");
+      auto *right = setup->findChild<QLineEdit *>("comparisonSecondPath");
+      auto *start = setup->findChild<QPushButton *>("startComparison");
+      QVERIFY(left && right && start);
+      left->setText(paths.at(0));
+      right->setText(paths.at(1));
+      cancel.dismiss();
+      start->click();
+    });
+    welcome->click();
+    auto *comparison = qobject_cast<heiran::ui::ImageComparisonWidget *>(pages->currentWidget());
+    QVERIFY(comparison && comparison->window() == &window);
+    QVERIFY(!QApplication::activeModalWidget());
+    QVERIFY(!window.menuBar()->isVisible() && !viewer->isVisible());
+    QVERIFY(window.isMaximized());
+    QCOMPARE(window.geometry(), geometry);
+    QTest::keyClick(comparison, Qt::Key_Escape);
+    QTRY_COMPARE(pages->currentWidget(), viewer);
+    QVERIFY(welcome->isVisible() && window.menuBar()->isVisible());
+  }
+
+  void restoresTheViewerAndListSelectionAfterImageDifference() {
+    QTemporaryDir directory;
+    const auto paths = writeImageFiles(directory.path(), 4);
+    QCOMPARE(paths.size(), 4);
+    heiran::ui::MainWindow window;
+    window.resize(1200, 800);
+    window.openImageFiles({paths.first()});
+    window.show();
+    auto *pages = qobject_cast<QStackedWidget *>(window.centralWidget());
+    QVERIFY(pages);
+    auto *viewer = qobject_cast<heiran::ui::ViewerGridWidget *>(pages->currentWidget());
+    auto *dock = window.findChild<QDockWidget *>("thumbnailDock");
+    auto *info = window.findChild<QDockWidget *>("pixelInfoDock");
+    auto *panel = window.findChild<heiran::ui::ImageListPanelWidget *>();
+    auto *navigation = window.findChild<QToolBar *>("navigationToolBar");
+    QVERIFY(viewer && dock && info && panel && navigation);
+    dock->show();
+    panel->setDetailsVisible(false);
+    auto *list = panel->findChild<QListWidget *>("thumbnailList");
+    QTRY_COMPARE(list->count(), 4);
+    list->clearSelection();
+    list->item(0)->setSelected(true);
+    list->item(3)->setSelected(true);
+    viewer->setCurrentPage(2);
+    QCOMPARE(viewer->currentPage(), 2);
+    const auto selected = panel->selectedFilePaths();
+    QCOMPARE(selected, QStringList({paths.at(0), paths.at(3)}));
+    const auto layout = viewer->sessionSnapshot().viewer.layout;
+    const auto originalActions = window.actions();
+    const bool navigationVisible = navigation->isVisible();
+    const bool pixelInfoVisible = info->isVisible();
+    Q_EMIT panel->imageDiffRequested(selected);
+    auto *comparison = qobject_cast<heiran::ui::ImageComparisonWidget *>(pages->currentWidget());
+    QVERIFY(comparison && !dock->isVisible() && !navigation->isVisible() &&
+            !window.statusBar()->isVisible());
+    QVERIFY(window.actions().isEmpty());
+    auto *end = comparison->findChild<QPushButton *>("endImageComparison");
+    QVERIFY(end);
+    end->click();
+    QCOMPARE(pages->currentWidget(), static_cast<QWidget *>(viewer));
+    QCOMPARE(viewer->currentPage(), 2);
+    const auto restoredLayout = viewer->sessionSnapshot().viewer.layout;
+    QCOMPARE(restoredLayout.rows, layout.rows);
+    QCOMPARE(restoredLayout.cols, layout.cols);
+    QCOMPARE(restoredLayout.order, layout.order);
+    QCOMPARE(window.actions(), originalActions);
+    QVERIFY(dock->isVisible() && window.statusBar()->isVisible());
+    QCOMPARE(navigation->isVisible(), navigationVisible);
+    QCOMPARE(info->isVisible(), pixelInfoVisible);
+    QCOMPARE(panel->selectedFilePaths(), selected);
+  }
+
   void showsTheWelcomeOnlyWhileNoImageIsOpen() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
@@ -1650,11 +1744,11 @@ private Q_SLOTS:
 
     auto *fileMenu = findMenu(window.menuBar(), "&File");
     QVERIFY(fileMenu != nullptr);
-    QCOMPARE(titlesOf(fileMenu),
-             QStringList({"Open Image...", "Compare Folders...", "Recent Images", "Open .hrn...",
-                          "Open Recent", "---", "Save", "Save As...", "---", "Rename...",
-                          "Move to Recycle Bin...", "Copy File Path", "Show in Folder", "Print...",
-                          "Refresh File List"}));
+    QCOMPARE(
+        titlesOf(fileMenu),
+        QStringList({"Open Image...", "Compare...", "Recent Images", "Open .hrn...", "Open Recent",
+                     "---", "Save", "Save As...", "---", "Rename...", "Move to Recycle Bin...",
+                     "Copy File Path", "Show in Folder", "Print...", "Refresh File List"}));
 
     auto *settingsMenu = findMenu(window.menuBar(), "&Settings");
     QVERIFY(settingsMenu != nullptr);

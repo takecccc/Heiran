@@ -32,12 +32,23 @@ private Q_SLOTS:
     }
   }
 
+  void keepsInputFieldsDistinct() {
+    for (const bool dark : {true, false}) {
+      const auto tokens = AppStyleTokens::forDarkScheme(dark);
+      QVERIFY(std::abs(tokens.inputBorder.lightness() - tokens.input.lightness()) > 50);
+      QVERIFY(std::abs(tokens.inputBorder.lightness() - tokens.panel.lightness()) > 50);
+      const QString sheet = buildAppStyleSheet(tokens);
+      QVERIFY(sheet.contains("QLineEdit:focus { border: 2px solid"));
+      QVERIFY(sheet.contains("QMainWindow, QDialog"));
+    }
+  }
+
   // スタイルシートに、置き換え損ねた印 (%1 など) が残らないこと。
   void leavesNoUnresolvedPlaceholders() {
     for (const bool dark : {true, false}) {
       const QString sheet = buildAppStyleSheet(AppStyleTokens::forDarkScheme(dark));
       QVERIFY(!sheet.isEmpty());
-      QVERIFY2(!sheet.contains(QRegularExpression("%\d")), qPrintable(sheet));
+      QVERIFY2(!sheet.contains(QRegularExpression(R"(%\d+)")), qPrintable(sheet));
     }
   }
 

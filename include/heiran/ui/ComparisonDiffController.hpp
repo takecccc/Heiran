@@ -23,6 +23,7 @@ struct ComparisonDiffKey {
 struct ComparisonDiffResult {
   DiffFieldPtr field;
   DiffOutput output;
+  ComparisonDiffImages images;
   QVector<QRect> regions;
 };
 
@@ -32,6 +33,7 @@ class ComparisonDiffController final : public QObject {
 public:
   explicit ComparisonDiffController(QObject *parent = nullptr);
   ~ComparisonDiffController() override;
+  bool isBusy() const { return active_.has_value(); }
   bool isRequested(const ComparisonDiffKey &key) const;
   void request(const ComparisonDiffKey &key, DiffInput base, DiffInput target, DiffFieldPtr cached);
   void invalidate();

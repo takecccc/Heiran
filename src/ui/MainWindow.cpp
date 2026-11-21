@@ -10,13 +10,13 @@
 #include "heiran/ui/ChangeGraphWindow.hpp"
 #include "heiran/ui/ColorTheme.hpp"
 #include "heiran/ui/ComparisonNavigationController.hpp"
+#include "heiran/ui/ComparisonWorkspaceController.hpp"
 #include "heiran/ui/DiffWindow.hpp"
 #include "heiran/ui/FavoritesController.hpp"
 #include "heiran/ui/FileOperations.hpp"
 #include "heiran/ui/GlobalZoomController.hpp"
 #include "heiran/ui/Histogram3DWindow.hpp"
 #include "heiran/ui/HistogramWindow.hpp"
-#include "heiran/ui/ImageComparisonDialog.hpp"
 #include "heiran/ui/ImageInfoWindow.hpp"
 #include "heiran/ui/ImageListPanelController.hpp"
 #include "heiran/ui/ImagePrinter.hpp"
@@ -112,12 +112,14 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
     : QMainWindow(parent), dirtyStateController_(this), viewerGrid_(new ViewerGridWidget) {
   setWindowTitle(QCoreApplication::translate("MainWindow", "Untitled[*] - Heiran"));
   restoreWindowState();
-  setCentralWidget(viewerGrid_);
+  comparisonWorkspace_ = new ComparisonWorkspaceController(this, viewerGrid_);
 
   messageOverlay_ = new TransientMessageWidget(viewerGrid_);
   welcome_ = new WelcomeWidget(viewerGrid_);
   connect(welcome_, &WelcomeWidget::openImageRequested, this,
           [this]() { openImageFilesFromDialog(); });
+  connect(welcome_, &WelcomeWidget::comparisonRequested, comparisonWorkspace_,
+          &ComparisonWorkspaceController::openSetup);
   connect(welcome_, &WelcomeWidget::recentImageRequested, this,
           [this](const QString &path) { openRecentImage(path); });
   connect(welcome_, &WelcomeWidget::filesDropped, this,
@@ -134,7 +136,7 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   connect(&fullScreenEdgeTimer_, &QTimer::timeout, this, [this]() {
     const auto handle = reinterpret_cast<HWND>(effectiveWinId());
     if (!isFullScreen() || GetForegroundWindow() != handle ||
-        QApplication::activeModalWidget() != nullptr) {
+        QApplication::activeModalWidget() != nullptr || comparisonWorkspace_->isActive()) {
       return;
     }
     POINT position{};
@@ -166,12 +168,8 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   new GlobalZoomController(this, viewerGrid_);
   connect(imageList, &ImageListPanelController::compareRequested, this,
           &MainWindow::compareSelectedImages);
-  connect(imageList, &ImageListPanelController::imageDiffRequested, this,
-          [this](const QStringList &paths) {
-            ImageComparisonDialog dialog(this);
-            dialog.openImages(paths);
-            dialog.exec();
-          });
+  connect(imageList, &ImageListPanelController::imageDiffRequested, comparisonWorkspace_,
+          &ComparisonWorkspaceController::openImages);
   connect(imageList, &ImageListPanelController::finishComparisonRequested, this,
           &MainWindow::finishComparison);
   addShortcutsToToolTips();
@@ -225,6 +223,7 @@ void MainWindow::connectViewerGrid() {
 // 画素値情報のドック。既定では畳んでおく。
 void MainWindow::createPixelInfoDock() {
   pixelInfoDock_ = new QDockWidget(QCoreApplication::translate("MainWindow", "Pixel Info"), this);
+  pixelInfoDock_->setObjectName("pixelInfoDock");
   pixelInfoDock_->setMinimumWidth(420);
   auto *dockContents = new QWidget(pixelInfoDock_);
   auto *dockLayout = new QVBoxLayout(dockContents);
@@ -247,24 +246,9 @@ void MainWindow::createFileMenu() {
   openImageAction->setShortcut(QKeySequence::Open);
   connect(openImageAction, &QAction::triggered, this, [this]() { openImageFilesFromDialog(); });
 
-  auto *compareFolders =
-      fileMenu->addAction(QCoreApplication::translate("MainWindow", "Compare Folders..."));
-  connect(compareFolders, &QAction::triggered, this, [this]() {
-    const QString left = QFileDialog::getExistingDirectory(
-        this, QCoreApplication::translate("MainWindow", "Choose the Left Folder"));
-    if (left.isEmpty()) {
-      return;
-    }
-    const QString right = QFileDialog::getExistingDirectory(
-        this, QCoreApplication::translate("MainWindow", "Choose the Right Folder"),
-        QFileInfo(left).absolutePath());
-    if (right.isEmpty()) {
-      return;
-    }
-    ImageComparisonDialog dialog(this);
-    dialog.openFolders(left, right);
-    dialog.exec();
-  });
+  auto *compare = fileMenu->addAction(QCoreApplication::translate("MainWindow", "Compare..."));
+  connect(compare, &QAction::triggered, comparisonWorkspace_,
+          &ComparisonWorkspaceController::openSetup);
 
   recentImagesMenu_ = fileMenu->addMenu(QCoreApplication::translate("MainWindow", "Recent Images"));
   recentImages_ = RecentImages::load();
@@ -1255,7 +1239,7 @@ void MainWindow::showFullScreenChrome() {
 }
 
 void MainWindow::hideFullScreenChrome() {
-  if (!fullScreenChromeShown_) {
+  if (!fullScreenChromeShown_ || comparisonWorkspace_->isActive()) {
     return;
   }
   fullScreenChromeShown_ = false;
@@ -1272,7 +1256,8 @@ void MainWindow::hideFullScreenChrome() {
 }
 
 void MainWindow::handleFullScreenPointer(const QPoint &globalPosition) {
-  if (!isFullScreen() || QApplication::activeModalWidget() != nullptr) {
+  if (!isFullScreen() || QApplication::activeModalWidget() != nullptr ||
+      comparisonWorkspace_->isActive()) {
     return;
   }
   if (!fullScreenChromeShown_) {
@@ -1300,6 +1285,10 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *event) {
+  if (comparisonWorkspace_->isActive()) {
+    QMainWindow::mousePressEvent(event);
+    return;
+  }
   if (event->button() == Qt::BackButton) {
     viewerGrid_->previousPage();
     event->accept();
@@ -2265,7 +2254,7 @@ void MainWindow::applyAnimationSyncMode(AnimationSyncMode mode) {
 // 設定の反映口を 1 か所にまとめる。メニューからでもダイアログからでも同じ経路を通す。
 void MainWindow::applyAppSettings() {
   // 配色はアプリ全体に効く。ウィジェットの配色は Qt の仕組みへ委ねる。
-  applyColorTheme(appSettings_.colorTheme);
+  applyColorTheme(appSettings_.colorTheme, appSettings_.customColorTheme);
   viewerGrid_->setPixelValueFormat(appSettings_.pixelValueFormat);
   viewerGrid_->setDisplayProfile(appSettings_.displayProfileMode, appSettings_.displayProfilePath);
   updateFitOnPageChange();
@@ -2348,6 +2337,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     return;
   }
 
+  comparisonWorkspace_->finish();
   saveWindowState();
   QMainWindow::closeEvent(event);
 }

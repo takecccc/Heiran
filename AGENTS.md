@@ -422,24 +422,14 @@ py tools/generate_app_icon.py --preview
 ./scripts/package.ps1
 ```
 
-`build/Heiran-<version>-win64.exe` (NSIS インストーラ) と
-`build/Heiran-<version>-win64.zip` (展開して使う形式) ができる。
+`build/Heiran-<version>-win64.exe` (Inno Setup) と `build/Heiran-<version>-win64.zip` ができる。
+`ISCC.exe` を利用できる状態にする。インストーラーの試作は `-Fast -Generator INNOSETUP`、ZIP だけなら `-Generator ZIP` を指定する。
+詳しい手順は [DEVELOPMENT.md](./DEVELOPMENT.md#配布物の作成) を参照する。
 
-- **圧縮の時間は、入れるものの大きさにほぼ比例する** (`makensis` の LZMA は、1 スレッドで、1 MB あたり約 0.45 秒。辞書の大きさを変えても、ほとんど変わらない)。
-  Direct3D のシェーダコンパイラ (`d3dcompiler_47`、`dxcompiler`、`dxil`。約 19 MB) は、使わないため、入れていない (`windeployqt --no-system-*`)。
-  ソフトウェアの OpenGL (`opengl32sw.dll`、約 21 MB) も入れない (`--no-opengl-sw`)。**動作の要件は、OpenGL 3.0 以上に対応した GPU とドライバ**で、起動の前に確かめる
-  (`src/app/OpenGlCheck.cpp`)。`vc_redist.x64.exe` (約 19 MB。圧縮済みで、圧縮しても縮まない) も入れない (`--no-compiler-runtime`)。代わりに、インストーラが、ランタイムの有無と版を確かめて案内を出す
-  (`resources/nsis/vcruntime_check.nsh.in`。求める版は、使用する CRT ヘッダの版から決まる)。
-- **時間**: 全体で 1 分ほどかかる。大半は、NSIS の LZMA 圧縮 (約 50 秒。ZIP は約 15 秒)。残りは、Qt の DLL の収集 (`windeployqt`) と、依存の探索。
-  試しに作るだけなら、`./scripts/package.ps1 -Fast` (zlib 圧縮。約 25 秒、サイズは約 2 割増え) か、`-Generator ZIP` (ZIP だけ。約 15 秒) を使う。
-  配るものは、`-Fast` なしで作る。
-- インストーラの作成には `makensis` が必要。無い場合は ZIP だけを作る形へ
-  `CPACK_GENERATOR` を変える。
-- 中身は `bin/heiran.exe` と DLL、`plugins/`、`translations/`。
-  `heiran.exe` を `bin/` の外へ出すと `qt.conf` が効かず、プラットフォームプラグインを
-  見つけられなくなる。
-- 動作確認は ZIP をビルドディレクトリの外へ展開し、`bin/heiran.exe` を起動して行う。
-  ビルドディレクトリの中で確認すると、そこにある DLL を拾ってしまい検証にならない。
+- Direct3D のシェーダコンパイラとソフトウェア OpenGL は含めない。OpenGL 3.0 以上を起動前に確認する。
+- VC++ ランタイムは同梱せず、必要な版をインストーラーで確認する。必要な版は CRT ヘッダーで決まる。
+- インストール先や ZIP は `bin/heiran.exe` と DLL、`plugins/`、`translations/` を含む。
+  `heiran.exe` は `qt.conf` が効く `bin/` から動かす。ZIP の確認はビルドディレクトリの外で行う。
 
 ### ユーザーマニュアル
 
@@ -471,17 +461,10 @@ py tools/generate_app_icon.py --preview
 
 ### ファイル関連付け
 
-インストーラの関連付け画面は、`.hrn`、一般画像、高精度画像の順に並べる。
-画像はカテゴリで一括、配下の拡張子で個別に選べる。すべて既定で ON。レジストリへ書く内容は
-[resources/nsis/associations_install.nsh](./resources/nsis/associations_install.nsh) と
-[resources/nsis/associations_uninstall.nsh](./resources/nsis/associations_uninstall.nsh) にある。
-
-- 拡張子一覧は `resources/nsis/association_formats.nsh` を正とし、選択肢、選択状態の判定、削除対象で共有する。
-- 関連付けは CPack のインストールコンポーネントではなく NSIS のセクションとグループを使い、容量を表示しない。
-  `association_selection.nsh` が、拡張子ごとの `SectionGetFlags` を見て選ばれたものだけを登録処理へ渡す。
-- 選択判定のテストは、実際の登録処理と同じマクロを使い、レジストリではなくテスト用ファイルへ結果を書く。
-- 生成された NSIS は `build/_CPack_Packages/win64/NSIS/project.nsi` で確認できる。
-  レジストリへの書き込みを含むため、実際のインストールでの確認は人手で行う。
+インストーラーは `.hrn`、一般画像、高精度画像の順に表示する。グループ単位と拡張子単位の選択を提供し、新規では既定で有効にする。
+`cmake/WindowsInstaller.cmake` の拡張子一覧から Inno Setup の親子タスクと登録・解除処理を生成する。
+選択画面ではインストール容量を表示しない。レジストリには選択した範囲で書き込み、他のアプリの値を残す。
+自動テストは生成設定を検査し、実際のインストール範囲とアンインストールは Windows の検証環境で確かめる。
 
 # 構成管理
 

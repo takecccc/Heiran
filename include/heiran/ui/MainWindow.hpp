@@ -47,6 +47,7 @@ class TransientMessageWidget;
 class ViewerGridWidget;
 class WelcomeWidget;
 class ViewerChromeController;
+class ComparisonWorkspaceController;
 class DecodeScheduler;
 struct LoupePreview;
 struct PreparedImageSession;
@@ -201,6 +202,7 @@ private:
   void openRecentImage(const QString &path);
   WelcomeWidget *welcome_ = nullptr;
   ViewerChromeController *viewerChrome_ = nullptr;
+  ComparisonWorkspaceController *comparisonWorkspace_ = nullptr;
   QActionGroup *layoutActionGroup_ = nullptr;
   QActionGroup *layoutCountActionGroup_ = nullptr;
   QActionGroup *layoutOrderActionGroup_ = nullptr;

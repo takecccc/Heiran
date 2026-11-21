@@ -1,8 +1,7 @@
 param(
   [string]$BuildDir,
   [string]$Generator,
-  # Compress the installer with zlib instead of LZMA. About twice as fast (about 25 s instead of 50 s), and about 20 percent
-  # bigger. For trying a package while developing. Build the package to hand out without it.
+  # Use ZIP compression for a local installer preview. Omit for release packages.
   [switch]$Fast
 )
 
@@ -24,7 +23,7 @@ if (-not $configuredBuildType) {
   throw "$buildDirPath is not configured. Run configure.ps1 first."
 }
 if ($configuredBuildType -ne "Release") {
-  Write-Warning "Packaging a $configuredBuildType build. Run configure.ps1 with -Config Release for a build to hand out."
+  Write-Warning "Packaging a $configuredBuildType build. Run configure.ps1 with -BuildConfig Release for a build to hand out."
 }
 
 # Package what is currently built. Build first so the package is not made from stale binaries.
@@ -45,7 +44,7 @@ if ($Generator) {
   $arguments += @("-G", $Generator)
 }
 if ($Fast) {
-  $arguments += @("-D", "CPACK_NSIS_COMPRESSOR=zlib")
+  $arguments += @("-D", "CPACK_INNOSETUP_SETUP_Compression=zip", "-D", "CPACK_INNOSETUP_SETUP_SolidCompression=OFF")
 }
 
 Write-Host "Packaging: $buildDirPath ($configuredBuildType)"

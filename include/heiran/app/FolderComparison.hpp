@@ -24,6 +24,7 @@ struct FolderComparisonResult {
 
 FolderComparisonResult compareFolders(const QString &left, const QString &right,
                                       const std::function<bool()> &canceled = {});
+bool hasComparisonImageSuffix(const QString &path);
 bool equalDecodedPixels(const infra::DecodedImage &left, const infra::DecodedImage &right,
                         bool ignoreFullyTransparentRgb = false,
                         const std::function<bool()> &canceled = {});

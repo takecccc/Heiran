@@ -27,6 +27,7 @@ public:
 
 Q_SIGNALS:
   void openImageRequested();
+  void comparisonRequested();
   void recentImageRequested(const QString &path);
   void filesDropped(const QStringList &paths);
 

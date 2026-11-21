@@ -1,5 +1,5 @@
 param(
-  [string]$OutputDir = (Join-Path $PSScriptRoot "../resources/nsis")
+  [string]$OutputDir = (Join-Path $PSScriptRoot "../resources/installer")
 )
 
 $ErrorActionPreference = "Stop"

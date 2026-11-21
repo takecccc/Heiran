@@ -3,14 +3,17 @@
 #include "heiran/app/FolderComparison.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
 
-#include <QDialog>
 #include <QFutureWatcher>
+#include <QTimer>
+#include <QWidget>
 
 class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
+class QKeyEvent;
 class QLabel;
 class QPushButton;
+class QSpinBox;
 class QStackedWidget;
 class QTreeWidget;
 
@@ -18,16 +21,22 @@ namespace heiran::ui {
 
 class ViewerGridWidget;
 
-class ImageComparisonDialog final : public QDialog {
+class ImageComparisonWidget final : public QWidget {
   Q_OBJECT
 
 public:
-  explicit ImageComparisonDialog(QWidget *parent = nullptr);
-  ~ImageComparisonDialog() override;
+  explicit ImageComparisonWidget(QWidget *parent = nullptr);
+  ~ImageComparisonWidget() override;
   void openImages(const QStringList &paths);
   void openPreparedImages(PreparedImageSession prepared,
                           std::shared_ptr<DecodeScheduler> scheduler = {});
   void openFolders(const QString &left, const QString &right);
+
+Q_SIGNALS:
+  void endRequested();
+
+protected:
+  void keyPressEvent(QKeyEvent *event) override;
 
 private:
   void reloadFolders();
@@ -39,6 +48,8 @@ private:
   void openExternalViewer();
   QString chooseExternalViewer();
   void applyDisplayMode();
+  void updateMapLegend();
+  void updateHighlights();
   void applyDiffSettings();
   void updateComparisonControls();
   heiran::domain::DiffComparisonBasis comparisonBasis() const;
@@ -59,10 +70,18 @@ private:
   QPushButton *nextFile_;
   QPushButton *externalViewer_;
   QComboBox *display_;
+  QComboBox *highlightMethod_;
+  QCheckBox *showDifferenceMap_;
+  QWidget *mapAppearance_;
+  QComboBox *mapGain_;
+  QLabel *mapLegend_;
   QComboBox *calculation_;
   QComboBox *comparisonBasis_;
   QComboBox *sizeMatch_;
   QDoubleSpinBox *threshold_;
+  QSpinBox *blockSize_;
+  QSpinBox *highlightTransparency_;
+  QDoubleSpinBox *zoom_;
   QCheckBox *ignoreTransparentRgb_;
   QPushButton *previousDifference_;
   QPushButton *nextDifference_;
@@ -74,6 +93,10 @@ private:
   heiran::app::FolderComparisonResult folderResult_;
   QFutureWatcher<heiran::app::FolderComparisonResult> folderTask_;
   QFutureWatcher<QString> pixelTask_;
+  QTimer highlightTimer_;
+  bool highlightPhaseVisible_ = true;
+  bool blinkPending_ = false;
+  bool zoomEditing_ = false;
   bool comparingImages_ = false;
   bool pixelsStarted_ = false;
 };

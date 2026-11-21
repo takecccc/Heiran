@@ -96,6 +96,9 @@ public:
   // 差分を作れなかった理由 (大きさが違う、など)。作れていれば空。
   QString cellDiffMessage(int cellIndex) const;
   void setComparisonPresentation();
+  void setComparisonHighlightsVisible(bool visible);
+  void setComparisonMapVisible(bool visible);
+  void setComparisonMapGain(int gain);
   const heiran::infra::DecodedImage *comparisonSource(int cellIndex) const;
   std::pair<qsizetype, qsizetype> diffRegionPosition(int cellIndex) const;
   bool diffHasAlphaChanges(int cellIndex) const;
@@ -278,6 +281,10 @@ private:
   void refreshDiffCell(int cellIndex);
   void failDiffCell(int cellIndex, const QString &message);
   void applyDiffResult(const ComparisonDiffKey &key, const ComparisonDiffResult &result);
+  void setRenderedDiffImage(int cellIndex, const QImage &rendered,
+                            const heiran::domain::CellDiff &diff);
+  QImage comparisonMapForDisplay(const QImage &map);
+  void updateComparisonHighlights();
   void setDiffRegionOnSources(
       const QRect &region = {}, const QSize &comparisonSize = {},
       heiran::domain::DiffSizeMatch match = heiran::domain::DiffSizeMatch::Overlap);
@@ -407,11 +414,22 @@ private:
     std::shared_ptr<const DiffField> field;
     QVector<QRect> regions;
     qsizetype regionIndex = -1;
+    QImage comparisonBase;
+    QImage comparisonHighlight;
+    QImage focusedComparisonHighlight;
+    qint64 focusedHighlightSourceKey = 0;
+    QRect focusedHighlightRegion;
+    QImage comparisonMap;
   };
   QVector<DiffState> diffStates_;
   std::unique_ptr<ComparisonDiffController> comparisonDiff_;
   bool diffRefreshScheduled_ = false;
   bool comparisonPresentation_ = false;
+  bool comparisonHighlightsVisible_ = false;
+  bool comparisonMapVisible_ = false;
+  int comparisonMapGain_ = 1;
+  qint64 comparisonMapSourceKey_ = 0;
+  QImage amplifiedComparisonMap_;
   // セルが作り終えを待っている後から作るアニメーション。セルごとに 1 つ。
   QVector<std::shared_ptr<heiran::infra::FrameStream>> observedStreams_;
   // セルがいま見せているフレームの番号。後から作るアニメーションで、見せ直すかの判断に使う。

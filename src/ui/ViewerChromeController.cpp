@@ -161,8 +161,10 @@ void ViewerChromeController::updateNavigationLayout() {
   const bool wrapped = !wrappedActions_.isEmpty();
   const int widthNeeded = navigationWidthNeeded();
   const bool shouldWrap = wrapNavigation_ && window_->contentsRect().width() < widthNeeded;
-  if (shouldWrap == wrapped)
+  if (shouldWrap == wrapped) {
+    secondRow_->setVisible(navigation_->isVisible() && wrapped);
     return;
+  }
   if (shouldWrap) {
     const auto actions = navigation_->actions();
     const auto split = actions.indexOf(secondRowStart_);

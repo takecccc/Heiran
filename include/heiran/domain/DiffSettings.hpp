@@ -54,6 +54,8 @@ struct DiffSettings {
   // 専用の画像差分画面で使う。
   bool ignoreFullyTransparentRgb = false;
   DiffComparisonBasis comparisonBasis = DiffComparisonBasis::PixelValues;
+  int highlightBlockSize = 1;
+  int highlightOpacity = 50;
 
   bool operator==(const DiffSettings &) const = default;
 };

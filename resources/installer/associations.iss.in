@@ -1,0 +1,27 @@
+[Tasks]
+Name: hrn; Description: ".hrn"; GroupDescription: "{cm:Heiran_AssociationTypes}"
+@heiran_extension_tasks@
+
+[Registry]
+Root: HKA; Subkey: "Software\Classes\Heiran.Session"; ValueType: string; ValueData: "Heiran Session"; Flags: uninsdeletekey; Tasks: hrn
+Root: HKA; Subkey: "Software\Classes\Heiran.Session\DefaultIcon"; ValueType: string; ValueData: "{app}\bin\heiran.exe,0"; Tasks: hrn
+Root: HKA; Subkey: "Software\Classes\Heiran.Session\shell\open\command"; ValueType: string; ValueData: """{app}\bin\heiran.exe"" ""%1"""; Tasks: hrn
+Root: HKA; Subkey: "Software\Classes\.hrn"; ValueType: string; ValueData: Heiran.Session; Tasks: hrn; Check: CanSetHrnDefault
+Root: HKA; Subkey: "Software\Classes\.hrn"; Flags: deletevalue dontcreatekey; Tasks: not hrn; Check: OwnsHrnDefault
+Root: HKA; Subkey: "Software\Classes\.hrn\OpenWithProgids"; ValueName: Heiran.Session; ValueType: string; ValueData: ""; Flags: uninsdeletevalue; Tasks: hrn
+Root: HKA; Subkey: "Software\Heiran\Capabilities\FileAssociations"; ValueName: .hrn; ValueType: string; ValueData: Heiran.Session; Flags: uninsdeletevalue; Tasks: hrn
+Root: HKA; Subkey: "Software\Classes\.hrn\OpenWithProgids"; ValueName: Heiran.Session; Flags: deletevalue dontcreatekey; Tasks: not hrn
+Root: HKA; Subkey: "Software\Heiran\Capabilities\FileAssociations"; ValueName: .hrn; Flags: deletevalue dontcreatekey; Tasks: not hrn
+Root: HKA; Subkey: "Software\Classes\Heiran.Session"; Flags: deletekey dontcreatekey; Tasks: not hrn
+
+Root: HKA; Subkey: "Software\Classes\Heiran.Image"; ValueType: string; ValueData: "Image"; Flags: uninsdeletekey; Tasks: common or precision
+Root: HKA; Subkey: "Software\Classes\Heiran.Image\DefaultIcon"; ValueType: string; ValueData: "{app}\bin\heiran.exe,0"; Tasks: common or precision
+Root: HKA; Subkey: "Software\Classes\Heiran.Image\shell\open\command"; ValueType: string; ValueData: """{app}\bin\heiran.exe"" ""%1"""; Tasks: common or precision
+Root: HKA; Subkey: "Software\Classes\Heiran.Image"; Flags: deletekey dontcreatekey; Tasks: not common and not precision
+@heiran_extension_registry@
+
+Root: HKA; Subkey: "Software\Heiran\Capabilities"; ValueName: ApplicationName; ValueType: string; ValueData: "Heiran"; Flags: uninsdeletekey; Tasks: hrn or common or precision
+Root: HKA; Subkey: "Software\Heiran\Capabilities"; ValueName: ApplicationDescription; ValueType: string; ValueData: "Image viewer that shows several images in sync."; Tasks: hrn or common or precision
+Root: HKA; Subkey: "Software\RegisteredApplications"; ValueName: Heiran; ValueType: string; ValueData: "Software\Heiran\Capabilities"; Flags: uninsdeletevalue; Tasks: hrn or common or precision
+Root: HKA; Subkey: "Software\Heiran\Capabilities"; Flags: deletekey dontcreatekey; Tasks: not hrn and not common and not precision
+Root: HKA; Subkey: "Software\RegisteredApplications"; ValueName: Heiran; Flags: deletevalue dontcreatekey; Tasks: not hrn and not common and not precision
