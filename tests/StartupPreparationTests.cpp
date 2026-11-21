@@ -70,6 +70,13 @@ private Q_SLOTS:
     QVERIFY(heiran::app::equalDecodedPixels(left, right));
     right.displayImage.setPixelColor(0, 0, QColor(255, 0, 0, 127));
     QVERIFY(!heiran::app::equalDecodedPixels(left, right));
+    left.displayImage = left.displayImage.convertToFormat(QImage::Format_RGBA8888);
+    left.displayImage.setPixelColor(0, 0, QColor(200, 0, 0, 0));
+    right.displayImage.setPixelColor(0, 0, QColor(0, 200, 0, 0));
+    QVERIFY(!heiran::app::equalDecodedPixels(left, right));
+    QVERIFY(heiran::app::equalDecodedPixels(left, right, true));
+    right.displayImage.setPixelColor(0, 0, QColor(0, 200, 0, 1));
+    QVERIFY(!heiran::app::equalDecodedPixels(left, right, true));
   }
 
   void queuesOnlyTheInitialPageAndDeduplicatesCells() {

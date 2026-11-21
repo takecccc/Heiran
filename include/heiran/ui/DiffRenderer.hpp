@@ -49,7 +49,9 @@ enum class DiffFieldKind {
 struct DiffInspection {
   QSize baseSize;
   QSize targetSize;
+  bool ignoreFullyTransparentRgb = false;
   std::vector<unsigned char> alphaChanged;
+  std::vector<unsigned char> bothTransparent;
 };
 
 struct DiffField {

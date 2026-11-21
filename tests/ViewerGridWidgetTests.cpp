@@ -3,6 +3,7 @@
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
 #include <QDir>
@@ -1144,6 +1145,40 @@ private Q_SLOTS:
   }
 
   // ---- 差分のセル ----
+
+  void togglesHiddenRgbInTheComparisonAndPixelStatus() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    const auto base = fixture.makeImageSet("base", Qt::red, 1);
+    const auto target = fixture.makeImageSet("target", Qt::red, 1);
+    QVERIFY(!base.resolvedPaths.isEmpty() && !target.resolvedPaths.isEmpty());
+    QImage left(base.resolvedPaths.first());
+    QImage right(target.resolvedPaths.first());
+    left.setPixelColor(5, 5, QColor(0, 0, 0, 0));
+    right.setPixelColor(5, 5, QColor(255, 255, 255, 0));
+    QVERIFY(left.save(base.resolvedPaths.first()));
+    QVERIFY(right.save(target.resolvedPaths.first()));
+
+    heiran::ui::ImageComparisonDialog dialog;
+    dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
+    auto *ignore = dialog.findChild<QCheckBox *>("imageComparisonIgnoreTransparentRgb");
+    auto *pixels = dialog.findChild<QLabel *>("imageComparisonPixelStatus");
+    auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(ignore && pixels && grid);
+    QVERIFY(ignore->isChecked());
+    QTRY_COMPARE(pixels->text(), "Pixels match.");
+    QTRY_VERIFY(grid->cellDiffMetrics(2).has_value());
+    QCOMPARE(grid->cellDiffMetrics(2)->exceededPixelCount, 0);
+    ignore->setChecked(false);
+    QTRY_COMPARE(pixels->text(), "Pixels differ.");
+    QTRY_COMPARE(grid->cellDiffMetrics(2)->exceededPixelCount, 1);
+    grid->moveToDiffRegion(2, 1);
+    QCOMPARE(grid->diffRegionPosition(2), (std::pair<qsizetype, qsizetype>{1, 1}));
+    ignore->setChecked(true);
+    QTRY_COMPARE(pixels->text(), "Pixels match.");
+    QTRY_COMPARE(grid->cellDiffMetrics(2)->exceededPixelCount, 0);
+    QCOMPARE(grid->diffRegionPosition(2).first, 0);
+  }
 
   void theDedicatedComparisonMarksChangesOutsideTheBrightnessThreshold() {
     SessionFixture fixture;

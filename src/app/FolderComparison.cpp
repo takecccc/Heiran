@@ -6,6 +6,7 @@
 #include <QMap>
 #include <QSet>
 #include <cmath>
+#include <cstring>
 #include <filesystem>
 
 namespace heiran::app {
@@ -129,19 +130,42 @@ FolderComparisonResult compareFolders(const QString &left, const QString &right,
 }
 
 bool equalDecodedPixels(const infra::DecodedImage &left, const infra::DecodedImage &right,
-                        const std::function<bool()> &canceled) {
+                        bool ignoreFullyTransparentRgb, const std::function<bool()> &canceled) {
   if (left.displayImage.isNull() || right.displayImage.isNull() || left.size() != right.size()) {
     return false;
   }
   if (!left.hasAnalysisBuffer() && !right.hasAnalysisBuffer()) {
-    return left.displayImage.convertToFormat(QImage::Format_RGBA8888) ==
-           right.displayImage.convertToFormat(QImage::Format_RGBA8888);
+    const auto base = left.displayImage.convertToFormat(QImage::Format_RGBA8888);
+    const auto target = right.displayImage.convertToFormat(QImage::Format_RGBA8888);
+    if (base.isNull() || target.isNull()) {
+      return false;
+    }
+    if (!ignoreFullyTransparentRgb) {
+      return base == target;
+    }
+    for (int y = 0; y < base.height(); ++y) {
+      if (canceled && canceled()) {
+        return false;
+      }
+      const uchar *a = base.constScanLine(y);
+      const uchar *b = target.constScanLine(y);
+      for (int x = 0; x < base.width(); ++x, a += 4, b += 4) {
+        if ((a[3] != 0 || b[3] != 0) && std::memcmp(a, b, 4) != 0) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
   for (int y = 0; y < left.size().height(); ++y) {
     if (canceled && canceled()) {
       return false;
     }
     for (int x = 0; x < left.size().width(); ++x) {
+      if (ignoreFullyTransparentRgb && left.sampleRgba(x, y, 3) == 0.0F &&
+          right.sampleRgba(x, y, 3) == 0.0F) {
+        continue;
+      }
       for (int channel = 0; channel < 4; ++channel) {
         const float a = left.sampleRgba(x, y, channel);
         const float b = right.sampleRgba(x, y, channel);

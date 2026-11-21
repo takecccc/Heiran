@@ -48,6 +48,8 @@ struct DiffSettings {
   // ワイプ (`mode` が Wipe のとき) の切り方と、境目の位置 (画像の幅 / 高さに対する 0.0-1.0)。
   WipeOrientation wipeOrientation = WipeOrientation::LeftRight;
   double wipePosition = 0.5;
+  // 専用の画像差分画面で使う。
+  bool ignoreFullyTransparentRgb = false;
 
   bool operator==(const DiffSettings &) const = default;
 };

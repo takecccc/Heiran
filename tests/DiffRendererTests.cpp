@@ -31,6 +31,43 @@ class DiffRendererTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void ignoresHiddenRgbInEveryInspectionMode_data() {
+    QTest::addColumn<int>("mode");
+    QTest::addColumn<double>("threshold");
+    QTest::newRow("luma") << int(DiffMode::Absolute) << 8.0;
+    QTest::newRow("delta-e") << int(DiffMode::DeltaE) << 2.3;
+    QTest::newRow("ssim") << int(DiffMode::Ssim) << 0.9;
+  }
+
+  void ignoresHiddenRgbInEveryInspectionMode() {
+    QFETCH(int, mode);
+    QFETCH(double, threshold);
+    auto base = solid({48, 32}, 100);
+    auto target = base;
+    for (int y = 6; y < 24; ++y) {
+      for (int x = 8; x < 26; ++x) {
+        base.setPixelColor(x, y, QColor(0, 0, 0, 0));
+        target.setPixelColor(x, y, QColor(255, 255, 255, 0));
+      }
+    }
+    DiffSettings settings{
+        .mode = static_cast<DiffMode>(mode), .view = DiffViewMode::Overlay, .threshold = threshold};
+    const auto before =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(before);
+    QVERIFY(renderDiffFromField(*before, makeInput(base), settings).metrics.exceededPixelCount > 0);
+    settings.ignoreFullyTransparentRgb = true;
+    QVERIFY(!diffFieldServes(*before, settings));
+    const auto after =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(after);
+    const auto result = renderDiffFromField(*after, makeInput(base), settings);
+    QVERIFY(result.ok);
+    QCOMPARE(result.metrics.exceededPixelCount, 0);
+    QVERIFY(findDiffRegions(*after, threshold).isEmpty());
+    QCOMPARE(result.image.pixelColor(12, 12), base.pixelColor(12, 12));
+  }
+
   void inspectionUsesOneDecisionForHighlightsCountAndRegions() {
     QImage base = solid({80, 24}, 100);
     QImage target = solid({96, 24}, 100);

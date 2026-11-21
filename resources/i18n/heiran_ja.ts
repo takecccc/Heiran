@@ -3932,5 +3932,15 @@ Right: %2</source>
         <source>Opacity differs.</source>
         <translation>透明度が異なります。</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="124"/>
+        <source>Ignore fully transparent color</source>
+        <translation>完全透明な画素の色差を無視</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="127"/>
+        <source>Ignore RGB differences where both images are fully transparent.</source>
+        <translation>両方の画像でアルファ値が 0 の画素の RGB 差を無視します。</translation>
+    </message>
 </context>
 </TS>

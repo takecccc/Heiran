@@ -6,6 +6,7 @@
 #include <QDialog>
 #include <QFutureWatcher>
 
+class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QLabel;
@@ -59,6 +60,7 @@ private:
   QComboBox *calculation_;
   QComboBox *sizeMatch_;
   QDoubleSpinBox *threshold_;
+  QCheckBox *ignoreTransparentRgb_;
   QPushButton *previousDifference_;
   QPushButton *nextDifference_;
   QPushButton *fit_;

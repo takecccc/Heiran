@@ -3,6 +3,7 @@
 #include "heiran/ui/ActionIcons.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QDoubleSpinBox>
@@ -120,6 +121,12 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   threshold_->setRange(0.0, 255.0);
   threshold_->setValue(8.0);
   form->addRow(tr("Threshold"), threshold_);
+  ignoreTransparentRgb_ = new QCheckBox(tr("Ignore fully transparent color"), sidebar);
+  ignoreTransparentRgb_->setObjectName("imageComparisonIgnoreTransparentRgb");
+  ignoreTransparentRgb_->setToolTip(
+      tr("Ignore RGB differences where both images are fully transparent."));
+  ignoreTransparentRgb_->setChecked(true);
+  form->addRow(ignoreTransparentRgb_);
   sizeMatch_ = new QComboBox(sidebar);
   sizeMatch_->addItems(
       {tr("Align top left"), tr("Resize to left"), tr("Resize to right"), tr("Resize to larger")});
@@ -190,6 +197,13 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   });
   connect(threshold_, &QDoubleSpinBox::valueChanged, this,
           &ImageComparisonDialog::applyDiffSettings);
+  connect(ignoreTransparentRgb_, &QCheckBox::toggled, this, [this]() {
+    pixelTask_.cancel();
+    pixelsStarted_ = false;
+    pixelStatus_->clear();
+    applyDiffSettings();
+    checkPixels();
+  });
   const auto jump = [this](int direction) {
     grid_->moveToDiffRegion(kDiffCell, direction);
     updateComparisonControls();
@@ -436,6 +450,7 @@ void ImageComparisonDialog::applyDiffSettings() {
   }
   diff->settings.mode = static_cast<DiffMode>(calculation_->currentData().toInt());
   diff->settings.threshold = threshold_->value();
+  diff->settings.ignoreFullyTransparentRgb = ignoreTransparentRgb_->isChecked();
   diff->settings.sizeMatch = static_cast<DiffSizeMatch>(sizeMatch_->currentIndex());
   grid_->setCellDiff(kDiffCell, diff);
 }
@@ -459,6 +474,7 @@ void ImageComparisonDialog::updateComparisonControls() {
   calculation_->setEnabled(comparingImages_);
   sizeMatch_->setEnabled(comparingImages_);
   threshold_->setEnabled(comparingImages_);
+  ignoreTransparentRgb_->setEnabled(comparingImages_);
   fit_->setEnabled(preview_->currentWidget() == grid_);
   previousDifference_->setEnabled(changes);
   nextDifference_->setEnabled(changes);
@@ -500,21 +516,23 @@ void ImageComparisonDialog::checkPixels() {
                                        .arg(right->size().width())
                                        .arg(right->size().height())
                                  : QString();
-  pixelTask_.setFuture(QtConcurrent::run([left = *left, right = *right, equal, different, profile,
-                                          dimensions](QPromise<QString> &promise) {
-    const bool same =
-        heiran::app::equalDecodedPixels(left, right, [&]() { return promise.isCanceled(); });
-    if (!promise.isCanceled()) {
-      QString result = same ? equal : different;
-      if (left.colorSpace != right.colorSpace) {
-        result += '\n' + profile;
-      }
-      if (!dimensions.isEmpty()) {
-        result += '\n' + dimensions;
-      }
-      promise.addResult(result);
-    }
-  }));
+  const bool ignoreTransparentRgb = ignoreTransparentRgb_->isChecked();
+  pixelTask_.setFuture(
+      QtConcurrent::run([left = *left, right = *right, equal, different, profile, dimensions,
+                         ignoreTransparentRgb](QPromise<QString> &promise) {
+        const bool same = heiran::app::equalDecodedPixels(left, right, ignoreTransparentRgb,
+                                                          [&]() { return promise.isCanceled(); });
+        if (!promise.isCanceled()) {
+          QString result = same ? equal : different;
+          if (left.colorSpace != right.colorSpace) {
+            result += '\n' + profile;
+          }
+          if (!dimensions.isEmpty()) {
+            result += '\n' + dimensions;
+          }
+          promise.addResult(result);
+        }
+      }));
 }
 
 }  // namespace heiran::ui

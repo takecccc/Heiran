@@ -406,6 +406,10 @@ bool marksDifference(const DiffField &field, int x, int y, double threshold, int
       field.inspection->alphaChanged[index]) {
     return true;
   }
+  if (field.inspection && !field.inspection->bothTransparent.empty() &&
+      field.inspection->bothTransparent[index]) {
+    return false;
+  }
   const float difference = field.values[index];
   if (field.kind == DiffFieldKind::Ssim) {
     return x >= border && y >= border && x < width - border && y < height - border &&
@@ -552,7 +556,9 @@ DiffFieldKind diffFieldKindOf(DiffMode mode) {
 
 bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings &settings) {
   return settings.mode != DiffMode::Wipe && field.kind == diffFieldKindOf(settings.mode) &&
-         field.sizeMatch == settings.sizeMatch;
+         field.sizeMatch == settings.sizeMatch &&
+         (!field.inspection ||
+          field.inspection->ignoreFullyTransparentRgb == settings.ignoreFullyTransparentRgb);
 }
 
 DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
@@ -583,17 +589,22 @@ DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
   field->sizeMatch = settings.sizeMatch;
   field->values.resize(static_cast<size_t>(width) * static_cast<size_t>(height));
   const size_t pixelCount = field->values.size();
+  const bool ignoreTransparent = inspectCoverageAndAlpha && settings.ignoreFullyTransparentRgb;
+  QVector<float> baseAlpha;
+  QVector<float> targetAlpha;
   if (inspectCoverageAndAlpha) {
-    field->inspection =
-        DiffInspection{.baseSize = base.image.size(), .targetSize = target.image.size()};
-    const auto alphaPlane = [&size](const DiffInput &input, const QSize &region) {
+    field->inspection = DiffInspection{.baseSize = base.image.size(),
+                                       .targetSize = target.image.size(),
+                                       .ignoreFullyTransparentRgb = ignoreTransparent};
+    const auto alphaPlane = [](const DiffInput &input, const QSize &region) {
       AnalysisSampler sampler = input.sampler;
       sampler.valueSpace = AnalysisValueSpace::Source;
-      return resizeLumaPlane(sampler.buildChannelPlane(QRect(input.origin, region), 3), region,
-                             size);
+      return sampler.buildChannelPlane(QRect(input.origin, region), 3);
     };
-    const auto leftAlpha = alphaPlane(base, baseRegion);
-    const auto rightAlpha = alphaPlane(target, targetRegion);
+    baseAlpha = alphaPlane(base, baseRegion);
+    targetAlpha = alphaPlane(target, targetRegion);
+    const auto leftAlpha = resizeLumaPlane(baseAlpha, baseRegion, size);
+    const auto rightAlpha = resizeLumaPlane(targetAlpha, targetRegion, size);
     if (static_cast<size_t>(leftAlpha.size()) != pixelCount ||
         static_cast<size_t>(rightAlpha.size()) != pixelCount) {
       return fail(
@@ -612,25 +623,52 @@ DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
         changed.clear();
       }
     }
+    const bool baseHasTransparent = ignoreTransparent && baseAlpha.contains(0.0F);
+    const bool targetHasTransparent = ignoreTransparent && targetAlpha.contains(0.0F);
+    if (baseHasTransparent && targetHasTransparent) {
+      std::vector<unsigned char> transparent(pixelCount);
+      std::transform(leftAlpha.cbegin(), leftAlpha.cend(), rightAlpha.cbegin(), transparent.begin(),
+                     [](float a, float b) { return a == 0.0F && b == 0.0F; });
+      if (std::ranges::any_of(transparent, [](unsigned char value) { return value != 0; })) {
+        field->inspection->bothTransparent = std::move(transparent);
+      }
+    }
+    if (!baseHasTransparent) {
+      baseAlpha = {};
+    }
+    if (!targetHasTransparent) {
+      targetAlpha = {};
+    }
   }
+
+  const auto preparePlane = [&](QVector<float> &plane, const QSize &region,
+                                const QVector<float> &alpha) {
+    if (!alpha.isEmpty() && plane.size() == alpha.size()) {
+      float *values = plane.data();
+      std::transform(values, values + plane.size(), alpha.cbegin(), values,
+                     [](float value, float opacity) { return opacity == 0.0F ? 0.0F : value; });
+    }
+    plane = resizeLumaPlane(plane, region, size);
+  };
 
   if (field->kind == DiffFieldKind::DeltaE) {
     // 色差は、RGB の 3 つの平面から。Lab は線形光で測るため、値の空間は線形へ固定する。
     const auto planesOf = [&](const DiffInput &input, const QSize &region,
-                              QVector<float>(&planes)[3]) {
+                              const QVector<float> &alpha, QVector<float>(&planes)[3]) {
       AnalysisSampler sampler = input.sampler;
       sampler.valueSpace = AnalysisValueSpace::Linear;
       if (!sampler.buildRgbPlanes(QRect(input.origin, region), planes)) {
         return false;
       }
       for (auto &plane : planes) {
-        plane = resizeLumaPlane(plane, region, size);
+        preparePlane(plane, region, alpha);
       }
       return true;
     };
     QVector<float> basePlanes[3];
     QVector<float> targetPlanes[3];
-    if (!planesOf(base, baseRegion, basePlanes) || !planesOf(target, targetRegion, targetPlanes) ||
+    if (!planesOf(base, baseRegion, baseAlpha, basePlanes) ||
+        !planesOf(target, targetRegion, targetAlpha, targetPlanes) ||
         static_cast<size_t>(basePlanes[0].size()) != pixelCount ||
         static_cast<size_t>(targetPlanes[0].size()) != pixelCount) {
       return fail(
@@ -661,8 +699,8 @@ DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
     return fail(
         QCoreApplication::translate("DiffRenderer", "Base or target image is not available."));
   }
-  baseLuma = resizeLumaPlane(baseLuma, baseRegion, size);
-  targetLuma = resizeLumaPlane(targetLuma, targetRegion, size);
+  preparePlane(baseLuma, baseRegion, baseAlpha);
+  preparePlane(targetLuma, targetRegion, targetAlpha);
   if (static_cast<size_t>(baseLuma.size()) != pixelCount ||
       static_cast<size_t>(targetLuma.size()) != pixelCount) {
     return fail(
