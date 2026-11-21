@@ -19,8 +19,8 @@ namespace heiran::ui {
 
 // セルの上へ重ねる表示の入力。
 //
-// 画像そのものは GPU が描く。ここで扱うのは選択範囲、共有カーソル、ラベルの
-// 3 つで、いずれも `QPainter` で画像の上へ乗せる。
+// 画像そのものは GPU が描く。値の強調、選択範囲、共有カーソル、ラベルは
+// `QPainter` で画像の上へ乗せる。
 //
 // 画像座標から表示座標への写しに要る値だけを受け取る。ウィジェットの状態を
 // 直接見ないため、描いた結果をテストで確かめられる。
@@ -32,6 +32,9 @@ struct CellOverlayInput {
   // 描画先の大きさ。ラベルの省略幅と、選択範囲のはみ出し止めに使う。
   // 空のままだと選択範囲を切り取らない。
   QSize canvasSize;
+
+  // 表示画像の画素座標。切り出したマスクの左上は QImage::offset() で持つ。
+  const QImage *histogramHighlight = nullptr;
 
   // 確定した選択範囲と、ドラッグ中の仮の選択範囲。画像座標で持つ。
   std::optional<QRectF> selectionRect;

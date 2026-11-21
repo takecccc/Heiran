@@ -25,8 +25,10 @@ struct AnalysisSourceKey {
   int rotationQuarterTurns = 0;
   bool flipX = false;
   bool flipY = false;
-  // 空なら画像全体。
-  QRect selectionRect;
+  AnalysisValueSpace valueSpace = AnalysisValueSpace::Source;
+  ShaderTransfer sourceTransfer = ShaderTransfer::Linear;
+  float sourceGamma = 1.0F;
+  std::optional<QRect> selectionRect;
 
   bool operator==(const AnalysisSourceKey &other) const = default;
 };

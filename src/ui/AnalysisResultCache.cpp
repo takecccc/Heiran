@@ -5,6 +5,7 @@ namespace heiran::ui {
 AnalysisSourceKey makeAnalysisSourceKey(const AnalysisImage &analysisImage) {
   const auto &decodedImage = analysisImage.sampler.decodedImage;
   const auto &orientation = analysisImage.sampler.orientation;
+  const bool linear = analysisImage.sampler.valueSpace == AnalysisValueSpace::Linear;
   const auto *storage = decodedImage.analysisBuffer.storage.data();
 
   return {
@@ -14,7 +15,10 @@ AnalysisSourceKey makeAnalysisSourceKey(const AnalysisImage &analysisImage) {
       .rotationQuarterTurns = orientation.rotationQuarterTurns,
       .flipX = orientation.flipX,
       .flipY = orientation.flipY,
-      .selectionRect = analysisImage.selectionRect.value_or(QRect()),
+      .valueSpace = analysisImage.sampler.valueSpace,
+      .sourceTransfer = linear ? analysisImage.sampler.sourceTransfer : ShaderTransfer::Linear,
+      .sourceGamma = linear ? analysisImage.sampler.sourceGamma : 1.0F,
+      .selectionRect = analysisImage.selectionRect,
   };
 }
 

@@ -20,6 +20,20 @@ constexpr QColor kLabelTextColor(245, 247, 250);
 
 // 選択範囲は画像座標のまま描く。線の太さは倍率で割り戻して、拡大しても
 // 太くならないようにする。
+void drawHistogramHighlight(QPainter *painter, const CellOverlayInput &input) {
+  if (!input.histogramHighlight || input.histogramHighlight->isNull()) {
+    return;
+  }
+  const auto &mask = *input.histogramHighlight;
+  const QRectF destination((mask.offset().x() - input.offsetX) * input.scale,
+                           (mask.offset().y() - input.offsetY) * input.scale,
+                           mask.width() * input.scale, mask.height() * input.scale);
+  painter->save();
+  painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
+  painter->drawImage(destination, mask, mask.rect());
+  painter->restore();
+}
+
 void drawSelections(QPainter *painter, const CellOverlayInput &input) {
   if (!input.selectionRect && !input.previewSelectionRect) {
     return;
@@ -166,6 +180,7 @@ void paintCellOverlays(QPainter *painter, const CellOverlayInput &input) {
     return;
   }
 
+  drawHistogramHighlight(painter, input);
   drawSelections(painter, input);
   drawSharedCursor(painter, input);
   drawLabel(painter, input);

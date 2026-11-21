@@ -3559,4 +3559,32 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>コマンドラインで渡された .hrn ファイルを読み込めませんでした。</translation>
     </message>
 </context>
+<context>
+    <name>heiran::ui::HistogramWindow</name>
+    <message>
+        <location filename="../../src/ui/HistogramWindow.cpp" line="662"/>
+        <source>Any RGB channel</source>
+        <translation>RGBのいずれか</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/HistogramWindow.cpp" line="667"/>
+        <source>Highlight channel</source>
+        <translation>強調する成分</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/HistogramWindow.cpp" line="671"/>
+        <source>Clear highlight</source>
+        <translation>強調を解除</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/HistogramWindow.cpp" line="739"/>
+        <source>Drag horizontally on a graph to highlight pixels.</source>
+        <translation>グラフ上を横にドラッグして画素を強調します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/HistogramWindow.cpp" line="743"/>
+        <source>Highlighted range: %1 – %2</source>
+        <translation>強調範囲 %1 ～ %2</translation>
+    </message>
+</context>
 </TS>

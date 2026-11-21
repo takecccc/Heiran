@@ -658,6 +658,7 @@ protected:
                          .offsetX = finalState.offsetX,
                          .offsetY = finalState.offsetY,
                          .canvasSize = size(),
+                         .histogramHighlight = &owner_->histogramHighlight_,
                          .selectionRect = owner_->selectionRect_,
                          .previewSelectionRect = owner_->previewSelectionRect_,
                          .sharedCursorPosition = owner_->sharedCursorPosition_,
@@ -1432,6 +1433,13 @@ void ImageViewWidget::setViewState(const heiran::domain::GlobalViewState &global
     canvasWidget_->requestCoalescedUpdate();
   }
   updateWipeHandle();
+}
+
+void ImageViewWidget::setHistogramHighlight(const QImage &mask) {
+  if (histogramHighlight_.cacheKey() != mask.cacheKey()) {
+    histogramHighlight_ = mask;
+    canvasWidget_->requestCoalescedUpdate();
+  }
 }
 
 void ImageViewWidget::setSelectionRect(const std::optional<QRectF> &selectionRect,

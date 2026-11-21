@@ -1,6 +1,7 @@
 #include "MultiFrameFixtures.hpp"
 #include "heiran/ui/AppSettings.hpp"
 #include "heiran/ui/CellStatus.hpp"
+#include "heiran/ui/HistogramWindow.hpp"
 #include "heiran/ui/ImageListPanelWidget.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
@@ -26,6 +27,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QPointer>
+#include <QPushButton>
 #include <QScopeGuard>
 #include <QSignalSpy>
 #include <QSlider>
@@ -1008,6 +1010,70 @@ private Q_SLOTS:
     // 画面の全体へ広がっている。
     auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
     QCOMPARE(welcome->size(), grid->size());
+  }
+
+  void highlightsValueRangesFromTheHistogramUntilCleared() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    QImage first(3, 1, QImage::Format_RGBA8888);
+    first.fill(Qt::black);
+    first.setPixelColor(0, 0, Qt::red);
+    first.setPixelColor(1, 0, Qt::green);
+    const auto firstPath = directory.filePath("0000.png");
+    QVERIFY(first.save(firstPath));
+    QImage second(3, 1, QImage::Format_RGBA8888);
+    second.fill(Qt::black);
+    second.setPixelColor(2, 0, Qt::red);
+    QVERIFY(second.save(directory.filePath("0001.png")));
+
+    QVector<QImage> masks;
+    heiran::ui::MainWindow window;
+    window.openImageFiles({firstPath});
+    auto *grid = window.findChild<heiran::ui::ViewerGridWidget *>();
+    QTRY_COMPARE(grid->currentFilePathForCell(0), firstPath);
+    QTRY_VERIFY(grid->findChild<heiran::ui::ImageViewWidget *>()->hasImage());
+    const auto actions = findMenu(window.menuBar(), "&Analysis")->actions();
+    QCOMPARE(actions.first()->text(), QString("Histogram"));
+    actions.first()->trigger();
+    auto *histogram = window.findChild<heiran::ui::HistogramWindow *>();
+    QVERIFY(histogram);
+    auto *chart = histogram->findChild<QWidget *>("histogramChart");
+    auto *channels = histogram->findChild<QComboBox *>("histogramHighlightChannel");
+    auto *clear = histogram->findChild<QPushButton *>("clearHistogramHighlight");
+    QVERIFY(chart && channels && clear);
+    const auto preview = chart->grab();
+    QVERIFY(!preview.isNull());
+    connect(histogram, &heiran::ui::HistogramWindow::highlightMasksChanged, this,
+            [&](const QVector<QImage> &newMasks) { masks = newMasks; });
+
+    const QPoint start(chart->width() - 17, 70);
+    const QPoint end(chart->width() / 2, 70);
+    const auto drag = [&]() {
+      QTest::mousePress(chart, Qt::LeftButton, Qt::NoModifier, start);
+      QTest::mouseRelease(chart, Qt::LeftButton, Qt::NoModifier, end);
+    };
+    drag();
+    QTRY_COMPARE(masks.size(), 1);
+    QCOMPARE(masks.first().pixelIndex(0, 0), 1);
+    QCOMPARE(masks.first().pixelIndex(1, 0), 1);
+    QCOMPARE(masks.first().pixelIndex(2, 0), 0);
+
+    channels->setCurrentIndex(1);
+    QTRY_COMPARE(masks.size(), 1);
+    QCOMPARE(masks.first().pixelIndex(0, 0), 1);
+    QCOMPARE(masks.first().pixelIndex(1, 0), 0);
+    grid->setCurrentPage(1);
+    QTRY_VERIFY(masks.size() == 1 && !masks.first().isNull());
+    QCOMPARE(masks.first().pixelIndex(0, 0), 0);
+    QCOMPARE(masks.first().pixelIndex(2, 0), 1);
+
+    clear->click();
+    QVERIFY(masks.isEmpty());
+    QVERIFY(!clear->isEnabled());
+    drag();
+    QTRY_COMPARE(masks.size(), 1);
+    histogram->close();
+    QVERIFY(masks.isEmpty());
   }
 
   void keepsTheCurrentImageReadyWhenChangingLayout() {

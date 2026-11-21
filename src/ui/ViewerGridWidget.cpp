@@ -1783,6 +1783,12 @@ bool ViewerGridWidget::hasCells() const {
   return !cells_.isEmpty();
 }
 
+void ViewerGridWidget::setHistogramHighlightMasks(const QVector<QImage> &masks) {
+  for (int index = 0; index < cells_.size(); ++index) {
+    cells_.at(index)->setHistogramHighlight(masks.value(index));
+  }
+}
+
 std::optional<ChannelMode> ViewerGridWidget::uniformChannelMode() const {
   if (channelModes_.isEmpty()) {
     return std::nullopt;

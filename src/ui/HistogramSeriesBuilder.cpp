@@ -11,16 +11,10 @@
 
 namespace heiran::ui {
 
-namespace {
-
-// 解析対象の範囲を返す。選択範囲があればそこ、無ければ画像全体。
-QRect analysisRect(const AnalysisImage &analysisImage) {
-  const bool selectionApplied =
-      analysisImage.selectionRect && !analysisImage.selectionRect->isEmpty();
-  return selectionApplied ? *analysisImage.selectionRect : analysisImage.image.rect();
+QRect histogramAnalysisRect(const AnalysisImage &analysisImage) {
+  const QRect imageRect = analysisImage.image.rect();
+  return analysisImage.selectionRect.value_or(imageRect).intersected(imageRect);
 }
-
-}  // namespace
 
 // 浮動小数画像は 1.0 を超える値を持ちうるため、実データの最大値を調べる。
 // 整数画像は定義上 1.0 が上限なので走査しない。
@@ -35,7 +29,7 @@ double histogramSampleMaximum(const AnalysisImage &analysisImage) {
 
   // 画素ごとに取り出すと、型と色モデルの判定を毎回通る。チャネルごとにまとめて
   // 作ってから畳む。3 つ同時に持つと 4K で 100 MiB を超えるため 1 つずつ扱う。
-  const QRect sourceRect = analysisRect(analysisImage);
+  const QRect sourceRect = histogramAnalysisRect(analysisImage);
   double maximum = 1.0;
   QMutex mutex;
   for (int channel = 0; channel < 3; ++channel) {
@@ -63,9 +57,9 @@ HistogramSeries buildHistogramSeries(const AnalysisImage &analysisImage, double 
   series.greenBins = QVector<int>(256, 0);
   series.blueBins = QVector<int>(256, 0);
   series.grayscale = analysisImage.sampler.isGrayscale(analysisImage.image);
-  series.selectionApplied = analysisImage.selectionRect && !analysisImage.selectionRect->isEmpty();
+  series.selectionApplied = analysisImage.selectionRect.has_value();
 
-  const QRect sourceRect = analysisRect(analysisImage);
+  const QRect sourceRect = histogramAnalysisRect(analysisImage);
 
   // 集計は表示用画像ではなく解析用バッファから行う。
   // 横軸は全セル共通の 0.0 - axisMaximum とし、浮動小数画像の 1.0 超も収める。

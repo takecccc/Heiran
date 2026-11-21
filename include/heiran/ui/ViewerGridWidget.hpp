@@ -189,6 +189,7 @@ public:
   int navigationPageIndex() const;
   int navigationPageAt(int index) const;
   QVector<AnalysisImage> currentAnalysisImages() const;
+  void setHistogramHighlightMasks(const QVector<QImage> &masks);
   bool hasCells() const;
   std::optional<ChannelMode> uniformChannelMode() const;
   int activeCellIndex() const;

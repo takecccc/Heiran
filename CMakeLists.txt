@@ -209,6 +209,7 @@ add_library(heiran_core
   src/ui/HistogramAxis.cpp
   src/ui/HistogramSeriesBuilder.cpp
   src/ui/HistogramSeriesCache.cpp
+  src/ui/HistogramHighlightController.cpp
   src/ui/HistogramWindow.cpp
   src/ui/ImageSetManagerDialog.cpp
   src/ui/ImageViewWidget.cpp
@@ -329,6 +330,7 @@ target_sources(heiran_core
     include/heiran/ui/ChangeGraphWindow.hpp
     include/heiran/ui/HistogramSeriesBuilder.hpp
     include/heiran/ui/HistogramSeriesCache.hpp
+    include/heiran/ui/HistogramHighlightController.hpp
     include/heiran/ui/HistogramWindow.hpp
     include/heiran/ui/ImageSetManagerDialog.hpp
     include/heiran/ui/ImageViewWidget.hpp

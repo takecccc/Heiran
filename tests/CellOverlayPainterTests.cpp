@@ -55,6 +55,19 @@ private Q_SLOTS:
     QCOMPARE(paintedPixelCount(rendered), 0);
   }
 
+  void projectsTheHistogramMaskWithoutPaintingUnmatchedPixels() {
+    QImage mask(2, 1, QImage::Format_MonoLSB);
+    mask.setColorTable({qRgba(0, 0, 0, 0), qRgba(32, 200, 240, 128)});
+    mask.fill(0);
+    mask.setPixel(0, 0, 1);
+    mask.setOffset(QPoint(5, 3));
+    const auto output =
+        renderOverlays({.scale = 3.0, .offsetX = 2.0, .offsetY = 1.0, .histogramHighlight = &mask});
+    QCOMPARE(paintedPixelCount(output), 9);
+    QCOMPARE(output.pixelColor(9, 6), QColor(16, 100, 120));
+    QCOMPARE(output.pixelColor(12, 6), QColor(Qt::black));
+  }
+
   // 倍率が 0 以下なら描かないこと。座標の写しが成り立たない。
   void drawsNothingForANonPositiveScale() {
     heiran::ui::CellOverlayInput input;

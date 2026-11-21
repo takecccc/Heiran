@@ -1,6 +1,8 @@
 #include "heiran/ui/HistogramSeriesBuilder.hpp"
+#include "heiran/ui/HistogramHighlightController.hpp"
 
 #include <QImage>
+#include <QTransform>
 #include <QtTest>
 
 namespace {
@@ -94,6 +96,41 @@ private Q_SLOTS:
              qPrintable(QString::number(series.redStatistics.maximum)));
     QCOMPARE(series.redStatistics.standardDeviation, 0.0);
     QCOMPARE(series.redStatistics.peakRatio, 1.0);
+  }
+
+  void highlightsTheRotatedSelectionInTheChosenValueSpace() {
+    using namespace heiran::ui;
+    QImage image(2, 1, QImage::Format_RGBA8888);
+    image.fill(QColor(128, 0, 0));
+    image.setPixelColor(1, 0, QColor(0, 255, 0));
+    auto selected = makeAnalysisImage(image, QRect(0, 1, 1, 1));
+    selected.image = image.transformed(QTransform().rotate(90));
+    selected.sampler.orientation.rotationQuarterTurns = 1;
+    auto outside = selected;
+    outside.selectionRect = QRect();
+
+    QVector<QImage> masks;
+    HistogramHighlightController controller;
+    connect(&controller, &HistogramHighlightController::masksChanged, this,
+            [&](const QVector<QImage> &newMasks) { masks = newMasks; });
+    const auto channel = HistogramHighlightChannel::Green;
+    controller.request({selected, outside}, {1.0, 1.0}, channel, Qt::cyan);
+    QTRY_COMPARE(masks.size(), 2);
+    QCOMPARE(masks.first().offset(), QPoint(0, 1));
+    QCOMPARE(masks.first().size(), QSize(1, 1));
+    QCOMPARE(masks.first().pixelIndex(0, 0), 1);
+    QVERIFY(masks.last().isNull());
+    QCOMPARE(buildHistogramSeries(outside, 1.0).pixelCount, 0);
+
+    auto linear = makeAnalysisImage(image, QRect(0, 0, 1, 1));
+    linear.sampler.valueSpace = AnalysisValueSpace::Linear;
+    controller.request({linear}, {0.20, 0.25}, HistogramHighlightChannel::Red, Qt::cyan);
+    QTRY_COMPARE(masks.size(), 1);
+    QCOMPARE(masks.first().pixelIndex(0, 0), 1);
+    linear.sampler.valueSpace = AnalysisValueSpace::Source;
+    controller.request({linear}, {0.20, 0.25}, HistogramHighlightChannel::Red, Qt::cyan);
+    QTRY_COMPARE(masks.size(), 1);
+    QCOMPARE(masks.first().pixelIndex(0, 0), 0);
   }
 
   // 横軸の上限を広げると、同じ画素がより小さいビンへ入ること。

@@ -71,6 +71,7 @@ public:
   void setColorLutOptions(const ColorLutOptions &options);
   void setViewState(const heiran::domain::GlobalViewState &globalState,
                     const heiran::domain::CellViewState &cellState);
+  void setHistogramHighlight(const QImage &mask);
   void setSelectionRect(const std::optional<QRectF> &selectionRect,
                         const std::optional<QRectF> &previewSelectionRect);
   void setSharedCursorPosition(const std::optional<QPointF> &imagePosition);
@@ -213,6 +214,7 @@ private:
   heiran::domain::GlobalViewState globalState_;
   heiran::domain::CellViewState cellState_;
   ChannelMode channelMode_ = ChannelMode::Color;
+  QImage histogramHighlight_;
   std::optional<QRectF> selectionRect_;
   std::optional<QRectF> previewSelectionRect_;
   std::optional<QPointF> sharedCursorPosition_;

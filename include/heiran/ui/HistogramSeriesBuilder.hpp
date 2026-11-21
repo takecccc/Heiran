@@ -7,6 +7,8 @@
 
 namespace heiran::ui {
 
+QRect histogramAnalysisRect(const AnalysisImage &analysisImage);
+
 // 1 チャネル分の統計値。ビンからではなく画素の値から求める。
 // ビンは 256 段に丸めた後の分布のため、平均や標準偏差をそこから出すと誤差が乗る。
 struct HistogramChannelStatistics {

@@ -1,23 +1,29 @@
 #include "heiran/ui/HistogramWindow.hpp"
 
+#include "heiran/ui/AppStyle.hpp"
 #include "heiran/ui/ColorTheme.hpp"
 #include "heiran/ui/HistogramAxis.hpp"
 #include "heiran/ui/HistogramSeriesCache.hpp"
 
+#include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QDoubleSpinBox>
 #include <QHBoxLayout>
+#include <QHideEvent>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
+#include <QShortcut>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <utility>
 
 namespace heiran::ui {
 
@@ -48,8 +54,11 @@ QString formatStatistics(const QString &channelName, const HistogramChannelStati
 
 // 実際に描く部分。窓の側は操作の受け口と配置だけを持つ。
 class HistogramChartWidget final : public QWidget {
+  Q_OBJECT
+
 public:
   explicit HistogramChartWidget(QWidget *parent = nullptr) : QWidget(parent) {
+    setObjectName("histogramChart");
     setMinimumHeight(240);
     // ボタンを押していなくても、カーソルの動きを受けて、下の値を出す。
     setMouseTracking(true);
@@ -71,6 +80,16 @@ public:
   }
 
   HistogramRange range() const { return range_; }
+
+  void setHighlight(std::optional<HistogramValueRange> range) {
+    highlight_ = range;
+    update();
+  }
+
+  void cancelHighlightDrag() {
+    drag_.reset();
+    update();
+  }
 
   // 縦軸の上限 (割合、0-1)。0 なら、セルごとに自動 (そのセルの最大)。正なら全セルで同じ上限に
   // 固定する。セル同士を同じ縦の尺度で見比べたいときに使う。
@@ -115,9 +134,16 @@ public:
     update();
   }
 
+Q_SIGNALS:
+  void highlightRangeSelected(double low, double high);
+
 protected:
   // ホイールで、カーソルの下を中心に横軸を拡大縮小する。
   void wheelEvent(QWheelEvent *event) override {
+    if (drag_) {
+      event->accept();
+      return;
+    }
     // Ctrl を押していれば、縦軸の拡大縮小。
     if ((event->modifiers() & Qt::ControlModifier) != 0) {
       constexpr double kVerticalStep = 1.25;
@@ -145,6 +171,7 @@ protected:
   }
 
   void mouseDoubleClickEvent(QMouseEvent *event) override {
+    cancelHighlightDrag();
     // ダブルクリックで全体へ戻す。
     range_ = HistogramRange{};
     update();
@@ -154,10 +181,41 @@ protected:
     event->accept();
   }
 
+  void mousePressEvent(QMouseEvent *event) override {
+    const auto position = event->position().toPoint();
+    if (event->button() == Qt::LeftButton) {
+      for (const auto &graph : std::as_const(graphRects_)) {
+        if (graph.width() > 1 && graph.contains(position)) {
+          drag_ = Drag{graph, position.x(), position.x()};
+          event->accept();
+          return;
+        }
+      }
+    }
+    QWidget::mousePressEvent(event);
+  }
+
   void mouseMoveEvent(QMouseEvent *event) override {
     hoverPosition_ = event->position().toPoint();
+    if (drag_) {
+      drag_->currentX = hoverPosition_.x();
+    }
     hovering_ = true;
     update();
+  }
+
+  void mouseReleaseEvent(QMouseEvent *event) override {
+    if (event->button() != Qt::LeftButton || !drag_) {
+      QWidget::mouseReleaseEvent(event);
+      return;
+    }
+    drag_->currentX = event->position().toPoint().x();
+    const auto range = dragRange();
+    cancelHighlightDrag();
+    if (range) {
+      Q_EMIT highlightRangeSelected(range->low, range->high);
+    }
+    event->accept();
   }
 
   void leaveEvent(QEvent *) override {
@@ -208,10 +266,51 @@ protected:
       painter.restore();
     }
 
-    paintHover(&painter);
+    if (!drag_) {
+      paintHover(&painter);
+    }
   }
 
 private:
+  struct Drag {
+    QRect graph;
+    int startX;
+    int currentX;
+  };
+
+  std::optional<HistogramValueRange> dragRange() const {
+    const auto &drag = *drag_;
+    const int end = std::clamp(drag.currentX, drag.graph.left(), drag.graph.right());
+    if (std::abs(end - drag.startX) < QApplication::startDragDistance()) {
+      return std::nullopt;
+    }
+    const auto valueAt = [&](int x) {
+      return histogramFractionForX(x, drag.graph.left(), drag.graph.width() - 1, range_) *
+             axisMaximum_;
+    };
+    return HistogramValueRange{valueAt(std::min(drag.startX, end)),
+                               valueAt(std::max(drag.startX, end))};
+  }
+
+  void paintHighlight(QPainter *painter, const QRect &graphRect) const {
+    const auto preview = drag_ ? dragRange() : std::nullopt;
+    const auto &highlight = preview ? preview : highlight_;
+    if (!highlight) {
+      return;
+    }
+    const double low = std::max(highlight->low / axisMaximum_, range_.low);
+    const double high = std::min(highlight->high / axisMaximum_, range_.high);
+    if (low >= high) {
+      return;
+    }
+    const double left = histogramXForFraction(low, graphRect.left(), graphRect.width() - 1, range_);
+    const double right =
+        histogramXForFraction(high, graphRect.left(), graphRect.width() - 1, range_);
+    QColor color = AppStyleTokens::current().accent;
+    color.setAlpha(70);
+    painter->fillRect(QRectF(left, graphRect.top(), right - left, graphRect.height()), color);
+  }
+
   // 割合を縦位置へ写す。0.0 が下端、fullScaleRatio_ 以上が上端になる。
   double plotRatio(double ratio, double fullScaleRatio) const {
     if (fullScaleRatio <= 0.0) {
@@ -336,6 +435,7 @@ private:
     const double fullScaleRatio = histogramFullScaleRatio(autoRatio, fixedMaxRatio_);
 
     drawGrid(painter, graphRect, fullScaleRatio);
+    paintHighlight(painter, graphRect);
 
     if (series.grayscale) {
       drawHistogramPath(painter, graphRect, series.redBins, chartPalette_.grayscaleCurve,
@@ -473,6 +573,8 @@ private:
   double verticalScale_ = 1.0;
   double axisMaximum_ = 1.0;
   HistogramRange range_;
+  std::optional<HistogramValueRange> highlight_;
+  std::optional<Drag> drag_;
   double fixedMaxRatio_ = 0.0;
   QVector<HistogramSeries> series_;
   // 描いたグラフの枠 (系列と同じ順)。カーソルの位置から、どの系列のどのビンかを引くのに使う。
@@ -554,8 +656,39 @@ HistogramWindow::HistogramWindow(QWidget *parent)
   controlLayout->addStretch(1);
   rootLayout->addLayout(controlLayout);
 
+  auto *highlightLayout = new QHBoxLayout;
+  highlightChannel_ = new QComboBox(this);
+  highlightChannel_->setObjectName("histogramHighlightChannel");
+  highlightChannel_->addItem(tr("Any RGB channel"),
+                             static_cast<int>(HistogramHighlightChannel::Any));
+  highlightChannel_->addItem("R", static_cast<int>(HistogramHighlightChannel::Red));
+  highlightChannel_->addItem("G", static_cast<int>(HistogramHighlightChannel::Green));
+  highlightChannel_->addItem("B", static_cast<int>(HistogramHighlightChannel::Blue));
+  highlightChannel_->setAccessibleName(tr("Highlight channel"));
+  highlightLayout->addWidget(highlightChannel_);
+  highlightStatus_ = new QLabel(this);
+  highlightLayout->addWidget(highlightStatus_, 1);
+  clearHighlightButton_ = new QPushButton(tr("Clear highlight"), this);
+  clearHighlightButton_->setObjectName("clearHistogramHighlight");
+  highlightLayout->addWidget(clearHighlightButton_);
+  rootLayout->addLayout(highlightLayout);
+
   chart_ = new HistogramChartWidget(this);
   rootLayout->addWidget(chart_, 1);
+  connect(&highlightController_, &HistogramHighlightController::masksChanged, this,
+          &HistogramWindow::highlightMasksChanged);
+  connect(chart_, &HistogramChartWidget::highlightRangeSelected, this,
+          [this](double low, double high) {
+            highlightRange_ = HistogramValueRange{low, high};
+            chart_->setHighlight(highlightRange_);
+            refreshHighlight();
+          });
+  connect(highlightChannel_, &QComboBox::currentIndexChanged, this,
+          [this]() { refreshHighlight(); });
+  connect(clearHighlightButton_, &QPushButton::clicked, this, &HistogramWindow::clearHighlight);
+  auto *clearShortcut = new QShortcut(QKeySequence(Qt::Key_Escape), this);
+  connect(clearShortcut, &QShortcut::activated, this, &HistogramWindow::clearHighlight);
+  refreshHighlight();
 
   chart_->onRangeChanged = [this]() { syncRangeControls(); };
   connect(rangeLowSpinBox_, &QDoubleSpinBox::valueChanged, this, [this](double value) {
@@ -600,6 +733,39 @@ HistogramWindow::HistogramWindow(QWidget *parent)
           [this](bool checked) { chart_->setStatisticsVisible(checked); });
 }
 
+void HistogramWindow::refreshHighlight() {
+  clearHighlightButton_->setEnabled(highlightRange_.has_value());
+  if (!highlightRange_) {
+    highlightStatus_->setText(tr("Drag horizontally on a graph to highlight pixels."));
+    highlightController_.clear();
+    return;
+  }
+  highlightStatus_->setText(tr("Highlighted range: %1 – %2")
+                                .arg(highlightRange_->low, 0, 'g', 6)
+                                .arg(highlightRange_->high, 0, 'g', 6));
+  QColor color = AppStyleTokens::current().accent;
+  color.setAlpha(120);
+  highlightController_.request(
+      analysisImages(), *highlightRange_,
+      static_cast<HistogramHighlightChannel>(highlightChannel_->currentData().toInt()), color);
+}
+
+void HistogramWindow::clearHighlight() {
+  highlightRange_.reset();
+  chart_->cancelHighlightDrag();
+  chart_->setHighlight(std::nullopt);
+  refreshHighlight();
+}
+
+void HistogramWindow::invalidateHighlight() {
+  highlightController_.clear();
+}
+
+void HistogramWindow::hideEvent(QHideEvent *event) {
+  clearHighlight();
+  AnalysisWindowBase::hideEvent(event);
+}
+
 // 範囲の入力欄を、グラフの範囲と軸の上限へ合わせる。入力欄の変更を、グラフへ送り返さない。
 void HistogramWindow::syncRangeControls() {
   const HistogramRange range = chart_->range();
@@ -636,7 +802,7 @@ void HistogramWindow::analysisImagesChanged() {
     if (!analysisImage.image.isNull()) {
       series.push_back(cache_.series(analysisImage, axisMaximum));
     }
-    if (analysisImage.selectionRect && !analysisImage.selectionRect->isEmpty()) {
+    if (analysisImage.selectionRect) {
       selectionActive = true;
     }
   }
@@ -644,6 +810,9 @@ void HistogramWindow::analysisImagesChanged() {
   chart_->setData(pageNumber(), series, axisMaximum, selectionActive);
   axisMaximum_ = axisMaximum;
   syncRangeControls();
+  refreshHighlight();
 }
 
 }  // namespace heiran::ui
+
+#include "HistogramWindow.moc"

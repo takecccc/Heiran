@@ -755,6 +755,10 @@ void MainWindow::createAnalysisMenu() {
   connect(histogramAction, &QAction::triggered, this, [this]() {
     if (histogramWindow_ == nullptr) {
       histogramWindow_ = new HistogramWindow(this);
+      connect(histogramWindow_, &HistogramWindow::highlightMasksChanged, viewerGrid_,
+              &ViewerGridWidget::setHistogramHighlightMasks);
+      connect(viewerGrid_, &ViewerGridWidget::sessionAboutToChange, histogramWindow_,
+              &HistogramWindow::invalidateHighlight);
     }
     histogramWindow_->showAndRaise();
     refreshAnalysisWindows();
