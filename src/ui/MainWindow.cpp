@@ -72,6 +72,7 @@
 #include <QPrintDialog>
 #include <QPrinter>
 #include <QPushButton>
+#include <QScreen>
 #include <QSettings>
 #include <QSignalBlocker>
 #include <QSlider>
@@ -84,9 +85,25 @@
 #include <QVBoxLayout>
 #include <QWidget>
 #include <QWidgetAction>
+#include <QWindow>
 #include <algorithm>
 #include <cmath>
 #include <optional>
+
+#ifdef Q_OS_WIN
+#if __has_include(<qpa/qplatformwindow_p.h>)
+#include <qpa/qplatformwindow_p.h>
+#else
+#include <qpa/qplatformwindow.h>
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace heiran::ui {
 
@@ -111,6 +128,22 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
       hideFullScreenChrome();
     }
   });
+#ifdef Q_OS_WIN
+  fullScreenEdgeTimer_.setInterval(50);
+  connect(&fullScreenEdgeTimer_, &QTimer::timeout, this, [this]() {
+    const auto handle = reinterpret_cast<HWND>(effectiveWinId());
+    if (!isFullScreen() || GetForegroundWindow() != handle ||
+        QApplication::activeModalWidget() != nullptr) {
+      return;
+    }
+    POINT position{};
+    RECT frame{};
+    if (GetCursorPos(&position) && GetWindowRect(handle, &frame) && position.x >= frame.left &&
+        position.x < frame.right && position.y >= frame.top && position.y <= frame.top + 1) {
+      showFullScreenChrome();
+    }
+  });
+#endif
   // マウスの動きはセルの描画面が受ける。ウィンドウ単位では見えないため、アプリ全体で見る。
   qApp->installEventFilter(this);
 
@@ -1129,7 +1162,19 @@ void MainWindow::toggleFullScreen() {
   }
 
   enterFullScreenChrome();
+#ifdef Q_OS_WIN
+  if (auto *handle = windowHandle()) {
+    if (auto *nativeWindow = handle->nativeInterface<QNativeInterface::Private::QWindowsWindow>()) {
+      nativeWindow->setHasBorderInFullScreen(true);
+    }
+  }
+#endif
   showFullScreen();
+#ifdef Q_OS_WIN
+  if (QGuiApplication::platformName() == QStringLiteral("windows")) {
+    fullScreenEdgeTimer_.start();
+  }
+#endif
   // 抜け方が分からなくなるのを避ける。入った直後に 1 度だけ知らせる。
   messageOverlay_->showMessage(
       QCoreApplication::translate("MainWindow", "Full screen: press Esc or F11 to exit"), 2500);
@@ -1154,6 +1199,9 @@ void MainWindow::enterFullScreenChrome() {
 void MainWindow::leaveFullScreenChrome() {
   fullScreenChromeShown_ = false;
   fullScreenChromeTimer_.stop();
+#ifdef Q_OS_WIN
+  fullScreenEdgeTimer_.stop();
+#endif
   menuBar()->setVisible(true);
   statusBar()->setVisible(true);
   // 隠したものだけを戻す。利用者が閉じていたツールバーは閉じたままにする。
@@ -1171,6 +1219,9 @@ void MainWindow::showFullScreenChrome() {
     return;
   }
   fullScreenChromeShown_ = true;
+#ifdef Q_OS_WIN
+  fullScreenEdgeTimer_.stop();
+#endif
   menuBar()->setVisible(true);
   for (auto *toolBar : std::as_const(toolBarsHiddenByFullScreen_)) {
     toolBar->setVisible(true);
@@ -1187,6 +1238,11 @@ void MainWindow::hideFullScreenChrome() {
   for (auto *toolBar : std::as_const(toolBarsHiddenByFullScreen_)) {
     toolBar->setVisible(false);
   }
+#ifdef Q_OS_WIN
+  if (QGuiApplication::platformName() == QStringLiteral("windows")) {
+    fullScreenEdgeTimer_.start();
+  }
+#endif
 }
 
 void MainWindow::handleFullScreenPointer(const QPoint &globalPosition) {
@@ -1195,7 +1251,7 @@ void MainWindow::handleFullScreenPointer(const QPoint &globalPosition) {
   }
   if (!fullScreenChromeShown_) {
     // 上端 (画面の最上段の行) へ寄せたら、出す。
-    if (globalPosition.y() <= frameGeometry().top() + 1) {
+    if (globalPosition.y() <= screen()->geometry().top() + 1) {
       showFullScreenChrome();
     }
     return;
@@ -1210,7 +1266,8 @@ void MainWindow::handleFullScreenPointer(const QPoint &globalPosition) {
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
-  if (event->type() == QEvent::MouseMove) {
+  if (event->type() == QEvent::MouseMove || (event->type() == QEvent::NonClientAreaMouseMove &&
+                                             (watched == this || watched == windowHandle()))) {
     handleFullScreenPointer(static_cast<QMouseEvent *>(event)->globalPosition().toPoint());
   }
   return QMainWindow::eventFilter(watched, event);

@@ -273,6 +273,9 @@ private:
   int undoSuppressDepth_ = 0;
   int chromeHideDelayMs_ = 350;
   QTimer fullScreenChromeTimer_;
+#ifdef Q_OS_WIN
+  QTimer fullScreenEdgeTimer_;
+#endif
   void showFullScreenChrome();
   void hideFullScreenChrome();
   // 最後に知らせたページ。同じページのまま状態欄が更新されても、知らせ直さない。

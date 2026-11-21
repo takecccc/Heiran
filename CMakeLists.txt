@@ -447,7 +447,10 @@ if(WIN32)
   # 画面へ割り当てられている ICC プロファイルを GetICMProfile で引くために要る。
   # dbghelp は落ちたときのミニダンプ書き出しに使う。
   # dxgi は画面の更新を待つために使う。
-  target_link_libraries(heiran_core PRIVATE gdi32 dbghelp dxgi)
+  if(NOT TARGET Qt6::GuiPrivate)
+    find_package(Qt6 REQUIRED COMPONENTS GuiPrivate)
+  endif()
+  target_link_libraries(heiran_core PRIVATE Qt6::GuiPrivate gdi32 dbghelp dxgi)
 endif()
 
 if(HEIRAN_HAVE_LCMS2)

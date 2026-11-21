@@ -15,6 +15,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QContextMenuEvent>
+#include <QCursor>
 #include <QDir>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
@@ -29,6 +30,7 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QScopeGuard>
+#include <QScreen>
 #include <QSignalSpy>
 #include <QSlider>
 #include <QStatusBar>
@@ -42,6 +44,16 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+
+#ifdef Q_OS_WIN
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace {
 
@@ -1818,6 +1830,17 @@ private Q_SLOTS:
     QVERIFY(QTest::qWaitForWindowActive(&window));
     auto *toolBar = window.findChild<QToolBar *>();
     QVERIFY(toolBar != nullptr);
+    const bool nativeWindows = QGuiApplication::platformName() == QStringLiteral("windows");
+    const QPoint originalPointer = QCursor::pos();
+    const auto restorePointer = qScopeGuard([nativeWindows, originalPointer]() {
+      if (nativeWindows) {
+        QCursor::setPos(originalPointer);
+      }
+    });
+    const QPoint away = window.screen()->geometry().center();
+    if (nativeWindows) {
+      QCursor::setPos(away);
+    }
 
     QTest::keyClick(&window, Qt::Key_F11);
     QTRY_VERIFY(window.isFullScreen());
@@ -1831,8 +1854,15 @@ private Q_SLOTS:
     QVERIFY(!toolBar->isVisible());
 
     // 上端へ寄せると、出る。
-    window.handleFullScreenPointer(QPoint(100, top));
-    QVERIFY(window.isFullScreenChromeShown());
+    const QPoint edgePoint(away.x(), window.screen()->geometry().top());
+    if (nativeWindows) {
+      QCursor::setPos(edgePoint);
+    } else {
+      QMouseEvent edgeMove(QEvent::NonClientAreaMouseMove, window.mapFromGlobal(edgePoint),
+                           edgePoint, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent(&window, &edgeMove);
+    }
+    QTRY_VERIFY(window.isFullScreenChromeShown());
     QVERIFY(toolBar->isVisible());
     QVERIFY(window.menuBar()->isVisible());
 
@@ -1842,7 +1872,10 @@ private Q_SLOTS:
     QVERIFY(window.isFullScreenChromeShown());
 
     // 画像の面へ降りると、少し待って、引っ込む。
-    window.handleFullScreenPointer(QPoint(100, top + 600));
+    if (nativeWindows) {
+      QCursor::setPos(away);
+    }
+    window.handleFullScreenPointer(away);
     QTRY_VERIFY(!window.isFullScreenChromeShown());
     QVERIFY(!toolBar->isVisible());
     QVERIFY(!window.menuBar()->isVisible());
@@ -2323,6 +2356,13 @@ private Q_SLOTS:
 
     QTest::keyClick(&window, Qt::Key_F11);
     QTRY_VERIFY(window.isFullScreen());
+#ifdef Q_OS_WIN
+    if (QGuiApplication::platformName() == QStringLiteral("windows")) {
+      const auto style = GetWindowLongPtrW(reinterpret_cast<HWND>(window.winId()), GWL_STYLE);
+      QVERIFY(style & WS_BORDER);
+      QVERIFY(!(style & WS_DLGFRAME));
+    }
+#endif
     auto *canvas = window.findChild<QWidget *>("imageCanvas");
     QVERIFY(canvas);
     const auto pointerVisible = [canvas]() {
