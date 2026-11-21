@@ -10,6 +10,7 @@ set(CPACK_INNOSETUP_SETUP_WizardSmallImageFile "${heiran_installer_dir}/header.b
 set(CPACK_INNOSETUP_SETUP_DisableWelcomePage OFF)
 set(CPACK_INNOSETUP_SETUP_PrivilegesRequired lowest)
 set(CPACK_INNOSETUP_SETUP_PrivilegesRequiredOverridesAllowed dialog)
+set(CPACK_INNOSETUP_SETUP_UsePreviousPrivileges no)
 set(CPACK_INNOSETUP_SETUP_DefaultDirName "{code:HeiranDefaultDir}")
 set(CPACK_INNOSETUP_SETUP_UninstallDisplayIcon "{app}\\bin\\heiran.exe")
 set(CPACK_INNOSETUP_SETUP_ChangesAssociations ON)

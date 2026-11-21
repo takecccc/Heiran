@@ -6,6 +6,9 @@ if(NOT CPACK_GENERATOR STREQUAL "INNOSETUP;ZIP"
     OR NOT CPACK_INNOSETUP_LANGUAGES STREQUAL "english;japanese")
   message(FATAL_ERROR "Installer scope, packaging, or language configuration changed.")
 endif()
+if(NOT CPACK_INNOSETUP_SETUP_UsePreviousPrivileges STREQUAL "no")
+  message(FATAL_ERROR "The installer must offer a scope choice even when Heiran is already installed.")
+endif()
 
 function(check_compiler_discovery)
   set(CPACK_HEIRAN_INNOSETUP_DIR "${BUILD_DIR}/installer/compiler-lookup")

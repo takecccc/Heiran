@@ -223,7 +223,8 @@ CPack がアプリと DLL を集め、`resources/installer/` のスクリプト�
 外観を変える場合は標準ウィザードと `sidebar.bmp`、`header.bmp` を調整します。
 アプリアイコンを変更した場合は `./tools/generate_installer_artwork.ps1` で画像を再生成します。
 
-セットアップの言語は `/LANG=japanese` と `/LANG=english`、範囲は `/CURRENTUSER` と `/ALLUSERS` でも指定できます。
+セットアップの言語は `/LANG=japanese` と `/LANG=english` で指定できます。
+通常起動では新規インストール時も更新時も範囲の選択が表示されます。`/CURRENTUSER` または `/ALLUSERS` を指定すると範囲の選択を省略できます。
 配布前に、標準ユーザーのアカウントでユーザー単位のインストール、管理者への昇格を伴う全ユーザー向けインストール、
 両方のアンインストールを確認します。旧 NSIS 版のある環境では全ユーザー向けで上書きし、旧アンインストール登録が
 更新完了後に消えることを確認します。UAC とウィザードをキャンセルして旧版が起動することも確かめます。
