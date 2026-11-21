@@ -1,3 +1,4 @@
+#include "heiran/ui/ComparisonDiffController.hpp"
 #include "heiran/ui/ImageComparisonDialog.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
@@ -10,6 +11,7 @@
 #include <QDoubleSpinBox>
 #include <QGuiApplication>
 #include <QImage>
+#include <QKeySequence>
 #include <QMouseEvent>
 #include <QOpenGLWidget>
 #include <QPushButton>
@@ -1145,6 +1147,72 @@ private Q_SLOTS:
   }
 
   // ---- 差分のセル ----
+
+  void discardsReplacedAndInvalidatedComparisonRequests() {
+    using heiran::ui::ComparisonDiffController;
+    using heiran::ui::ComparisonDiffKey;
+    using heiran::ui::ComparisonDiffResult;
+    QVector<quint64> finished;
+    ComparisonDiffController controller;
+    connect(&controller, &ComparisonDiffController::completed, this,
+            [&](const ComparisonDiffKey &key, const ComparisonDiffResult &result) {
+              QVERIFY(result.output.ok);
+              finished.append(key.baseSerial);
+            });
+    QImage image(64, 64, QImage::Format_RGBA8888);
+    image.fill(Qt::black);
+    const heiran::ui::DiffInput input{
+        .image = image,
+        .sampler = {.decodedImage = {.displayImage = image}, .sourceSize = image.size()}};
+    ComparisonDiffKey key{.baseSerial = 1};
+    controller.request(key, input, input, {});
+    key.baseSerial = 2;
+    controller.request(key, input, input, {});
+    controller.invalidate();
+    key.baseSerial = 3;
+    controller.request(key, input, input, {});
+    QVERIFY(controller.isRequested(key));
+    QTRY_COMPARE(finished, QVector<quint64>{3});
+  }
+
+  void comparesRgbAndExposesSeparateNavigationShortcuts() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    const auto base = fixture.makeImageSet("base", QColor(100, 100, 100), 1);
+    const auto target = fixture.makeImageSet("target", QColor(100, 100, 100), 1);
+    QImage changed(target.resolvedPaths.first());
+    changed.setPixelColor(17, 12, QColor(200, 70, 100));
+    QVERIFY(changed.save(target.resolvedPaths.first()));
+    heiran::ui::ImageComparisonDialog dialog;
+    dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
+    auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *calculation = dialog.findChild<QComboBox *>("imageComparisonCalculation");
+    auto *jump = dialog.findChild<QPushButton *>("nextComparisonDifference");
+    auto *nextFile = dialog.findChild<QPushButton *>("nextChangedFile");
+    QVERIFY(grid && calculation && jump && nextFile);
+    const auto count = [grid]() {
+      const auto metrics = grid->cellDiffMetrics(2);
+      return metrics ? metrics->exceededPixelCount : -1;
+    };
+    QTRY_COMPARE(count(), 0);
+    calculation->setCurrentText("RGB difference (maximum channel)");
+    QVERIFY(!grid->cellDiffMetrics(2));
+    QVERIFY(!jump->isEnabled());
+    QTRY_COMPARE(count(), 1);
+    QCOMPARE(jump->shortcut(), QKeySequence(Qt::Key_F8));
+    QCOMPARE(nextFile->shortcut(), QKeySequence(Qt::CTRL | Qt::Key_F8));
+    jump->click();
+    QCOMPARE(grid->diffRegionPosition(2), (std::pair<qsizetype, qsizetype>{1, 1}));
+    if (QGuiApplication::platformName() != "offscreen") {
+      dialog.show();
+      QApplication::setActiveWindow(&dialog);
+      QVERIFY(QTest::qWaitForWindowActive(&dialog));
+      grid->setFocus();
+      QSignalSpy activated(jump, &QPushButton::clicked);
+      QTest::keyClick(grid, Qt::Key_F8);
+      QTRY_COMPARE(activated.size(), 1);
+    }
+  }
 
   void switchesBetweenPixelAndBackgroundComparison() {
     SessionFixture fixture;

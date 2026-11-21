@@ -31,6 +31,25 @@ class DiffRendererTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void rgbMaximumFindsAnAlmostEquiluminantColorChange() {
+    const QImage base = solid({40, 32}, 100);
+    QImage target = base;
+    target.setPixelColor(17, 18, QColor(200, 70, 100));
+    DiffSettings settings{.mode = DiffMode::Absolute, .view = DiffViewMode::Overlay};
+    const auto brightness =
+        computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(brightness);
+    QVERIFY(findDiffRegions(*brightness, 8.0).isEmpty());
+    settings.mode = DiffMode::RgbMax;
+    QVERIFY(!diffFieldServes(*brightness, settings));
+    const auto rgb = computeDiffField(makeInput(base), makeInput(target), settings, nullptr, true);
+    QVERIFY(rgb);
+    QVERIFY(std::abs(rgb->values.at(18 * 40 + 17) - 100.0F) < 0.01F);
+    QCOMPARE(renderDiffFromField(*rgb, makeInput(base), settings).metrics.exceededPixelCount, 1);
+    QCOMPARE(findDiffRegions(*rgb, 8.0), (QVector<QRect>{QRect(17, 18, 1, 1)}));
+    QVERIFY(findDiffRegions(*rgb, 101.0).isEmpty());
+  }
+
   void comparesOpacityByItsAppearanceOnTheSelectedBackground_data() {
     QTest::addColumn<int>("mode");
     QTest::addColumn<double>("threshold");

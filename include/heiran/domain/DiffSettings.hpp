@@ -12,6 +12,7 @@ enum class DiffMode {
   DeltaE,    // 色差 (CIEDE2000)。輝度ではなく、RGB 全体の色の違い。閾値は ΔE の単位
   Ssim,      // 構造的類似度 (SSIM)。輝度の局所の構造の違い。見せるのは 1 - SSIM。閾値は SSIM の値 (これを下回った画素を数える)
   Wipe,      // 差ではなく、2 枚を境目で切って、つなぎ合わせる (ワイプ)。境目は、`wipePosition`
+  RgbMax,    // RGB チャネルごとの絶対差の最大値 (0-255)。
 };
 
 enum class DiffViewMode {

@@ -2952,9 +2952,9 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <translation>差分</translation>
     </message>
     <message>
-        <location filename="../../src/ui/DiffBarWidget.cpp" line="130"/>
-        <source>How the difference is computed. delta-e is the CIEDE2000 colour difference of the whole RGB colour (it takes longer to compute); ssim is the structural similarity of the luma (1 means identical; the picture shows 1 - SSIM); wipe joins the two images at a line you can drag; the others use luma.</source>
-        <translation>差の計算の方法。delta-e は、RGB の色全体の CIEDE2000 の色差です (計算に時間がかかります)。ssim は、輝度の構造的類似度です (1 が同じ。絵は 1 - SSIM を示します)。wipe は、ドラッグできる線で 2 枚をつなぎ合わせます。ほかは、輝度を使います。</translation>
+        <location filename="../../src/ui/DiffBarWidget.cpp" line="132"/>
+        <source>How the difference is computed. delta-e is the CIEDE2000 colour difference of the whole RGB colour (it takes longer to compute); ssim is the structural similarity of the luma (1 means identical; the picture shows 1 - SSIM); wipe joins the two images at a line you can drag; rgb-max uses the largest of the three RGB channel differences; the others use luma.</source>
+        <translation>差分の求め方です。delta-e は RGB 全体の色差 (CIEDE2000) を求めます。ssim は輝度の構造的類似度 (1 が一致) を調べ、図は 1 - SSIM です。wipe はドラッグできる境目で 2 枚をつなぎます。rgb-max は RGB の絶対差の最大値を使います。そのほかは輝度を使います。</translation>
     </message>
     <message>
         <location filename="../../src/ui/DiffBarWidget.cpp" line="138"/>
@@ -3502,6 +3502,11 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <source>Diff: waiting for Cell %1 and Cell %2.</source>
         <translation>差分: セル %1 とセル %2 を待っています。</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2817"/>
+        <source>Calculating differences…</source>
+        <translation>差分を計算中…</translation>
+    </message>
 </context>
 <context>
     <name>heiran::ui::WelcomeWidget</name>
@@ -3968,6 +3973,11 @@ Right: %2</source>
 %1</source>
         <translation>原画像の確認
 %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="118"/>
+        <source>RGB difference (maximum channel)</source>
+        <translation>RGB差 (最大成分)</translation>
     </message>
 </context>
 </TS>

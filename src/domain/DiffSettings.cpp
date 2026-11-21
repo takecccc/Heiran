@@ -14,6 +14,8 @@ QString toDiffModeString(DiffMode mode) {
       return "ssim";
     case DiffMode::Wipe:
       return "wipe";
+    case DiffMode::RgbMax:
+      return "rgb-max";
     case DiffMode::Absolute:
       break;
   }
@@ -35,6 +37,9 @@ DiffMode diffModeFromString(const QString &text) {
   }
   if (text == "wipe") {
     return DiffMode::Wipe;
+  }
+  if (text == "rgb-max") {
+    return DiffMode::RgbMax;
   }
   return DiffMode::Absolute;
 }

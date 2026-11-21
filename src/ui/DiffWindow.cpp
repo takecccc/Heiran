@@ -46,7 +46,7 @@ DiffWindow::DiffWindow(QWidget *parent)
   thresholdSpinBox_ = new QDoubleSpinBox(this);
   autoRangeCheckBox_ = new QCheckBox(QCoreApplication::translate("DiffWindow", "Auto Range"), this);
 
-  modeCombo_->addItems({"absolute", "signed", "binary", "delta-e", "ssim"});
+  modeCombo_->addItems({"absolute", "signed", "binary", "delta-e", "ssim", "rgb-max"});
   viewCombo_->addItems({"grayscale", "signed-color", "overlay"});
   gainSpinBox_->setRange(0.1, 32.0);
   gainSpinBox_->setValue(1.0);
@@ -316,6 +316,8 @@ heiran::domain::DiffMode DiffWindow::diffModeFromIndex(int index) {
       return heiran::domain::DiffMode::DeltaE;
     case 4:
       return heiran::domain::DiffMode::Ssim;
+    case 5:
+      return heiran::domain::DiffMode::RgbMax;
     default:
       return heiran::domain::DiffMode::Absolute;
   }

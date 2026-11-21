@@ -10,6 +10,7 @@
 #include <QString>
 #include <QVector>
 #include <array>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -44,6 +45,7 @@ enum class DiffFieldKind {
   Luma,    // 輝度の差 (比べる側 - 基準)。absolute、signed、binary が共有する
   DeltaE,  // 色差 (CIEDE2000)
   Ssim,    // 1 - SSIM
+  RgbMax,
 };
 
 struct DiffInspection {
@@ -84,7 +86,8 @@ bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings 
 // 入力から、場を作る。作れなければ null (理由は `error`)。ワイプは、場を持たないため、呼ばない。
 DiffFieldPtr computeDiffField(const DiffInput &base, const DiffInput &target,
                               const heiran::domain::DiffSettings &settings, QString *error,
-                              bool inspectCoverageAndAlpha = false);
+                              bool inspectCoverageAndAlpha = false,
+                              const std::function<bool()> &isCanceled = {});
 
 // 場から、絵と指標を作る (色の付け方、倍率、閾値は、`settings` に従う)。`base`
 // は、重ね合わせの下地。

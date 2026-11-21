@@ -35,6 +35,9 @@ namespace heiran {
 namespace ui {
 
 class ImageViewWidget;
+class ComparisonDiffController;
+struct ComparisonDiffKey;
+struct ComparisonDiffResult;
 
 struct AnalysisImage {
   QString label;
@@ -92,7 +95,7 @@ public:
   std::optional<heiran::domain::DiffMetrics> cellDiffMetrics(int cellIndex) const;
   // 差分を作れなかった理由 (大きさが違う、など)。作れていれば空。
   QString cellDiffMessage(int cellIndex) const;
-  void setComparisonPresentation() { comparisonPresentation_ = true; }
+  void setComparisonPresentation();
   const heiran::infra::DecodedImage *comparisonSource(int cellIndex) const;
   std::pair<qsizetype, qsizetype> diffRegionPosition(int cellIndex) const;
   bool diffHasAlphaChanges(int cellIndex) const;
@@ -273,6 +276,8 @@ private:
   void scheduleDiffRefresh();
   void refreshDiffCells();
   void refreshDiffCell(int cellIndex);
+  void failDiffCell(int cellIndex, const QString &message);
+  void applyDiffResult(const ComparisonDiffKey &key, const ComparisonDiffResult &result);
   void setDiffRegionOnSources(
       const QRect &region = {}, const QSize &comparisonSize = {},
       heiran::domain::DiffSizeMatch match = heiran::domain::DiffSizeMatch::Overlap);
@@ -404,6 +409,7 @@ private:
     qsizetype regionIndex = -1;
   };
   QVector<DiffState> diffStates_;
+  std::unique_ptr<ComparisonDiffController> comparisonDiff_;
   bool diffRefreshScheduled_ = false;
   bool comparisonPresentation_ = false;
   // セルが作り終えを待っている後から作るアニメーション。セルごとに 1 つ。

@@ -592,9 +592,10 @@ HrnLoadResult HrnConfigLoader::loadFromFile(const QString &filePath) const {
           collector.addWarning(diffLocation + ".target",
                                "A cell without an image needs a target. Ignoring the diff.");
         } else {
-          diff.settings.mode = heiran::domain::diffModeFromString(
-              readEnumeratedString(diffObject, "mode", {"absolute", "signed", "binary", "delta-e", "ssim", "wipe"}, "absolute",
-                                   diffLocation + ".mode", &collector));
+          diff.settings.mode = heiran::domain::diffModeFromString(readEnumeratedString(
+              diffObject, "mode",
+              {"absolute", "signed", "binary", "delta-e", "ssim", "wipe", "rgb-max"}, "absolute",
+              diffLocation + ".mode", &collector));
           diff.settings.view = heiran::domain::diffViewModeFromString(
               readEnumeratedString(diffObject, "view", {"grayscale", "signed-color", "overlay"},
                                    "grayscale", diffLocation + ".view", &collector));

@@ -127,14 +127,14 @@ DiffBarWidget::DiffBarWidget(QWidget *parent) : QWidget(parent) {
   controls->setSpacing(4);
   auto *caption = new QLabel(tr("Diff"), this);
   modeCombo_ = new QComboBox(this);
-  modeCombo_->addItems({"absolute", "signed", "binary", "delta-e", "ssim", "wipe"});
+  modeCombo_->addItems({"absolute", "signed", "binary", "delta-e", "ssim", "wipe", "rgb-max"});
   modeCombo_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
   modeCombo_->setToolTip(tr(
       "How the difference is computed. delta-e is the CIEDE2000 colour difference of the whole RGB "
       "colour (it takes longer to compute); ssim is the structural similarity of the luma (1 means "
       "identical; the picture shows 1 - SSIM); wipe joins the two images at a line you can drag; "
-      "the "
-      "others use luma."));
+      "rgb-max uses the largest of the three RGB channel differences; "
+      "the others use luma."));
   settingsButton_ = new QToolButton(this);
   settingsButton_->setText(QStringLiteral("⚙"));
   settingsButton_->setToolTip(tr("Diff settings"));

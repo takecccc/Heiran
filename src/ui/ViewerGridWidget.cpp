@@ -6,6 +6,7 @@
 #include "heiran/domain/SessionPages.hpp"
 #include "heiran/ui/CellStatus.hpp"
 #include "heiran/ui/ColorManagement.hpp"
+#include "heiran/ui/ComparisonDiffController.hpp"
 #include "heiran/ui/DiffRenderer.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 
@@ -1200,6 +1201,9 @@ void ViewerGridWidget::rebuildGrid(bool reuseCells) {
   const int cellCount = rows * cols;
   cellSources_.clear();
   cellSourceSerial_.clear();
+  if (comparisonDiff_) {
+    comparisonDiff_->invalidate();
+  }
   diffStates_.clear();
   if (!reuseCells) {
     qDeleteAll(cells_);
@@ -2423,7 +2427,14 @@ void ViewerGridWidget::setCellDiff(int cellIndex,
   for (int index = 0; index < cells_.size(); ++index) {
     updateDiffUi(index);
   }
-  scheduleDiffRefresh();
+  if (comparisonPresentation_ && diff) {
+    refreshDiffCell(cellIndex);
+  } else {
+    if (comparisonDiff_) {
+      comparisonDiff_->invalidate();
+    }
+    scheduleDiffRefresh();
+  }
   notifyPersistentStateChanged();
   Q_EMIT cellDiffChanged(cellIndex);
   Q_EMIT imageContentChanged();
@@ -2529,6 +2540,15 @@ bool ViewerGridWidget::addDifferenceCell(heiran::domain::DiffMode mode) {
   return baseCell >= 0 && showDifference(emptyCell, baseCell, mode);
 }
 
+void ViewerGridWidget::setComparisonPresentation() {
+  comparisonPresentation_ = true;
+  if (!comparisonDiff_) {
+    comparisonDiff_ = std::make_unique<ComparisonDiffController>();
+    connect(comparisonDiff_.get(), &ComparisonDiffController::completed, this,
+            &ViewerGridWidget::applyDiffResult);
+  }
+}
+
 const heiran::infra::DecodedImage *ViewerGridWidget::comparisonSource(int cellIndex) const {
   if (cellIndex < 0 || cellIndex >= cellSources_.size() ||
       cellSources_.at(cellIndex).displayImage.isNull()) {
@@ -2584,7 +2604,7 @@ void ViewerGridWidget::moveToDiffRegion(int cellIndex, int direction) {
   if (!state.field || !state.metrics || state.metrics->exceededPixelCount == 0) {
     return;
   }
-  if (state.regions.isEmpty()) {
+  if (state.regions.isEmpty() && !comparisonPresentation_) {
     state.regions = findDiffRegions(*state.field, state.settings.threshold);
   }
   const qsizetype count = state.regions.size();
@@ -2630,11 +2650,15 @@ void ViewerGridWidget::setDiffBlinking(int cellIndex, bool enabled) {
   }
   refreshDiffCell(cellIndex);
   const auto diff = cellDiff(cellIndex);
-  if (!diff || !cellDiffMetrics(cellIndex)) {
+  if (!diff || (!comparisonPresentation_ && !cellDiffMetrics(cellIndex))) {
     view->setDiffBlinkFrames();
     return;
   }
   const int target = diff->targetCell < 0 ? cellIndex : diff->targetCell;
+  if (!comparisonSource(diff->baseCell) || !comparisonSource(target)) {
+    view->setDiffBlinkFrames();
+    return;
+  }
   if (comparisonPresentation_ &&
       diff->settings.comparisonBasis != heiran::domain::DiffComparisonBasis::PixelValues) {
     const auto input = [this](int index) {
@@ -2732,22 +2756,8 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
   auto *view = cells_.at(cellIndex);
   auto &state = diffStates_[cellIndex];
 
-  const auto fail = [&](const QString &message) {
-    if (state.message == message && !state.metrics) {
-      return;
-    }
-    state = {};
-    state.message = message;
-    view->setDiffRegion();
-    setDiffRegionOnSources();
-    view->setDiffBlinkFrames();
-    view->setDecodedImage({}, QString(), CellStatusInfo::empty(message));
-    updateDiffUi(cellIndex);
-    Q_EMIT cellDiffChanged(cellIndex);
-  };
-
   if (baseCell < 0 || baseCell >= cells_.size() || targetCell >= cells_.size()) {
-    fail(tr("Diff: the cell does not exist."));
+    failDiffCell(cellIndex, tr("Diff: the cell does not exist."));
     return;
   }
   const auto &baseSource = cellSources_.at(baseCell);
@@ -2763,14 +2773,25 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
       updateDiffUi(cellIndex);
       return;
     }
-    fail(tr("Diff: waiting for Cell %1 and Cell %2.").arg(baseCell + 1).arg(targetCell + 1));
+    failDiffCell(
+        cellIndex,
+        tr("Diff: waiting for Cell %1 and Cell %2.").arg(baseCell + 1).arg(targetCell + 1));
     return;
   }
 
   // 入力も設定も変わっていなければ、作り直さない。
   const bool sameInputs = state.computed && state.baseSerial == cellSourceSerial_.at(baseCell) &&
                           state.targetSerial == cellSourceSerial_.at(targetCell);
-  if (sameInputs && state.settings == diff.settings) {
+  if (sameInputs && state.settings == diff.settings && state.metrics) {
+    return;
+  }
+  const ComparisonDiffKey key{.cell = cellIndex,
+                              .base = baseCell,
+                              .target = targetCell,
+                              .baseSerial = cellSourceSerial_.at(baseCell),
+                              .targetSerial = cellSourceSerial_.at(targetCell),
+                              .diff = diff};
+  if (comparisonDiff_ && comparisonDiff_->isRequested(key)) {
     return;
   }
   if (!sameInputs || state.settings.sizeMatch != diff.settings.sizeMatch) {
@@ -2786,34 +2807,75 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
 
   const DiffInput baseInput{.image = baseSource.displayImage,
                             .sampler = samplerForSource(baseSource)};
-  DiffOutput output;
-  if (sameInputs && state.field != nullptr && diffFieldServes(*state.field, diff.settings)) {
-    // 倍率、見せ方、閾値だけが変わった。重い計算 (差の場) は使い回し、絵と指標だけを求め直す。
-    output = renderDiffFromField(*state.field, baseInput, diff.settings);
-  } else {
-    const DiffInput targetInput{.image = targetSource.displayImage,
-                                .sampler = samplerForSource(targetSource)};
-    if (diff.settings.mode == heiran::domain::DiffMode::Wipe) {
-      state.field.reset();
-      output = renderDiff(baseInput, targetInput, diff.settings);
-    } else {
-      QString error;
+  const bool reuseField = sameInputs && state.field && diffFieldServes(*state.field, diff.settings);
+  const auto field = reuseField ? state.field : DiffFieldPtr{};
+  const auto targetInput = field ? DiffInput{}
+                                 : DiffInput{.image = targetSource.displayImage,
+                                             .sampler = samplerForSource(targetSource)};
+  if (comparisonDiff_) {
+    state.metrics.reset();
+    state.message = tr("Calculating differences…");
+    view->setDecodedImage({}, {}, CellStatusInfo::empty(state.message));
+    if (!field && diff.settings.mode != heiran::domain::DiffMode::Wipe) {
       ++diffFieldComputeCount_;
-      auto field =
-          computeDiffField(baseInput, targetInput, diff.settings, &error, comparisonPresentation_);
-      if (field == nullptr) {
-        fail(error);
-        return;
-      }
-      output = renderDiffFromField(*field, baseInput, diff.settings);
-      state.field = std::move(field);
     }
-  }
-  if (!output.ok) {
-    fail(output.error);
+    comparisonDiff_->request(key, baseInput, targetInput, field);
+    updateDiffUi(cellIndex);
+    Q_EMIT cellDiffChanged(cellIndex);
     return;
   }
 
+  ComparisonDiffResult result{.field = field};
+  if (diff.settings.mode == heiran::domain::DiffMode::Wipe) {
+    result.output = renderDiff(baseInput, targetInput, diff.settings);
+  } else {
+    if (!result.field) {
+      ++diffFieldComputeCount_;
+      result.field = computeDiffField(baseInput, targetInput, diff.settings, &result.output.error);
+    }
+    if (result.field) {
+      result.output = renderDiffFromField(*result.field, baseInput, diff.settings);
+    }
+  }
+  applyDiffResult(key, result);
+}
+
+void ViewerGridWidget::failDiffCell(int cellIndex, const QString &message) {
+  if (comparisonDiff_) {
+    comparisonDiff_->invalidate();
+  }
+  auto &state = diffStates_[cellIndex];
+  if (state.message == message && !state.metrics) {
+    return;
+  }
+  state = {};
+  state.message = message;
+  auto *view = cells_.at(cellIndex);
+  view->setDiffRegion();
+  setDiffRegionOnSources();
+  view->setDiffBlinkFrames();
+  view->setDecodedImage({}, {}, CellStatusInfo::empty(message));
+  updateDiffUi(cellIndex);
+  Q_EMIT cellDiffChanged(cellIndex);
+}
+
+void ViewerGridWidget::applyDiffResult(const ComparisonDiffKey &key,
+                                       const ComparisonDiffResult &result) {
+  const int cellIndex = key.cell;
+  if (cellIndex >= diffStates_.size() || key.base >= cellSourceSerial_.size() ||
+      key.target >= cellSourceSerial_.size() || cellDiff(cellIndex) != key.diff ||
+      cellSourceSerial_.at(key.base) != key.baseSerial ||
+      cellSourceSerial_.at(key.target) != key.targetSerial) {
+    return;
+  }
+  const auto &output = result.output;
+  if (!output.ok) {
+    failDiffCell(cellIndex, output.error);
+    return;
+  }
+
+  auto *view = cells_.at(cellIndex);
+  const auto &diff = key.diff;
   heiran::infra::DecodedImage image;
   image.displayImage = output.image.convertToFormat(QImage::Format_RGBA8888);
   image.decoderBackend = diff.settings.mode == heiran::domain::DiffMode::Wipe
@@ -2828,12 +2890,20 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
   view->setChannelMode(cellIndex < channelModes_.size() ? channelModes_.at(cellIndex)
                                                         : ChannelMode::Color);
 
+  auto &state = diffStates_[cellIndex];
   state.computed = true;
-  state.baseSerial = cellSourceSerial_.at(baseCell);
-  state.targetSerial = cellSourceSerial_.at(targetCell);
+  state.baseSerial = key.baseSerial;
+  state.targetSerial = key.targetSerial;
   state.settings = diff.settings;
   state.metrics = output.metrics;
+  state.field = result.field;
+  if (comparisonPresentation_) {
+    state.regions = result.regions;
+  }
   state.message.clear();
+  if (comparisonPresentation_) {
+    applyPendingFit();
+  }
   updateDiffUi(cellIndex);
   Q_EMIT cellDiffChanged(cellIndex);
   Q_EMIT imageContentChanged();

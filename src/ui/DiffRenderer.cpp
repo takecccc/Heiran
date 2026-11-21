@@ -215,6 +215,7 @@ heiran::domain::DiffMetrics metricsOf(const DiffField &field, double threshold) 
   const float *values = field.values.data();
   heiran::domain::DiffMetrics metrics;
   switch (field.kind) {
+    case DiffFieldKind::RgbMax:
     case DiffFieldKind::Luma: {
       const auto partial = reduceRows<heiran::domain::DiffMetricsPartial>(
           height, [&](int firstRow, int lastRow, heiran::domain::DiffMetricsPartial *part) {
@@ -589,6 +590,8 @@ QVector<QRect> findDiffRegions(const DiffField &field, double threshold) {
 
 DiffFieldKind diffFieldKindOf(DiffMode mode) {
   switch (mode) {
+    case DiffMode::RgbMax:
+      return DiffFieldKind::RgbMax;
     case DiffMode::DeltaE:
       return DiffFieldKind::DeltaE;
     case DiffMode::Ssim:
@@ -608,7 +611,9 @@ bool diffFieldServes(const DiffField &field, const heiran::domain::DiffSettings 
 
 DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &originalTarget,
                               const heiran::domain::DiffSettings &settings, QString *error,
-                              bool inspectCoverageAndAlpha) {
+                              bool inspectCoverageAndAlpha,
+                              const std::function<bool()> &isCanceled) {
+  const auto canceled = [&]() { return isCanceled && isCanceled(); };
   const auto fail = [&](const QString &message) -> DiffFieldPtr {
     if (error != nullptr) {
       *error = message;
@@ -634,6 +639,9 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
           .image = frames[i],
           .sampler = {.decodedImage = {.displayImage = frames[i]}, .sourceSize = frames[i].size()}};
     }
+  }
+  if (canceled()) {
+    return {};
   }
   const auto &base = composited ? compositedInputs[0] : originalBase;
   const auto &target = composited ? compositedInputs[1] : originalTarget;
@@ -719,16 +727,22 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
     plane = resizeLumaPlane(plane, region, size);
   };
 
-  if (field->kind == DiffFieldKind::DeltaE) {
+  const bool deltaE = field->kind == DiffFieldKind::DeltaE;
+  if (deltaE || field->kind == DiffFieldKind::RgbMax) {
     // 色差は、RGB の 3 つの平面から。Lab は線形光で測るため、値の空間は線形へ固定する。
     const auto planesOf = [&](const DiffInput &input, const QSize &region,
                               const QVector<float> &alpha, QVector<float>(&planes)[3]) {
       AnalysisSampler sampler = input.sampler;
-      sampler.valueSpace = AnalysisValueSpace::Linear;
-      if (!sampler.buildRgbPlanes(QRect(input.origin, region), planes)) {
+      if (deltaE) {
+        sampler.valueSpace = AnalysisValueSpace::Linear;
+      }
+      if (canceled() || !sampler.buildRgbPlanes(QRect(input.origin, region), planes)) {
         return false;
       }
       for (auto &plane : planes) {
+        if (canceled()) {
+          return false;
+        }
         preparePlane(plane, region, alpha);
       }
       return true;
@@ -747,21 +761,43 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
     const heiran::domain::Matrix3 matrix = base.sampler.rgbToXyz.value_or(
         heiran::domain::rgbToXyzMatrix(heiran::domain::ColorPrimaries::SRgb));
     heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
-      const size_t offset = static_cast<size_t>(firstRow) * static_cast<size_t>(width);
-      heiran::domain::deltaE2000Plane(
-          matrix, basePlanes[0].constData() + offset, basePlanes[1].constData() + offset,
-          basePlanes[2].constData() + offset, targetPlanes[0].constData() + offset,
-          targetPlanes[1].constData() + offset, targetPlanes[2].constData() + offset,
-          static_cast<size_t>(lastRow - firstRow) * static_cast<size_t>(width),
-          field->values.data() + offset);
+      for (int y = firstRow; y < lastRow && !canceled(); ++y) {
+        const size_t offset = static_cast<size_t>(y) * width;
+        if (deltaE) {
+          heiran::domain::deltaE2000Plane(
+              matrix, basePlanes[0].constData() + offset, basePlanes[1].constData() + offset,
+              basePlanes[2].constData() + offset, targetPlanes[0].constData() + offset,
+              targetPlanes[1].constData() + offset, targetPlanes[2].constData() + offset, width,
+              field->values.data() + offset);
+        } else {
+          for (size_t i = offset; i < offset + width; ++i) {
+            const float red =
+                std::abs(targetPlanes[0].constData()[i] - basePlanes[0].constData()[i]);
+            const float green =
+                std::abs(targetPlanes[1].constData()[i] - basePlanes[1].constData()[i]);
+            const float blue =
+                std::abs(targetPlanes[2].constData()[i] - basePlanes[2].constData()[i]);
+            field->values[i] = 255.0F * std::max({red, green, blue});
+          }
+        }
+      }
     });
+    if (canceled()) {
+      return {};
+    }
     return field;
   }
 
   // 輝度は画素ごとに取らず、走査の前にまとめて作る。画素ごとに取ると、型と
   // 色モデルの判定を毎回通り、解析用バッファを持たない画像では QImage の
   // 画素取得まで通る。差分そのものより判定の方が重くなる。
+  if (canceled()) {
+    return {};
+  }
   QVector<float> baseLuma = base.sampler.buildLumaPlane(QRect(base.origin, baseRegion));
+  if (canceled()) {
+    return {};
+  }
   QVector<float> targetLuma = target.sampler.buildLumaPlane(QRect(target.origin, targetRegion));
   if (baseLuma.isEmpty() || targetLuma.isEmpty()) {
     return fail(
@@ -779,6 +815,9 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
     // 構造的類似度。行を帯に分けて並列に求め、見せる値 (1 - SSIM) へ直す。値の幅は、8bit の輝度の
     // 255。
     heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
+      if (canceled()) {
+        return;
+      }
       heiran::domain::computeSsimRows(baseLuma.constData(), targetLuma.constData(), width, height,
                                       firstRow, lastRow, 255.0, field->values.data());
       float *begin = field->values.data() + static_cast<size_t>(firstRow) * width;
@@ -787,7 +826,7 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
         *value = 1.0F - *value;
       }
     });
-    return field;
+    return canceled() ? DiffFieldPtr{} : field;
   }
 
   // 輝度の差 (比べる側 - 基準)。帯ごとに、並列に求める。
@@ -795,13 +834,16 @@ DiffFieldPtr computeDiffField(const DiffInput &originalBase, const DiffInput &or
   const float *targetData = targetLuma.constData();
   float *out = field->values.data();
   heiran::infra::forEachRowBand(height, [&](int firstRow, int lastRow) {
+    if (canceled()) {
+      return;
+    }
     const size_t begin = static_cast<size_t>(firstRow) * width;
     const size_t end = static_cast<size_t>(lastRow) * width;
     for (size_t index = begin; index < end; ++index) {
       out[index] = targetData[index] - baseData[index];
     }
   });
-  return field;
+  return canceled() ? DiffFieldPtr{} : field;
 }
 
 DiffOutput renderDiffFromField(const DiffField &field, const DiffInput &base,

@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QFormLayout>
 #include <QHeaderView>
+#include <QKeySequence>
 #include <QLabel>
 #include <QMessageBox>
 #include <QProcess>
@@ -112,7 +113,9 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   display_->addItems({tr("Side by side"), tr("Highlight differences"), tr("Blink")});
   form->addRow(tr("Display"), display_);
   calculation_ = new QComboBox(sidebar);
+  calculation_->setObjectName("imageComparisonCalculation");
   calculation_->addItem(tr("Brightness"), static_cast<int>(DiffMode::Absolute));
+  calculation_->addItem(tr("RGB difference (maximum channel)"), static_cast<int>(DiffMode::RgbMax));
   calculation_->addItem(tr("Color difference (ΔE00)"), static_cast<int>(DiffMode::DeltaE));
   calculation_->addItem(tr("Structural similarity (SSIM)"), static_cast<int>(DiffMode::Ssim));
   form->addRow(tr("Compare by"), calculation_);
@@ -145,6 +148,16 @@ ImageComparisonDialog::ImageComparisonDialog(QWidget *parent) : QDialog(parent) 
   previousDifference_ =
       new QPushButton(themedIcon("arrow-left"), tr("Previous difference"), sidebar);
   nextDifference_ = new QPushButton(themedIcon("arrow-right"), tr("Next difference"), sidebar);
+  nextDifference_->setObjectName("nextComparisonDifference");
+  const auto setShortcut = [](QPushButton *button, const QKeySequence &shortcut) {
+    button->setShortcut(shortcut);
+    button->setToolTip(button->text() + QStringLiteral(" (") +
+                       shortcut.toString(QKeySequence::NativeText) + u')');
+  };
+  setShortcut(previousDifference_, QKeySequence(Qt::Key_F7));
+  setShortcut(nextDifference_, QKeySequence(Qt::Key_F8));
+  setShortcut(previousFile_, QKeySequence(Qt::CTRL | Qt::Key_F7));
+  setShortcut(nextFile_, QKeySequence(Qt::CTRL | Qt::Key_F8));
   navigation->addWidget(previousDifference_);
   navigation->addWidget(nextDifference_);
   left->addLayout(navigation);

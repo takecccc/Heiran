@@ -226,6 +226,7 @@ add_library(heiran_core
   src/ui/ImageListDragViews.cpp
   src/ui/ImageListPanelController.cpp
   src/ui/ImageComparisonDialog.cpp
+  src/ui/ComparisonDiffController.cpp
   src/ui/ComparisonNavigationController.cpp
   src/ui/PixelInfoText.cpp
   src/ui/PixelValueFormat.cpp
@@ -345,6 +346,7 @@ target_sources(heiran_core
     include/heiran/ui/ImageListDragViews.hpp
     include/heiran/ui/ImageListPanelController.hpp
     include/heiran/ui/ImageComparisonDialog.hpp
+    include/heiran/ui/ComparisonDiffController.hpp
     include/heiran/app/FolderComparison.hpp
     include/heiran/ui/ComparisonNavigationController.hpp
     include/heiran/ui/PixelInfoText.hpp
