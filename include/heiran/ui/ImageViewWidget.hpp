@@ -33,6 +33,7 @@ class ImageViewWidget : public QWidget {
 
 public:
   explicit ImageViewWidget(QWidget *parent = nullptr);
+  void restrictToComparison();
   void setFavorite(bool favorite, bool available);
 
   void setCellInfo(const heiran::domain::ImageSet *imageSet, int imageSetIndex, int cellIndex,

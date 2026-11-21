@@ -38,6 +38,8 @@ public:
   StartupPreparationResult takeResult();
   std::shared_ptr<DecodeScheduler> takeDecodeScheduler();
   static PreparedImageSession prepareImages(const QStringList &paths, const QString &directory);
+  static PreparedImageSession prepareDiffImages(const QStringList &paths, const QString &directory,
+                                                const StartupDiffTitles &titles = {});
 
 private:
   static StartupPreparationResult prepare(const std::optional<QString> &sessionPath,

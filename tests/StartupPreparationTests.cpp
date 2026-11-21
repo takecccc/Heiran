@@ -1,3 +1,4 @@
+#include "heiran/app/FolderComparison.hpp"
 #include "heiran/domain/SessionPages.hpp"
 #include "heiran/ui/DecodeCache.hpp"
 #include "heiran/ui/DecodeScheduler.hpp"
@@ -15,6 +16,49 @@ class StartupPreparationTests : public QObject {
   Q_OBJECT
 
 private Q_SLOTS:
+  void comparesFolderEntriesByRelativePathAndFileContents() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QDir root(directory.path());
+    QVERIFY(root.mkpath("left/sub"));
+    QVERIFY(root.mkpath("right/sub"));
+    const auto write = [&](const QString &path, const QByteArray &data) {
+      QFile file(root.filePath(path));
+      return file.open(QIODevice::WriteOnly) && file.write(data) == data.size();
+    };
+    QVERIFY(write("left/sub/image.png", "before"));
+    QVERIFY(write("right/sub/image.png", "after!"));
+    QVERIFY(write("left/same.txt", "same"));
+    QVERIFY(write("right/same.txt", "same"));
+    QVERIFY(write("left/left.txt", "left"));
+    QVERIFY(write("right/right.txt", "right"));
+    QVERIFY(root.mkpath("left/.git"));
+    QVERIFY(write("left/.git/config", "ignored"));
+
+    using heiran::app::FileComparisonStatus;
+    const auto result = heiran::app::compareFolders(root.filePath("left"), root.filePath("right"));
+    QCOMPARE(result.entries.size(), 4);
+    QCOMPARE(result.entries[0].status, FileComparisonStatus::LeftOnly);
+    QCOMPARE(result.entries[1].status, FileComparisonStatus::RightOnly);
+    QCOMPARE(result.entries[2].status, FileComparisonStatus::Identical);
+    QCOMPARE(result.entries[3].relativePath, "sub/image.png");
+    QCOMPARE(result.entries[3].status, FileComparisonStatus::Different);
+    QVERIFY(result.entries[3].image);
+    QVERIFY(!result.entries[2].image);
+    QVERIFY(result.unreadableDirectories.isEmpty());
+  }
+
+  void comparesDecodedRgbaIndependentlyOfImageStorageFormat() {
+    heiran::infra::DecodedImage left;
+    heiran::infra::DecodedImage right;
+    left.displayImage = QImage(2, 1, QImage::Format_RGB32);
+    left.displayImage.fill(Qt::red);
+    right.displayImage = left.displayImage.convertToFormat(QImage::Format_RGBA8888);
+    QVERIFY(heiran::app::equalDecodedPixels(left, right));
+    right.displayImage.setPixelColor(0, 0, QColor(255, 0, 0, 127));
+    QVERIFY(!heiran::app::equalDecodedPixels(left, right));
+  }
+
   void queuesOnlyTheInitialPageAndDeduplicatesCells() {
     QTemporaryDir directory;
     QFile first(directory.filePath("image1.png"));

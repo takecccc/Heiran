@@ -4,6 +4,8 @@
 #include "heiran/app/OpenGlCheck.hpp"
 #include "heiran/infra/ImageDecoder.hpp"
 #include "heiran/ui/AppSettings.hpp"
+#include "heiran/ui/ColorTheme.hpp"
+#include "heiran/ui/ImageComparisonDialog.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/MainWindow.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
@@ -153,6 +155,67 @@ int main(int argc, char *argv[]) {
   fontWarmup.waitForFinished();
   recordStartup("font-ready");
 
+  const auto showStartupWindow = [&](QWidget &window) {
+    recordStartup("session-apply");
+    bool firstFrameRecorded = false;
+    bool imageFrameRecorded = false;
+    QMetaObject::Connection frameConnection;
+    const auto *canvas = window.findChild<QOpenGLWidget *>();
+    if (profileStartup && canvas != nullptr) {
+      frameConnection = QObject::connect(canvas, &QOpenGLWidget::frameSwapped, &window, [&]() {
+        if (!firstFrameRecorded) {
+          firstFrameRecorded = true;
+          recordStartup("first-frame");
+        }
+        if (!imageFrameRecorded) {
+          bool loading = false;
+          for (const auto *cell : window.findChildren<heiran::ui::ImageViewWidget *>()) {
+            loading = loading || cell->cellStatus() == heiran::ui::CellStatus::Loading;
+          }
+          if (!loading) {
+            imageFrameRecorded = true;
+            recordStartup("images-frame");
+#ifdef HEIRAN_STARTUP_BENCHMARK
+            QTimer::singleShot(0, &app, &QCoreApplication::quit);
+#endif
+          }
+        }
+      });
+    }
+#ifdef HEIRAN_STARTUP_BENCHMARK
+    window.setAttribute(Qt::WA_ShowWithoutActivating);
+#endif
+    window.show();
+    recordStartup("window-show");
+    if (profileStartup) {
+      QTimer::singleShot(0, &app, [&]() { recordStartup("event-loop"); });
+    }
+#ifdef HEIRAN_STARTUP_BENCHMARK
+    QTimer::singleShot(10000, &app, &QCoreApplication::quit);
+#endif
+
+    const int result = app.exec();
+    QObject::disconnect(frameConnection);
+#ifdef HEIRAN_STARTUP_BENCHMARK
+    if (!firstFrameRecorded || !imageFrameRecorded) {
+      qWarning("The initial image frame was not presented; the startup measurement is incomplete.");
+      return 1;
+    }
+#endif
+    return result;
+  };
+
+  if (diffTitles) {
+    heiran::ui::applyColorTheme(startupSettings.colorTheme);
+    heiran::ui::ImageComparisonDialog comparison;
+    recordStartup("window-construction");
+    auto prepared = inputPreparation.takeResult();
+    auto scheduler = inputPreparation.takeDecodeScheduler();
+    recordStartup("session-load");
+    comparison.openPreparedImages(std::move(*prepared.images), std::move(scheduler));
+    return showStartupWindow(comparison);
+  }
+
   heiran::app::ApplicationController applicationController;
   heiran::ui::MainWindow mainWindow;
   recordStartup("window-construction");
@@ -246,49 +309,5 @@ int main(int argc, char *argv[]) {
     mainWindow.openPreparedImages(*prepared.images, std::move(startupScheduler));
   }
   prepared = {};
-  recordStartup("session-apply");
-  bool firstFrameRecorded = false;
-  bool imageFrameRecorded = false;
-  const auto *canvas = mainWindow.findChild<QOpenGLWidget *>();
-  if (profileStartup && canvas != nullptr) {
-    QObject::connect(canvas, &QOpenGLWidget::frameSwapped, &mainWindow, [&]() {
-      if (!firstFrameRecorded) {
-        firstFrameRecorded = true;
-        recordStartup("first-frame");
-      }
-      if (!imageFrameRecorded) {
-        bool loading = false;
-        for (const auto *cell : mainWindow.findChildren<heiran::ui::ImageViewWidget *>()) {
-          loading = loading || cell->cellStatus() == heiran::ui::CellStatus::Loading;
-        }
-        if (!loading) {
-          imageFrameRecorded = true;
-          recordStartup("images-frame");
-#ifdef HEIRAN_STARTUP_BENCHMARK
-          QTimer::singleShot(0, &app, &QCoreApplication::quit);
-#endif
-        }
-      }
-    });
-  }
-#ifdef HEIRAN_STARTUP_BENCHMARK
-  mainWindow.setAttribute(Qt::WA_ShowWithoutActivating);
-#endif
-  mainWindow.show();
-  recordStartup("window-show");
-  if (profileStartup) {
-    QTimer::singleShot(0, &app, [&]() { recordStartup("event-loop"); });
-  }
-#ifdef HEIRAN_STARTUP_BENCHMARK
-  QTimer::singleShot(10000, &app, &QCoreApplication::quit);
-#endif
-
-  const int result = app.exec();
-#ifdef HEIRAN_STARTUP_BENCHMARK
-  if (!firstFrameRecorded || !imageFrameRecorded) {
-    qWarning("The initial image frame was not presented; the startup measurement is incomplete.");
-    return 1;
-  }
-#endif
-  return result;
+  return showStartupWindow(mainWindow);
 }

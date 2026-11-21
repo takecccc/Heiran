@@ -47,6 +47,7 @@ Q_SIGNALS:
   void detailsVisibleChanged(bool details);
   void thumbnailWidthChanged(int width);
   void compareRequested(const QStringList &paths);
+  void imageDiffRequested(const QStringList &paths);
   void finishComparisonRequested();
   void favoritesRequested(const QStringList &paths, bool favorite);
 
@@ -83,6 +84,7 @@ private:
   QPushButton *finishComparison_;
   QAction *addFavoritesAction_;
   QAction *removeFavoritesAction_;
+  QAction *imageDiffAction_ = nullptr;
   QStringList paths_;
   quint64 generation_ = 0;
   QThreadPool loaderPool_;

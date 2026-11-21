@@ -1070,7 +1070,7 @@ void ViewerGridWidget::applySoloLayout() {
   for (int cellIndex = 0; cellIndex < cells_.size(); ++cellIndex) {
     auto *view = cells_.at(cellIndex);
     layout_->removeWidget(view);
-    if (soloCell_ < 0) {
+    if (soloCell_ < 0 && (!comparisonPresentation_ || cellIndex < 2)) {
       const int row = columnFirst ? (cellIndex % rows) : (cellIndex / cols);
       const int col = columnFirst ? (cellIndex / rows) : (cellIndex % cols);
       layout_->addWidget(view, row, col);
@@ -1347,6 +1347,9 @@ void ViewerGridWidget::rebuildGrid(bool reuseCells) {
     const int col = columnFirst ? (cellIndex / rows) : (cellIndex % cols);
     auto *view = cells_.at(cellIndex);
     view->setChannelMode(channelModes_.at(cellIndex));
+    if (comparisonPresentation_) {
+      view->restrictToComparison();
+    }
     layout_->addWidget(view, row, col);
   }
   // どのセルも同じ大きさにする。差分の帯のように、中身の希望の大きさが違っても揃える。
@@ -1365,6 +1368,11 @@ void ViewerGridWidget::rebuildGrid(bool reuseCells) {
     for (auto *view : cells_) {
       view->show();
     }
+    layout_->activate();
+  }
+  if (comparisonPresentation_) {
+    layout_->setColumnStretch(2, 0);
+    applySoloLayout();
     layout_->activate();
   }
   schedulePrefetchAroundCurrentPage();
@@ -2463,9 +2471,11 @@ void ViewerGridWidget::updateDiffUi(int cellIndex) {
   } else {
     view->setDiffTitle(QString());
   }
-  view->setDiffBar(config.diff, labels, config.diff && config.diff->targetCell < 0);
-  if (config.diff) {
-    view->setDiffBarResult(cellDiffMetrics(cellIndex), cellDiffMessage(cellIndex));
+  if (!comparisonPresentation_) {
+    view->setDiffBar(config.diff, labels, config.diff && config.diff->targetCell < 0);
+    if (config.diff) {
+      view->setDiffBarResult(cellDiffMetrics(cellIndex), cellDiffMessage(cellIndex));
+    }
   }
 }
 
@@ -2519,6 +2529,44 @@ bool ViewerGridWidget::addDifferenceCell(heiran::domain::DiffMode mode) {
   return baseCell >= 0 && showDifference(emptyCell, baseCell, mode);
 }
 
+const heiran::infra::DecodedImage *ViewerGridWidget::comparisonSource(int cellIndex) const {
+  if (cellIndex < 0 || cellIndex >= cellSources_.size() ||
+      cellSources_.at(cellIndex).displayImage.isNull()) {
+    return nullptr;
+  }
+  return &cellSources_.at(cellIndex);
+}
+
+std::pair<qsizetype, qsizetype> ViewerGridWidget::diffRegionPosition(int cellIndex) const {
+  if (cellIndex < 0 || cellIndex >= diffStates_.size()) {
+    return {0, 0};
+  }
+  const auto &state = diffStates_.at(cellIndex);
+  return {state.regionIndex + 1, state.regions.size()};
+}
+
+void ViewerGridWidget::setDiffRegionOnSources(const QRect &region, const QSize &comparisonSize,
+                                              heiran::domain::DiffSizeMatch match) {
+  if (!comparisonPresentation_ || cells_.size() < 2) {
+    return;
+  }
+  for (int i = 0; i < 2; ++i) {
+    auto *view = cells_.at(i);
+    if (region.isEmpty() || !view->hasImage()) {
+      view->setDiffRegion();
+    } else if (match == heiran::domain::DiffSizeMatch::Overlap) {
+      view->setDiffRegion(region);
+    } else {
+      const QSize size = view->displayImageSize();
+      const double xScale = double(size.width()) / comparisonSize.width();
+      const double yScale = double(size.height()) / comparisonSize.height();
+      view->setDiffRegion(QRectF(region.x() * xScale, region.y() * yScale, region.width() * xScale,
+                                 region.height() * yScale)
+                              .toAlignedRect());
+    }
+  }
+}
+
 void ViewerGridWidget::moveToDiffRegion(int cellIndex, int direction) {
   refreshDiffCell(cellIndex);
   if (cellIndex < 0 || cellIndex >= diffStates_.size() || !cellDiff(cellIndex)) {
@@ -2537,21 +2585,36 @@ void ViewerGridWidget::moveToDiffRegion(int cellIndex, int direction) {
   }
   state.regionIndex = state.regionIndex < 0 ? (direction > 0 ? 0 : count - 1)
                                             : (state.regionIndex + count + direction) % count;
-  auto *view = cells_.at(cellIndex);
-  view->setDiffRegion(state.regions.at(state.regionIndex), state.regionIndex, count);
-  const auto finalState =
-      heiran::domain::computeFinalViewState(globalState_, cellStates_.at(cellIndex));
-  const QPointF center = view->diffRegionInDisplay().center();
-  const QSize canvas = view->canvasSize();
-  fitPending_ = false;
-  handlePanRequest(cellIndex,
-                   (heiran::domain::imageToViewX(finalState, center.x()) - canvas.width() / 2.0) /
+  const QRect region = state.regions.at(state.regionIndex);
+  cells_.at(cellIndex)->setDiffRegion(region, state.regionIndex, count);
+  setDiffRegionOnSources(region, state.field->size, state.settings.sizeMatch);
+  const auto panToRegion = [&](int index) {
+    const auto finalState =
+        heiran::domain::computeFinalViewState(globalState_, cellStates_.at(index));
+    const auto *view = cells_.at(index);
+    const QPointF center = view->diffRegionInDisplay().center();
+    const QSize canvas = view->canvasSize();
+    return QPointF((heiran::domain::imageToViewX(finalState, center.x()) - canvas.width() / 2.0) /
                        globalState_.baseScale,
                    (heiran::domain::imageToViewY(finalState, center.y()) - canvas.height() / 2.0) /
                        globalState_.baseScale);
+  };
+  fitPending_ = false;
+  if (comparisonPresentation_ && soloCell_ < 0) {
+    const QPointF left = panToRegion(0);
+    const QPointF rightDelta = panToRegion(1) - left;
+    heiran::domain::applyPanToCell(&cellStates_[1], rightDelta.x(), rightDelta.y());
+    handlePanRequest(0, left.x(), left.y());
+  } else {
+    const QPointF pan = panToRegion(cellIndex);
+    handlePanRequest(cellIndex, pan.x(), pan.y());
+  }
 }
 
 void ViewerGridWidget::setDiffBlinking(int cellIndex, bool enabled) {
+  if (cellIndex < 0 || cellIndex >= cells_.size()) {
+    return;
+  }
   auto *view = cells_.at(cellIndex);
   if (!enabled) {
     view->setDiffBlinkFrames();
@@ -2656,6 +2719,7 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
     state = {};
     state.message = message;
     view->setDiffRegion();
+    setDiffRegionOnSources();
     view->setDiffBlinkFrames();
     view->setDecodedImage({}, QString(), CellStatusInfo::empty(message));
     updateDiffUi(cellIndex);
@@ -2674,6 +2738,7 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
         view->cellStatus() != CellStatus::Empty) {
       state = {};
       view->setDiffRegion();
+      setDiffRegionOnSources();
       view->setDiffBlinkFrames();
       updateDiffUi(cellIndex);
       return;
@@ -2696,6 +2761,7 @@ void ViewerGridWidget::refreshDiffCell(int cellIndex) {
     state.regions.clear();
     state.regionIndex = -1;
     view->setDiffRegion();
+    setDiffRegionOnSources();
   }
 
   const DiffInput baseInput{.image = baseSource.displayImage,

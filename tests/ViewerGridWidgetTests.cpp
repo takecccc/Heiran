@@ -1,18 +1,22 @@
+#include "heiran/ui/ImageComparisonDialog.hpp"
 #include "heiran/ui/ImageViewWidget.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QApplication>
 #include <QClipboard>
+#include <QComboBox>
 #include <QDir>
 #include <QGuiApplication>
 #include <QImage>
 #include <QMouseEvent>
 #include <QOpenGLWidget>
+#include <QPushButton>
 #include <QScreen>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolButton>
+#include <QTreeWidget>
 #include <QWheelEvent>
 #include <QtTest>
 
@@ -1139,6 +1143,63 @@ private Q_SLOTS:
   }
 
   // ---- 差分のセル ----
+
+  void folderComparisonShowsByteChangesAndPixelEqualityIndependently() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    const auto left = fixture.makeImageSet("left", Qt::red, 1);
+    const auto right = fixture.makeImageSet("right", Qt::red, 1);
+    QVERIFY(!left.resolvedPaths.isEmpty() && !right.resolvedPaths.isEmpty());
+    const QString leftFolder = QFileInfo(left.resolvedPaths.first()).absolutePath();
+    const QString rightFolder = QFileInfo(right.resolvedPaths.first()).absolutePath();
+    QImage reencoded(right.resolvedPaths.first());
+    reencoded.setText("Comment", "Different metadata");
+    QVERIFY(reencoded.save(right.resolvedPaths.first()));
+    QFile leftText(QDir(leftFolder).filePath("notes.txt"));
+    QVERIFY(leftText.open(QIODevice::WriteOnly));
+    QVERIFY(leftText.write("old") > 0);
+    leftText.close();
+    QFile rightText(QDir(rightFolder).filePath("notes.txt"));
+    QVERIFY(rightText.open(QIODevice::WriteOnly));
+    QVERIFY(rightText.write("new") > 0);
+    rightText.close();
+    QVERIFY(reencoded.save(QDir(leftFolder).filePath("left-only.png")));
+
+    heiran::ui::ImageComparisonDialog dialog;
+    dialog.openFolders(leftFolder, rightFolder);
+    auto *entries = dialog.findChild<QTreeWidget *>("folderComparisonEntries");
+    auto *filter = dialog.findChild<QComboBox *>("folderComparisonFilter");
+    auto *pixels = dialog.findChild<QLabel *>("imageComparisonPixelStatus");
+    auto *next = dialog.findChild<QPushButton *>("nextChangedFile");
+    auto *external = dialog.findChild<QPushButton *>("openExternalDiffViewer");
+    auto *display = dialog.findChild<QComboBox *>("imageComparisonDisplay");
+    auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(entries && filter && pixels && next && external && display && grid);
+    QTRY_COMPARE(entries->topLevelItemCount(), 3);
+    QCOMPARE(entries->currentItem()->text(0), "0000.png");
+    QCOMPARE(entries->currentItem()->text(1), "Modified");
+    QTRY_COMPARE(pixels->text(), "Pixels match.");
+    QVERIFY(!external->isEnabled());
+    const auto views = grid->findChildren<heiran::ui::ImageViewWidget *>();
+    QCOMPARE(views.size(), 3);
+    QVERIFY(views.at(2)->isHidden());
+    display->setCurrentText("Highlight differences");
+    QCOMPARE(grid->soloCellIndex(), 2);
+    QVERIFY(views.at(0)->isHidden() && views.at(1)->isHidden());
+    display->setCurrentText("Side by side");
+    QCOMPARE(grid->soloCellIndex(), -1);
+
+    filter->setCurrentText("Modified files");
+    next->click();
+    QCOMPARE(entries->currentItem()->text(0), "notes.txt");
+    QVERIFY(external->isEnabled());
+    QVERIFY(pixels->text().isEmpty());
+
+    filter->setCurrentText("Left only");
+    QCOMPARE(entries->currentItem()->text(0), "left-only.png");
+    QCOMPARE(grid->soloCellIndex(), 0);
+    QVERIFY(!external->isEnabled());
+  }
 
   void stepsBetweenChangedRegionsAndStopsBlinkingWhenThePageChanges() {
     SessionFixture fixture;

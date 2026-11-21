@@ -2273,6 +2273,21 @@ Click to follow the other cells again.</source>
         <source>Sent the image to the printer.</source>
         <translation>画像をプリンターへ送りました。</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="250"/>
+        <source>Compare Folders...</source>
+        <translation>フォルダを比較…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="252"/>
+        <source>Choose the Left Folder</source>
+        <translation>左のフォルダを選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/MainWindow.cpp" line="256"/>
+        <source>Choose the Right Folder</source>
+        <translation>右のフォルダを選択</translation>
+    </message>
 </context>
 <context>
     <name>OpenGlCheck</name>
@@ -3375,6 +3390,11 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
         <source>Cell %1: %2</source>
         <translation>セル %1: %2</translation>
     </message>
+    <message>
+        <location filename="../../src/ui/ImageListPanelWidget.cpp" line="124"/>
+        <source>Compare Image Differences</source>
+        <translation>画像差分を比較</translation>
+    </message>
 </context>
 <context>
     <name>heiran::ui::ImageViewWidget</name>
@@ -3622,6 +3642,285 @@ Usage: heiran --diff [--left-title title] [--right-title title] left right</sour
         <location filename="../../src/ui/HistogramWindow.cpp" line="743"/>
         <source>Highlighted range: %1 – %2</source>
         <translation>強調範囲 %1 ～ %2</translation>
+    </message>
+</context>
+<context>
+    <name>heiran::ui::ImageComparisonDialog</name>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="49"/>
+        <source>Image Difference - Heiran</source>
+        <translation>画像差分 - Heiran</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="67"/>
+        <source>All files</source>
+        <translation>すべてのファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="67"/>
+        <source>Changes only</source>
+        <translation>変更のみ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="67"/>
+        <source>Modified files</source>
+        <translation>変更あり</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="67"/>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="269"/>
+        <source>Left only</source>
+        <translation>左のみ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="68"/>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="271"/>
+        <source>Right only</source>
+        <translation>右のみ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="70"/>
+        <source>Refresh</source>
+        <translation>更新</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="77"/>
+        <source>Relative path</source>
+        <translation>相対パス</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="77"/>
+        <source>File status</source>
+        <translation>ファイルの状態</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="86"/>
+        <source>Previous changed file</source>
+        <translation>前の変更ファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="87"/>
+        <source>Next changed file</source>
+        <translation>次の変更ファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="90"/>
+        <source>Open in External Diff Viewer...</source>
+        <translation>外部差分ビューアーで開く…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="99"/>
+        <source>Side by side</source>
+        <translation>横並び</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="99"/>
+        <source>Highlight differences</source>
+        <translation>差分を強調</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="99"/>
+        <source>Blink</source>
+        <translation>点滅</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="100"/>
+        <source>Display</source>
+        <translation>表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="102"/>
+        <source>Brightness</source>
+        <translation>輝度</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="103"/>
+        <source>Color difference (ΔE00)</source>
+        <translation>色差 (ΔE00)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="104"/>
+        <source>Structural similarity (SSIM)</source>
+        <translation>構造的類似度 (SSIM)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="105"/>
+        <source>Compare by</source>
+        <translation>比較方法</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="111"/>
+        <source>Threshold</source>
+        <translation>閾値</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="114"/>
+        <source>Overlap only</source>
+        <translation>重なる部分だけ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="114"/>
+        <source>Resize to left</source>
+        <translation>左のサイズに合わせる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="114"/>
+        <source>Resize to right</source>
+        <translation>右のサイズに合わせる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="114"/>
+        <source>Resize to larger</source>
+        <translation>大きい方に合わせる</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="115"/>
+        <source>Image size</source>
+        <translation>画像サイズ</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="119"/>
+        <source>Previous difference</source>
+        <translation>前の差分</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="120"/>
+        <source>Next difference</source>
+        <translation>次の差分</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="129"/>
+        <source>Fit</source>
+        <translation>全体を表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="130"/>
+        <source>End Comparison</source>
+        <translation>比較終了</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="232"/>
+        <source>Folder Comparison - Heiran</source>
+        <translation>フォルダ比較 - Heiran</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="233"/>
+        <source>Left: %1
+Right: %2</source>
+        <translation>左: %1
+右: %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="246"/>
+        <source>Comparing files…</source>
+        <translation>ファイルを比較中…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="250"/>
+        <source>Comparing folders…</source>
+        <translation>フォルダを比較中…</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="265"/>
+        <source>Identical</source>
+        <translation>一致</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="267"/>
+        <source>Modified</source>
+        <translation>変更あり</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="273"/>
+        <source>Unreadable</source>
+        <translation>読み込み不可</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="313"/>
+        <source>%1 of %2 files</source>
+        <translation>%2 件中 %1 件</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="315"/>
+        <source>Some folders could not be read.</source>
+        <translation>読み込めなかったフォルダがあります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="356"/>
+        <source>No files match the filter.</source>
+        <translation>条件に該当するファイルがありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="358"/>
+        <source>%1
+%2</source>
+        <translation>%1
+%2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="362"/>
+        <source>Left: %1</source>
+        <translation>左: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="363"/>
+        <source>Right: %1</source>
+        <translation>右: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="389"/>
+        <source>Choose an External Diff Viewer</source>
+        <translation>外部差分ビューアーを選択</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="390"/>
+        <source>Programs (*.exe);;All Files (*)</source>
+        <translation>プログラム (*.exe);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="399"/>
+        <source>Could not start the external diff viewer.</source>
+        <translation>外部差分ビューアーを起動できませんでした。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="442"/>
+        <source>Difference %1 of %2</source>
+        <translation>差分 %1 / %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="444"/>
+        <source>%1 pixels meet the threshold</source>
+        <translation>閾値に該当する画素 %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="446"/>
+        <source>No pixels meet the threshold.</source>
+        <translation>閾値に該当する画素がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="461"/>
+        <source>First images: pixels match.</source>
+        <translation>先頭の画像は画素が一致します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="461"/>
+        <source>Pixels match.</source>
+        <translation>画素が一致します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="462"/>
+        <source>First images: pixels differ.</source>
+        <translation>先頭の画像は画素が異なります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="462"/>
+        <source>Pixels differ.</source>
+        <translation>画素が異なります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonDialog.cpp" line="463"/>
+        <source>Color profiles differ.</source>
+        <translation>色空間が異なります。</translation>
     </message>
 </context>
 </TS>

@@ -138,6 +138,7 @@ endif()
 
 add_library(heiran_core
   src/app/ApplicationController.cpp
+  src/app/FolderComparison.cpp
   src/app/Localization.cpp
   src/app/OpenGlCheck.cpp
   src/app/CrashReporter.cpp
@@ -224,6 +225,7 @@ add_library(heiran_core
   src/ui/ThumbnailItemDelegate.cpp
   src/ui/ImageListDragViews.cpp
   src/ui/ImageListPanelController.cpp
+  src/ui/ImageComparisonDialog.cpp
   src/ui/ComparisonNavigationController.cpp
   src/ui/PixelInfoText.cpp
   src/ui/PixelValueFormat.cpp
@@ -342,6 +344,8 @@ target_sources(heiran_core
     include/heiran/ui/ThumbnailItemDelegate.hpp
     include/heiran/ui/ImageListDragViews.hpp
     include/heiran/ui/ImageListPanelController.hpp
+    include/heiran/ui/ImageComparisonDialog.hpp
+    include/heiran/app/FolderComparison.hpp
     include/heiran/ui/ComparisonNavigationController.hpp
     include/heiran/ui/PixelInfoText.hpp
     include/heiran/ui/PixelValueFormat.hpp

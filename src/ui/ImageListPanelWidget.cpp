@@ -121,11 +121,15 @@ ImageListPanelWidget::ImageListPanelWidget(QWidget *parent)
   removeFavoritesAction_->setObjectName("removeSelectedFavoritesAction");
   addFavoritesAction_->setToolTip(tr("Add selected images to favorites."));
   removeFavoritesAction_->setToolTip(tr("Remove selected images from favorites."));
+  imageDiffAction_ = new QAction(themedIcon("layers"), tr("Compare Image Differences"), this);
+  imageDiffAction_->setEnabled(false);
   for (auto *view :
        {static_cast<QAbstractItemView *>(list_), static_cast<QAbstractItemView *>(details_)}) {
     view->setContextMenuPolicy(Qt::ActionsContextMenu);
-    view->addActions({addFavoritesAction_, removeFavoritesAction_});
+    view->addActions({addFavoritesAction_, removeFavoritesAction_, imageDiffAction_});
   }
+  connect(imageDiffAction_, &QAction::triggered, this,
+          [this]() { Q_EMIT imageDiffRequested(selectedFilePaths()); });
   connect(addFavoritesAction_, &QAction::triggered, this,
           [this]() { Q_EMIT favoritesRequested(selectedFilePaths(), true); });
   connect(removeFavoritesAction_, &QAction::triggered, this,
@@ -444,6 +448,7 @@ void ImageListPanelWidget::updateSelectionActions() {
   const int count = selectedRows(detailsVisible()).size();
   count_->setText(tr("%1 items, %2 selected").arg(paths_.size()).arg(count));
   compare_->setEnabled(count >= 2 && count <= SessionLayoutController::kMaxCellCount);
+  imageDiffAction_->setEnabled(count == 2);
   addFavoritesAction_->setEnabled(count > 0);
   removeFavoritesAction_->setEnabled(count > 0);
 }

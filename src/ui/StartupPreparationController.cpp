@@ -11,13 +11,10 @@
 #include <utility>
 
 namespace heiran::ui {
-namespace {
-
-PreparedImageSession prepareExternalDiff(const QStringList &paths, const QString &directory,
-                                         const StartupDiffTitles &titles) {
+PreparedImageSession StartupPreparationController::prepareDiffImages(
+    const QStringList &paths, const QString &directory, const StartupDiffTitles &titles) {
   using namespace heiran::domain;
   PreparedImageSession prepared;
-  prepared.sourcePaths = paths;
   prepared.externalDiff = true;
   auto &session = prepared.session;
   session.sessionDirectory = directory;
@@ -25,20 +22,24 @@ PreparedImageSession prepareExternalDiff(const QStringList &paths, const QString
   session.cells.resize(3);
   const QString labels[] = {titles.left, titles.right};
   for (int i = 0; i < 2; ++i) {
-    const auto &path = paths.at(i);
+    if (paths.value(i).isEmpty()) {
+      continue;
+    }
+    const auto path = QDir(directory).absoluteFilePath(paths.at(i));
+    prepared.sourcePaths.append(path);
+    session.cells[i].imageIndex = static_cast<int>(session.images.size());
     session.images.push_back({.name = QString::number(i + 1),
                               .label = labels[i].isEmpty() ? QFileInfo(path).fileName() : labels[i],
                               .path = path,
                               .labelVisible = true,
                               .resolvedPaths = {path}});
-    session.cells[i].imageIndex = i;
   }
-  session.cells[2].diff =
-      CellDiff{.baseCell = 0, .targetCell = 1, .settings = {.view = DiffViewMode::Overlay}};
+  if (session.images.size() == 2) {
+    session.cells[2].diff =
+        CellDiff{.baseCell = 0, .targetCell = 1, .settings = {.view = DiffViewMode::Overlay}};
+  }
   return prepared;
 }
-
-}  // namespace
 
 StartupPreparationController::StartupPreparationController(
     std::optional<QString> sessionPath, QStringList imagePaths, QString directory, bool parallel,
@@ -87,7 +88,7 @@ StartupPreparationResult StartupPreparationController::prepare(
   StartupPreparationResult result;
   result.startup = heiran::app::ApplicationController().prepareStartup(sessionPath);
   if (diffTitles && imagePaths.size() == 2) {
-    result.images = prepareExternalDiff(imagePaths, directory, *diffTitles);
+    result.images = prepareDiffImages(imagePaths, directory, *diffTitles);
   } else if (!imagePaths.isEmpty()) {
     result.images = prepareImages(imagePaths, directory);
   }

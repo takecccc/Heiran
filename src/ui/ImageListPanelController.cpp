@@ -120,6 +120,8 @@ ImageListPanelController::ImageListPanelController(QMainWindow *window, ViewerGr
   });
   connect(panel_, &ImageListPanelWidget::compareRequested, this,
           &ImageListPanelController::compareRequested);
+  connect(panel_, &ImageListPanelWidget::imageDiffRequested, this,
+          &ImageListPanelController::imageDiffRequested);
   connect(panel_, &ImageListPanelWidget::finishComparisonRequested, this,
           &ImageListPanelController::finishComparisonRequested);
   connect(panel_, &ImageListPanelWidget::favoritesRequested, favorites_,

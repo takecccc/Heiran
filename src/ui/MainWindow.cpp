@@ -16,6 +16,7 @@
 #include "heiran/ui/GlobalZoomController.hpp"
 #include "heiran/ui/Histogram3DWindow.hpp"
 #include "heiran/ui/HistogramWindow.hpp"
+#include "heiran/ui/ImageComparisonDialog.hpp"
 #include "heiran/ui/ImageInfoWindow.hpp"
 #include "heiran/ui/ImageListPanelController.hpp"
 #include "heiran/ui/ImagePrinter.hpp"
@@ -165,6 +166,12 @@ MainWindow::MainWindow(QWidget *parent, QString favoritesFile)
   new GlobalZoomController(this, viewerGrid_);
   connect(imageList, &ImageListPanelController::compareRequested, this,
           &MainWindow::compareSelectedImages);
+  connect(imageList, &ImageListPanelController::imageDiffRequested, this,
+          [this](const QStringList &paths) {
+            ImageComparisonDialog dialog(this);
+            dialog.openImages(paths);
+            dialog.exec();
+          });
   connect(imageList, &ImageListPanelController::finishComparisonRequested, this,
           &MainWindow::finishComparison);
   addShortcutsToToolTips();
@@ -239,6 +246,25 @@ void MainWindow::createFileMenu() {
       fileMenu->addAction(QCoreApplication::translate("MainWindow", "Open Image..."));
   openImageAction->setShortcut(QKeySequence::Open);
   connect(openImageAction, &QAction::triggered, this, [this]() { openImageFilesFromDialog(); });
+
+  auto *compareFolders =
+      fileMenu->addAction(QCoreApplication::translate("MainWindow", "Compare Folders..."));
+  connect(compareFolders, &QAction::triggered, this, [this]() {
+    const QString left = QFileDialog::getExistingDirectory(
+        this, QCoreApplication::translate("MainWindow", "Choose the Left Folder"));
+    if (left.isEmpty()) {
+      return;
+    }
+    const QString right = QFileDialog::getExistingDirectory(
+        this, QCoreApplication::translate("MainWindow", "Choose the Right Folder"),
+        QFileInfo(left).absolutePath());
+    if (right.isEmpty()) {
+      return;
+    }
+    ImageComparisonDialog dialog(this);
+    dialog.openFolders(left, right);
+    dialog.exec();
+  });
 
   recentImagesMenu_ = fileMenu->addMenu(QCoreApplication::translate("MainWindow", "Recent Images"));
   recentImages_ = RecentImages::load();

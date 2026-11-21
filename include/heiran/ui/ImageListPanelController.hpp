@@ -29,6 +29,7 @@ public:
 
 Q_SIGNALS:
   void compareRequested(const QStringList &paths);
+  void imageDiffRequested(const QStringList &paths);
   void finishComparisonRequested();
   void sourceSessionChanging();
   void sourceSessionChanged();

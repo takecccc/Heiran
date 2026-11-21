@@ -92,6 +92,11 @@ public:
   std::optional<heiran::domain::DiffMetrics> cellDiffMetrics(int cellIndex) const;
   // 差分を作れなかった理由 (大きさが違う、など)。作れていれば空。
   QString cellDiffMessage(int cellIndex) const;
+  void setComparisonPresentation() { comparisonPresentation_ = true; }
+  const heiran::infra::DecodedImage *comparisonSource(int cellIndex) const;
+  std::pair<qsizetype, qsizetype> diffRegionPosition(int cellIndex) const;
+  void moveToDiffRegion(int cellIndex, int direction);
+  void setDiffBlinking(int cellIndex, bool enabled);
   // 差分のセルとして使える空きセル。無ければ -1。
   int firstEmptyCellIndex() const;
   // `cellIndex` に、`baseCell` を基準にした差分を出す。画像のあるセルは自身の画像との差分、
@@ -267,8 +272,9 @@ private:
   void scheduleDiffRefresh();
   void refreshDiffCells();
   void refreshDiffCell(int cellIndex);
-  void moveToDiffRegion(int cellIndex, int direction);
-  void setDiffBlinking(int cellIndex, bool enabled);
+  void setDiffRegionOnSources(
+      const QRect &region = {}, const QSize &comparisonSize = {},
+      heiran::domain::DiffSizeMatch match = heiran::domain::DiffSizeMatch::Overlap);
   // 差分の入力にする解析用の読み出し。各セルの回転や反転は掛けない。
   AnalysisSampler samplerForSource(const heiran::infra::DecodedImage &source) const;
   // 1 つのセルの画像と状態を、キャッシュにある結果から組み立て直す。
@@ -398,6 +404,7 @@ private:
   };
   QVector<DiffState> diffStates_;
   bool diffRefreshScheduled_ = false;
+  bool comparisonPresentation_ = false;
   // セルが作り終えを待っている後から作るアニメーション。セルごとに 1 つ。
   QVector<std::shared_ptr<heiran::infra::FrameStream>> observedStreams_;
   // セルがいま見せているフレームの番号。後から作るアニメーションで、見せ直すかの判断に使う。

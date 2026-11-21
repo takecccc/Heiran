@@ -1094,6 +1094,11 @@ ImageViewWidget::ImageViewWidget(QWidget *parent) : QWidget(parent) {
   layout->addWidget(canvasWidget_, 1);
 }
 
+void ImageViewWidget::restrictToComparison() {
+  canvasWidget_->setContextMenuPolicy(Qt::PreventContextMenu);
+  canvasWidget_->setAcceptDrops(false);
+}
+
 void ImageViewWidget::setDiffBar(const std::optional<heiran::domain::CellDiff> &diff,
                                  const QStringList &cellLabels, bool ownsImage) {
   if (!diff && !diffBarEnabled_) {

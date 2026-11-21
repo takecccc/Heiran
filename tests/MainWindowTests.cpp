@@ -1651,9 +1651,10 @@ private Q_SLOTS:
     auto *fileMenu = findMenu(window.menuBar(), "&File");
     QVERIFY(fileMenu != nullptr);
     QCOMPARE(titlesOf(fileMenu),
-             QStringList({"Open Image...", "Recent Images", "Open .hrn...", "Open Recent", "---",
-                          "Save", "Save As...", "---", "Rename...", "Move to Recycle Bin...",
-                          "Copy File Path", "Show in Folder", "Print...", "Refresh File List"}));
+             QStringList({"Open Image...", "Compare Folders...", "Recent Images", "Open .hrn...",
+                          "Open Recent", "---", "Save", "Save As...", "---", "Rename...",
+                          "Move to Recycle Bin...", "Copy File Path", "Show in Folder", "Print...",
+                          "Refresh File List"}));
 
     auto *settingsMenu = findMenu(window.menuBar(), "&Settings");
     QVERIFY(settingsMenu != nullptr);
