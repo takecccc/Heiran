@@ -69,7 +69,9 @@ configure_file("${heiran_installer_dir}/associations.iss.in"
 set(CPACK_INNOSETUP_EXTRA_SCRIPTS
   "${heiran_installer_dir}/messages.iss"
   "${CMAKE_CURRENT_BINARY_DIR}/installer/associations.iss")
-set(CPACK_INNOSETUP_CODE_FILES "${heiran_installer_dir}/setup.pas")
+set(CPACK_INNOSETUP_CODE_FILES
+  "${heiran_installer_dir}/setup.pas"
+  "${heiran_installer_dir}/association-page.pas")
 
 add_test(NAME heiran_installer_configuration_tests
   COMMAND "${CMAKE_COMMAND}"

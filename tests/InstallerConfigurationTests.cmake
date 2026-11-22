@@ -9,6 +9,9 @@ endif()
 if(NOT CPACK_INNOSETUP_SETUP_UsePreviousPrivileges STREQUAL "no")
   message(FATAL_ERROR "The installer must offer a scope choice even when Heiran is already installed.")
 endif()
+if(NOT "${SCRIPT_DIR}/association-page.pas" IN_LIST CPACK_INNOSETUP_CODE_FILES)
+  message(FATAL_ERROR "The installer must include the collapsible file associations page.")
+endif()
 
 function(check_compiler_discovery)
   set(CPACK_HEIRAN_INNOSETUP_DIR "${BUILD_DIR}/installer/compiler-lookup")
@@ -66,7 +69,8 @@ foreach(task IN LISTS tasks)
 endforeach()
 foreach(language IN ITEMS english japanese)
   foreach(message_key IN ITEMS WizardSelectTasks SelectTasksLabel2 Heiran_AssociationTypes
-      Heiran_common Heiran_precision Heiran_RuntimeMissing Heiran_LegacyInstallDir
+      Heiran_common Heiran_precision Heiran_ExpandExtensions Heiran_CollapseExtensions
+      Heiran_RuntimeMissing Heiran_LegacyInstallDir
       Heiran_OtherScopeDir Heiran_LegacyCleanupFailed)
     require_text(messages "${language}.${message_key}=")
   endforeach()
