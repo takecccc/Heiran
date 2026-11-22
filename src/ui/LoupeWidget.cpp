@@ -56,10 +56,12 @@ void LoupeWidget::paintEvent(QPaintEvent *) {
   const QFontMetrics fontMetrics(font);
   const int lineStep = std::max(8, static_cast<int>(std::round(fontMetrics.height() * 0.72))) + 1;
 
-  // ルーペの取得元はまだ表示用画像のため 8bit 値だが、単位は画素値表示と揃える。
   const PixelValueFormat valueFormat = pixelValueFormat_;
-  auto formatValue = [valueFormat](float value) {
-    return formatPixelSample(value, valueFormat).trimmed();
+  const bool eightBit =
+      preview_.sampler.valueSpace == AnalysisValueSpace::Source &&
+      preview_.sampler.decodedImage.sourceSampleType == heiran::infra::PixelSampleType::UInt8;
+  auto formatValue = [valueFormat, eightBit](float value) {
+    return formatPixelSample(value, valueFormat, eightBit).trimmed();
   };
   auto formatChannelValue = [&formatValue](const QString &label, float value) {
     return QString("%1 %2").arg(label, -2).arg(formatValue(value));

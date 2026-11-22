@@ -191,6 +191,9 @@ QToolButton:hover { background-color: %4; }
 QToolButton:pressed { background-color: %5; }
 QToolButton:checked { background-color: %7; color: %8; border-color: %9; }
 QToolButton[thumbnailPreset="true"] { padding: 4px 5px; }
+QToolButton[comparisonChoice="true"]:!checked { border-color: %3; }
+QToolButton[comparisonChoice="true"]:focus { border-color: %9; }
+QToolButton[comparisonChoice="true"]:checked:disabled { background-color: %4; border-color: %3; }
 QToolButton:disabled { color: %6; }
 QToolButton::menu-indicator { image: none; }
 QToolButton[exposureActive="true"] { background-color: %7; color: %8; border-color: %9; }

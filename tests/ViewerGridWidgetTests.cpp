@@ -5,6 +5,7 @@
 #include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QApplication>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
@@ -37,6 +38,16 @@ using heiran::domain::ImageSet;
 using heiran::domain::SessionModel;
 
 namespace {
+
+bool selectChoice(QButtonGroup *group, const QString &text) {
+  for (auto *button : group->buttons()) {
+    if (button->text() == text && button->isEnabled()) {
+      button->click();
+      return button->isChecked();
+    }
+  }
+  return false;
+}
 
 // 複数セルの組み合わせを扱うテストの土台。
 // 実ファイルを用意し、非同期のデコードが終わるまで待ってから状態を確認する。
@@ -1240,7 +1251,7 @@ private Q_SLOTS:
 
     heiran::ui::ImageComparisonWidget dialog;
     dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
-    auto *basis = dialog.findChild<QComboBox *>("imageComparisonBasis");
+    auto *basis = dialog.findChild<QButtonGroup *>("imageComparisonBasis");
     auto *ignore = dialog.findChild<QCheckBox *>("imageComparisonIgnoreTransparentRgb");
     auto *pixels = dialog.findChild<QLabel *>("imageComparisonPixelStatus");
     auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
@@ -1249,18 +1260,18 @@ private Q_SLOTS:
       const auto metrics = grid->cellDiffMetrics(2);
       return metrics ? metrics->exceededPixelCount : -1;
     };
-    QCOMPARE(basis->currentText(), "Pixel values");
+    QCOMPARE(basis->checkedButton()->text(), "Pixel values");
     QTRY_COMPARE(count(), 1);
     QTRY_COMPARE(pixels->text(), "Source images:\nPixels differ.");
-    basis->setCurrentText("Composite on white");
+    QVERIFY(selectChoice(basis, "White"));
     QTRY_COMPARE(count(), 0);
     QVERIFY(!ignore->isEnabled());
     QCOMPARE(pixels->text(), "Source images:\nPixels differ.");
-    basis->setCurrentText("Composite on black");
+    QVERIFY(selectChoice(basis, "Black"));
     QTRY_COMPARE(count(), 1);
     grid->moveToDiffRegion(2, 1);
     QCOMPARE(grid->diffRegionPosition(2), (std::pair<qsizetype, qsizetype>{1, 1}));
-    basis->setCurrentText("Pixel values");
+    QVERIFY(selectChoice(basis, "Pixel values"));
     QTRY_VERIFY(grid->diffHasAlphaChanges(2));
     QVERIFY(ignore->isEnabled());
   }
@@ -1313,9 +1324,9 @@ private Q_SLOTS:
     heiran::ui::ImageComparisonWidget dialog;
     dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
     auto *threshold = dialog.findChild<QDoubleSpinBox *>("imageComparisonThreshold");
-    auto *display = dialog.findChild<QComboBox *>("imageComparisonDisplay");
+    auto *highlight = dialog.findChild<QCheckBox *>("imageComparisonHighlightDifferences");
     auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
-    QVERIFY(threshold && display && grid);
+    QVERIFY(threshold && highlight && grid);
     const auto count = [grid]() {
       const auto metrics = grid->cellDiffMetrics(2);
       return metrics ? metrics->exceededPixelCount : -1;
@@ -1324,8 +1335,8 @@ private Q_SLOTS:
     QVERIFY(grid->diffHasAlphaChanges(2));
     threshold->setValue(25.0);
     QTRY_COMPARE(count(), 16 * 32 + 1);
-    display->setCurrentText("Highlight differences");
-    auto *view = grid->findChildren<heiran::ui::ImageViewWidget *>().at(2);
+    highlight->click();
+    auto *view = grid->findChildren<heiran::ui::ImageViewWidget *>().at(0);
     const auto &mask = view->comparisonHighlight();
     QCOMPARE(mask.size(), QSize(80, 32));
     QCOMPARE(mask.pixelColor(33, 0).alpha(), 0);
@@ -1346,47 +1357,55 @@ private Q_SLOTS:
     QVERIFY(changed.save(target.resolvedPaths.first()));
     heiran::ui::ImageComparisonWidget dialog;
     dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
-    auto *display = dialog.findChild<QComboBox *>("imageComparisonDisplay");
-    auto *method = dialog.findChild<QComboBox *>("imageComparisonHighlightMethod");
+    auto *display = dialog.findChild<QButtonGroup *>("imageComparisonDisplay");
+    auto *method = dialog.findChild<QButtonGroup *>("imageComparisonHighlightMethod");
+    auto *highlight = dialog.findChild<QCheckBox *>("imageComparisonHighlightDifferences");
     auto *map = dialog.findChild<QCheckBox *>("imageComparisonShowDifferenceMap");
     auto *gain = dialog.findChild<QComboBox *>("imageComparisonMapGain");
     auto *legend = dialog.findChild<QLabel *>("imageComparisonMapLegend");
     auto *blockSize = dialog.findChild<QSpinBox *>("imageComparisonBlockSize");
-    auto *transparency = dialog.findChild<QSpinBox *>("imageComparisonHighlightTransparency");
-    auto *transparencySlider =
-        dialog.findChild<QSlider *>("imageComparisonHighlightTransparencySlider");
+    auto *opacity = dialog.findChild<QSpinBox *>("imageComparisonHighlightOpacity");
+    auto *opacitySlider = dialog.findChild<QSlider *>("imageComparisonHighlightOpacitySlider");
     auto *blockSlider = dialog.findChild<QSlider *>("imageComparisonBlockSizeSlider");
     auto *thresholdSlider = dialog.findChild<QSlider *>("imageComparisonThresholdSlider");
     auto *zoom = dialog.findChild<QDoubleSpinBox *>("imageComparisonZoom");
     auto *threshold = dialog.findChild<QDoubleSpinBox *>("imageComparisonThreshold");
     auto *timer = dialog.findChild<QTimer *>("comparisonHighlightTimer");
     auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
-    QVERIFY(display && method && map && gain && legend && blockSize && transparency && zoom &&
-            threshold && timer && grid && transparencySlider && blockSlider && thresholdSlider);
-    for (int index = 0; index < display->count(); ++index) {
-      QVERIFY(!display->itemIcon(index).isNull());
+    QVERIFY(display && method && highlight && map && gain && legend && blockSize && opacity &&
+            zoom && threshold && timer && grid && opacitySlider && blockSlider && thresholdSlider);
+    QCOMPARE(display->buttons().size(), 2);
+    auto *displayHint = dialog.findChild<QLabel *>("imageComparisonDisplayHint");
+    QVERIFY(displayHint && display->exclusive() && method->exclusive());
+    QCOMPARE(displayHint->text(), "Shows both images side by side.");
+    for (auto *button : display->buttons()) {
+      QVERIFY(!button->icon().isNull() && !button->toolTip().isEmpty());
     }
-    QVERIFY(!method->itemIcon(0).isNull() && !method->itemIcon(1).isNull() &&
-            !map->icon().isNull());
-    QTRY_VERIFY(display->isEnabled());
+    for (auto *button : method->buttons()) {
+      QVERIFY(!button->icon().isNull());
+    }
+    QVERIFY(!map->icon().isNull());
+    QTRY_VERIFY(display->checkedButton()->isEnabled());
     const auto views = grid->findChildren<heiran::ui::ImageViewWidget *>();
     QCOMPARE(views.size(), 3);
     const int computes = grid->diffFieldComputeCount();
     QCOMPARE(blockSize->value(), 1);
-    QCOMPARE(transparency->value(), 50);
+    QCOMPARE(opacity->value(), 50);
     QCOMPARE(thresholdSlider->value(), 8000);
     zoom->setValue(150);
     QCOMPARE(grid->globalViewState().baseScale, 1.5);
     grid->setGlobalScale(2.0);
     QCOMPARE(zoom->value(), 200.0);
-    QVERIFY(!method->isEnabled() && !transparencySlider->isEnabled());
+    QVERIFY(!method->checkedButton()->isEnabled() && !opacitySlider->isEnabled());
     QVERIFY(views.at(0)->comparisonHighlight().isNull());
     QVERIFY(views.at(1)->comparisonHighlight().isNull());
     QVERIFY(views.at(2)->isHidden());
-    display->setCurrentText("Side by side with highlights");
+    QVERIFY(highlight->isEnabled() && !highlight->isChecked());
+    highlight->click();
     QCOMPARE(grid->soloCellIndex(), -1);
-    QVERIFY(method->isEnabled() && transparencySlider->isEnabled() && !timer->isActive());
-    QCOMPARE(method->currentText(), "Steady");
+    QVERIFY(method->checkedButton()->isEnabled() && opacitySlider->isEnabled() &&
+            !timer->isActive());
+    QCOMPARE(method->checkedButton()->text(), "Steady");
     const QImage highlightImage = views.at(0)->comparisonHighlight();
     QVERIFY(!highlightImage.isNull());
     QCOMPARE(views.at(1)->comparisonHighlight().cacheKey(), highlightImage.cacheKey());
@@ -1403,7 +1422,7 @@ private Q_SLOTS:
     QCOMPARE(legend->text(), QString("Black: 0 · White: %1 (0–255 scale)")
                                  .arg(dialog.locale().toString(255.0 / 4.0, 'g', 4)));
     gain->setCurrentIndex(gain->findData(1));
-    method->setCurrentText("Blink");
+    QVERIFY(selectChoice(method, "Blink highlight"));
     QVERIFY(timer->isActive());
     QVERIFY(QMetaObject::invokeMethod(timer, "timeout"));
     QVERIFY(views.at(0)->comparisonHighlight().isNull());
@@ -1414,21 +1433,22 @@ private Q_SLOTS:
     QVERIFY(QMetaObject::invokeMethod(timer, "timeout"));
     QCOMPARE(views.at(0)->comparisonHighlight().cacheKey(), highlightImage.cacheKey());
     QCOMPARE(views.at(1)->comparisonHighlight().cacheKey(), highlightImage.cacheKey());
-    display->setCurrentText("Highlight differences");
+    QVERIFY(selectChoice(display, "Alternate images"));
     QCOMPARE(grid->soloCellIndex(), 2);
-    QVERIFY(timer->isActive());
-    QVERIFY(!map->isEnabled());
-    QCOMPARE(views.at(2)->currentDecodedImage().displayImage.pixelColor(0, 0), QColor(Qt::black));
-    QVERIFY(!views.at(2)->comparisonHighlight().isNull());
-    display->setCurrentText("Blink");
-    QVERIFY(!method->isEnabled() && !timer->isActive());
-    display->setCurrentText("Side by side with highlights");
+    QCOMPARE(displayHint->text(), "Switches between the two images in the same position.");
+    QVERIFY(!highlight->isEnabled() && highlight->isChecked());
+    QVERIFY(!map->isEnabled() && map->isChecked());
+    QVERIFY(!method->checkedButton()->isEnabled() && !timer->isActive());
+    QVERIFY(views.at(2)->comparisonHighlight().isNull());
+    QVERIFY(selectChoice(display, "Side by side"));
     QCOMPARE(grid->soloCellIndex(), -1);
-    QVERIFY(timer->isActive());
+    QVERIFY(highlight->isEnabled() && highlight->isChecked() && timer->isActive());
     QVERIFY(!views.at(2)->isHidden());
     QCOMPARE(grid->diffFieldComputeCount(), computes);
-    display->setCurrentText("Side by side");
+    highlight->click();
     QVERIFY(!timer->isActive());
+    QVERIFY(views.at(0)->comparisonHighlight().isNull());
+    QVERIFY(views.at(1)->comparisonHighlight().isNull());
     thresholdSlider->setSliderDown(true);
     thresholdSlider->setSliderPosition(16000);
     thresholdSlider->setSliderPosition(255000);
@@ -1445,16 +1465,93 @@ private Q_SLOTS:
     QCOMPARE(blockSize->value(), 16);
     QCOMPARE(grid->cellDiff(2)->settings.highlightBlockSize, 16);
     blockSlider->setSliderDown(false);
-    display->setCurrentText("Side by side with highlights");
-    transparencySlider->setSliderDown(true);
-    transparencySlider->setSliderPosition(75);
-    QCOMPARE(transparency->value(), 75);
+    highlight->click();
+    opacitySlider->setSliderDown(true);
+    opacitySlider->setSliderPosition(25);
+    QCOMPARE(opacity->value(), 25);
     QCOMPARE(grid->cellDiff(2)->settings.highlightBlockSize, 16);
     QCOMPARE(grid->cellDiff(2)->settings.highlightOpacity, 25);
     QTRY_VERIFY(!views.at(0)->comparisonHighlight().isNull() &&
                 views.at(0)->comparisonHighlight().pixelColor(0, 0).alpha() == 64);
-    transparencySlider->setSliderDown(false);
+    opacitySlider->setSliderDown(false);
+    opacity->setValue(0);
+    QTRY_VERIFY(!timer->isActive() && views.at(0)->comparisonHighlight().isNull());
+    QVERIFY(selectChoice(method, "Steady"));
+    opacity->setValue(100);
+    QCOMPARE(grid->cellDiff(2)->settings.highlightOpacity, 100);
+    QTRY_VERIFY(!views.at(0)->comparisonHighlight().isNull() &&
+                views.at(0)->comparisonHighlight().pixelColor(0, 0).alpha() == 255);
     QCOMPARE(grid->diffFieldComputeCount(), computes);
+  }
+
+  void reportsBothOriginalPixelsBelowTheComparison() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    const auto left = fixture.makeImageSet("left", Qt::red, 1, {8, 4});
+    const auto right = fixture.makeImageSet("right", Qt::blue, 1, {4, 2});
+    QVERIFY(!left.resolvedPaths.isEmpty() && !right.resolvedPaths.isEmpty());
+
+    heiran::ui::ImageComparisonWidget dialog;
+    dialog.openImages({left.resolvedPaths.first(), right.resolvedPaths.first()});
+    auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
+    auto *readout = dialog.findChild<QLabel *>("imageComparisonHoverPixels");
+    auto *sizeMatch = dialog.findChild<QComboBox *>("imageComparisonSizeMatch");
+    auto *map = dialog.findChild<QCheckBox *>("imageComparisonShowDifferenceMap");
+    auto *display = dialog.findChild<QButtonGroup *>("imageComparisonDisplay");
+    QVERIFY(grid && readout && sizeMatch && map && display);
+    QCOMPARE(readout->parentWidget(), grid->parentWidget()->parentWidget());
+    const QString idle = readout->text();
+    const auto views = grid->findChildren<heiran::ui::ImageViewWidget *>();
+    QCOMPARE(views.size(), 3);
+    QTRY_VERIFY(grid->cellDiffMetrics(2).has_value());
+
+    Q_EMIT views.at(0)->hoverInfoRequested(0, QPointF(6.5, 1.5), true);
+    const auto byteLines = readout->text().split('\n');
+    QCOMPARE(byteLines.size(), 3);
+    QVERIFY(byteLines.at(1).contains("R= 255"));
+    QVERIFY(!byteLines.at(1).contains('.'));
+    dialog.setPixelValueFormat(heiran::ui::PixelValueFormat::Normalized01);
+    const auto lines = readout->text().split('\n');
+    QCOMPARE(lines.size(), 3);
+    QCOMPARE(lines.at(0), "Comparison position: x=6 y=1");
+    QVERIFY(lines.at(1).startsWith("[ 1] (   6,    1):"));
+    QVERIFY(lines.at(1).contains("R=  1.00000"));
+    QVERIFY(lines.at(2).startsWith("[ 2] (   6,    1): out-of-bounds"));
+
+    const auto computes = grid->diffFieldComputeCount();
+    sizeMatch->setCurrentText("Resize to left");
+    QTRY_VERIFY(grid->diffFieldComputeCount() > computes && grid->cellDiffMetrics(2));
+    map->setChecked(true);
+    Q_EMIT views.at(2)->hoverInfoRequested(2, QPointF(6.5, 1.5), true);
+    const auto resized = readout->text().split('\n');
+    QCOMPARE(resized.size(), 3);
+    QCOMPARE(resized.at(0), lines.at(0));
+    QCOMPARE(resized.at(1), lines.at(1));
+    QVERIFY(resized.at(2).startsWith("[ 2] (   3,    0):"));
+    QVERIFY(resized.at(2).contains("B=  1.00000"));
+    Q_EMIT views.at(1)->hoverInfoRequested(1, QPointF(3.25, 0.75), true);
+    QCOMPARE(readout->text(), resized.join('\n'));
+
+    QVERIFY(selectChoice(display, "Alternate images"));
+    Q_EMIT views.at(2)->hoverInfoRequested(2, QPointF(6.5, 1.5), true);
+    QCOMPARE(readout->text(), resized.join('\n'));
+    Q_EMIT views.at(2)->hoverInfoRequested(2, QPointF(), false);
+    QCOMPARE(readout->text(), idle);
+    Q_EMIT views.at(2)->hoverInfoRequested(2, QPointF(6.5, 1.5), true);
+    const auto deep = fixture.make16BitImageSet("deep", 1);
+    QVERIFY(!deep.resolvedPaths.isEmpty());
+    QVERIFY(selectChoice(display, "Side by side"));
+    sizeMatch->setCurrentText("Align top left");
+    dialog.setPixelValueFormat(heiran::ui::PixelValueFormat::Normalized255);
+    dialog.openImages({left.resolvedPaths.first(), deep.resolvedPaths.first()});
+    QCOMPARE(readout->text(), idle);
+    QTRY_VERIFY(grid->cellDiffMetrics(2).has_value());
+    auto *leftView = grid->findChildren<heiran::ui::ImageViewWidget *>().first();
+    Q_EMIT leftView->hoverInfoRequested(0, QPointF(1.5, 1.5), true);
+    const auto mixed = readout->text().split('\n');
+    QCOMPARE(mixed.size(), 3);
+    QVERIFY(mixed.at(1).contains("R= 255") && !mixed.at(1).contains('.'));
+    QVERIFY(mixed.at(2).contains("R=   18.132"));
   }
 
   void switchesTheRedHighlightBetweenFocusedDifferences() {
@@ -1470,13 +1567,13 @@ private Q_SLOTS:
     QVERIFY(changed.save(target.resolvedPaths.first()));
     heiran::ui::ImageComparisonWidget dialog;
     dialog.openImages({base.resolvedPaths.first(), target.resolvedPaths.first()});
-    auto *display = dialog.findChild<QComboBox *>("imageComparisonDisplay");
+    auto *highlight = dialog.findChild<QCheckBox *>("imageComparisonHighlightDifferences");
     auto *showMap = dialog.findChild<QCheckBox *>("imageComparisonShowDifferenceMap");
     auto *next = dialog.findChild<QPushButton *>("nextComparisonDifference");
     auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
-    QVERIFY(display && showMap && next && grid);
+    QVERIFY(highlight && showMap && next && grid);
     QTRY_VERIFY(next->isEnabled());
-    display->setCurrentText("Side by side with highlights");
+    highlight->click();
     showMap->setChecked(true);
     const auto views = grid->findChildren<heiran::ui::ImageViewWidget *>();
     QCOMPARE(views.size(), 3);
@@ -1617,7 +1714,7 @@ private Q_SLOTS:
     auto *pixels = dialog.findChild<QLabel *>("imageComparisonPixelStatus");
     auto *next = dialog.findChild<QPushButton *>("nextChangedFile");
     auto *external = dialog.findChild<QPushButton *>("openExternalDiffViewer");
-    auto *display = dialog.findChild<QComboBox *>("imageComparisonDisplay");
+    auto *display = dialog.findChild<QButtonGroup *>("imageComparisonDisplay");
     auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
     QVERIFY(entries && filter && pixels && next && external && display && grid);
     QTRY_COMPARE(entries->topLevelItemCount(), 3);
@@ -1628,10 +1725,11 @@ private Q_SLOTS:
     const auto views = grid->findChildren<heiran::ui::ImageViewWidget *>();
     QCOMPARE(views.size(), 3);
     QVERIFY(views.at(2)->isHidden());
-    display->setCurrentText("Highlight differences");
+    QTRY_VERIFY(display->checkedButton()->isEnabled());
+    QVERIFY(selectChoice(display, "Alternate images"));
     QCOMPARE(grid->soloCellIndex(), 2);
     QVERIFY(views.at(0)->isHidden() && views.at(1)->isHidden());
-    display->setCurrentText("Side by side");
+    QVERIFY(selectChoice(display, "Side by side"));
     QCOMPARE(grid->soloCellIndex(), -1);
 
     filter->setCurrentText("Modified files");
@@ -1654,7 +1752,11 @@ private Q_SLOTS:
     heiran::ui::ImageComparisonWidget dialog;
     dialog.openFolders(QFileInfo(left.resolvedPaths.first()).absolutePath(),
                        QFileInfo(right.resolvedPaths.first()).absolutePath());
-    auto *display = dialog.findChild<QComboBox *>("imageComparisonDisplay");
+    auto *display = dialog.findChild<QButtonGroup *>("imageComparisonDisplay");
+    auto *alternation = dialog.findChild<QButtonGroup *>("imageComparisonAlternationMode");
+    auto *side = dialog.findChild<QButtonGroup *>("imageComparisonAlternateFrame");
+    auto *interval = dialog.findChild<QSpinBox *>("imageComparisonAlternationInterval");
+    auto *intervalSlider = dialog.findChild<QSlider *>("imageComparisonAlternationIntervalSlider");
     auto *method = dialog.findChild<QComboBox *>("imageComparisonCalculation");
     auto *hint = dialog.findChild<QLabel *>("imageComparisonThresholdHint");
     auto *detected = dialog.findChild<QLabel *>("imageComparisonDetectionStatus");
@@ -1662,8 +1764,9 @@ private Q_SLOTS:
     auto *next = dialog.findChild<QPushButton *>("nextChangedFile");
     auto *entries = dialog.findChild<QTreeWidget *>("folderComparisonEntries");
     auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
-    QVERIFY(display && method && hint && detected && pixels && next && entries && grid);
-    QTRY_VERIFY(display->isEnabled());
+    QVERIFY(display && alternation && side && interval && intervalSlider && method && hint &&
+            detected && pixels && next && entries && grid);
+    QTRY_VERIFY(display->checkedButton()->isEnabled());
     QCOMPARE(method->currentText(), "RGB difference (maximum channel)");
     QVERIFY(hint->text().contains("above"));
     QVERIFY(detected->text().startsWith("Current settings:"));
@@ -1673,20 +1776,55 @@ private Q_SLOTS:
     QTRY_COMPARE(pixels->text(), "Source images:\nPixels differ.");
     method->setCurrentText("Structural similarity (SSIM)");
     QVERIFY(hint->text().contains("below"));
-    QTRY_VERIFY(display->isEnabled());
+    QTRY_VERIFY(display->checkedButton()->isEnabled());
     auto *cell = grid->findChildren<heiran::ui::ImageViewWidget *>().at(2);
     auto *timer = cell->findChild<QTimer *>("diffBlinkTimer");
     QVERIFY(timer);
-    display->setCurrentText("Blink");
+    QVERIFY(selectChoice(display, "Alternate images"));
     QVERIFY(timer->isActive());
+    QCOMPARE(timer->interval(), 500);
+    QCOMPARE(alternation->checkedButton()->text(), "Automatic blink");
+    QCOMPARE(cell->diffBlinkFrame(), 0);
+    const auto viewState = grid->globalViewState();
+    const int computes = grid->diffFieldComputeCount();
+    intervalSlider->setSliderDown(true);
+    intervalSlider->setSliderPosition(1250);
+    QCOMPARE(interval->value(), 1250);
+    QCOMPARE(timer->interval(), 1250);
+    intervalSlider->setSliderDown(false);
+    QVERIFY(QMetaObject::invokeMethod(timer, "timeout"));
+    QCOMPARE(cell->diffBlinkFrame(), 1);
+    QVERIFY(selectChoice(alternation, "Manual switching"));
+    QVERIFY(!timer->isActive());
+    QCOMPARE(side->checkedButton()->text(), "Right image");
+    QCOMPARE(cell->diffBlinkFrame(), 1);
+    QVERIFY(selectChoice(side, "Left image"));
+    QCOMPARE(cell->diffBlinkFrame(), 0);
+    QVERIFY(selectChoice(side, "Right image"));
+    QCOMPARE(cell->diffBlinkFrame(), 1);
+    QCOMPARE(grid->globalViewState().baseScale, viewState.baseScale);
+    QCOMPARE(grid->globalViewState().baseOffsetX, viewState.baseOffsetX);
+    QCOMPARE(grid->globalViewState().baseOffsetY, viewState.baseOffsetY);
+    QCOMPARE(grid->diffFieldComputeCount(), computes);
+
     next->click();
     QCOMPARE(entries->currentItem()->text(0), "0001.png");
-    QCOMPARE(display->currentText(), "Blink");
+    QCOMPARE(display->checkedButton()->text(), "Alternate images");
     const auto nextViews = grid->findChildren<heiran::ui::ImageViewWidget *>();
     QCOMPARE(nextViews.size(), 3);
     auto *nextTimer = nextViews.at(2)->findChild<QTimer *>("diffBlinkTimer");
     QVERIFY(nextTimer);
-    QTRY_VERIFY(nextTimer->isActive());
+    QTRY_COMPARE(nextViews.at(2)->diffBlinkFrame(), 1);
+    QVERIFY(!nextTimer->isActive());
+    QCOMPARE(alternation->checkedButton()->text(), "Manual switching");
+    QCOMPARE(side->checkedButton()->text(), "Right image");
+    QVERIFY(selectChoice(alternation, "Automatic blink"));
+    QVERIFY(nextTimer->isActive());
+    QCOMPARE(nextTimer->interval(), 1250);
+    QCOMPARE(nextViews.at(2)->diffBlinkFrame(), 1);
+    QVERIFY(selectChoice(display, "Side by side"));
+    QCOMPARE(nextViews.at(2)->diffBlinkFrame(), -1);
+    QVERIFY(!nextTimer->isActive());
   }
 
   void stepsBetweenChangedRegionsAndStopsBlinkingWhenThePageChanges() {

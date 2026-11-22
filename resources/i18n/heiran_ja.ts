@@ -2301,6 +2301,14 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
     </message>
 </context>
 <context>
+    <name>PixelInfoText</name>
+    <message>
+        <location filename="../../src/ui/PixelInfoText.cpp" line="153"/>
+        <source>out-of-bounds</source>
+        <translation>範囲外</translation>
+    </message>
+</context>
+<context>
     <name>PixelInfoWidget</name>
     <message>
         <location filename="../../src/ui/PixelInfoWidget.cpp" line="28"/>
@@ -3422,108 +3430,113 @@ Update the graphics driver, or run Heiran on a computer with a newer GPU.</sourc
 <context>
     <name>heiran::ui::ViewerGridWidget</name>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2481"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2526"/>
         <source>Difference map</source>
         <translation>差分マップ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="678"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="698"/>
         <source>Frame %1 / %2</source>
         <translation>フレーム %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="682"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="702"/>
         <source>Subpage %1 / %2</source>
         <translation>サブページ %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1288"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1324"/>
         <source>A wipe needs two cells with images.</source>
         <translation>ワイプには、画像のあるセルが 2 つ必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1294"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1330"/>
         <source>A difference needs two cells with images.</source>
         <translation>差分には、画像のあるセルが 2 つ必要です。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1478"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1537"/>
         <source>No images to display.</source>
         <translation>表示する画像がありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1483"/>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2360"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1542"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2473"/>
         <source>Drop an image here.</source>
         <translation>ここへ画像をドロップしてください。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1489"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1548"/>
         <source>No files matched the path pattern.</source>
         <translation>パスのパターンに合うファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1497"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1556"/>
         <source>This image set has no image on this page.</source>
         <translation>この画像セットには、このページの画像がありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1834"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1899"/>
         <source>No images loaded</source>
         <translation>画像が読み込まれていません</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1839"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1904"/>
         <source>Page %1 / %2</source>
         <translation>ページ %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1844"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1909"/>
         <source>  Zoom %1%</source>
         <translation>  拡大率 %1%</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1852"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="1917"/>
         <source>  |  cache %1 / %2 MiB  tex %3 MiB</source>
         <translation>  |  キャッシュ %1 / %2 MiB  テクスチャ %3 MiB</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2379"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2216"/>
+        <source>Comparison position: x=%1 y=%2</source>
+        <translation>比較座標 x=%1 y=%2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2499"/>
         <source>Cell %1</source>
         <translation>セル %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2381"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2501"/>
         <source> (diff)</source>
         <translation> (差分)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2385"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2505"/>
         <source> (empty)</source>
         <translation> (空)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2408"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2530"/>
         <source>Wipe: Cell %1 | Cell %2</source>
         <translation>ワイプ: セル %1 | セル %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2411"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2533"/>
         <source>Diff: Cell %1 - Cell %2</source>
         <translation>差分: セル %1 - セル %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2541"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2906"/>
         <source>Diff: the cell does not exist.</source>
         <translation>差分: セルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2552"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2924"/>
         <source>Diff: waiting for Cell %1 and Cell %2.</source>
         <translation>差分: セル %1 とセル %2 を待っています。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2817"/>
+        <location filename="../../src/ui/ViewerGridWidget.cpp" line="2976"/>
         <source>Calculating differences…</source>
         <translation>差分を計算中…</translation>
     </message>
@@ -3677,415 +3690,531 @@ Usage: heiran --diff [--left-title title] [--right-title title] left right</sour
 <context>
     <name>heiran::ui::ImageComparisonWidget</name>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="177"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="290"/>
         <source>%1×</source>
         <translation>%1倍</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="179"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="292"/>
         <source>Brightens the map without changing which differences are detected.</source>
         <translation>差分マップの濃淡を強調します。差分判定は同じ条件で行います。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="180"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="293"/>
         <source>Map brightness</source>
         <translation>マップの明るさ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="336"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="516"/>
         <source>Detects SSIM below this value (0–1).</source>
         <translation>SSIM（0～1）がこの値を下回ると検出します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="339"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="519"/>
         <source>Detects ΔE00 above this value.</source>
         <translation>色差（ΔE00）がこの値を超えると検出します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="342"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="522"/>
         <source>Detects RGB differences above this value (0–255).</source>
         <translation>RGB差（0～255）がこの値を超えると検出します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="345"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="525"/>
         <source>Detects brightness differences above this value (0–255).</source>
         <translation>明るさの差（0～255）がこの値を超えると検出します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="674"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="879"/>
         <source>Black: 0 · White: %1 (1 − SSIM)</source>
         <translation>黒: 0 / 白: %1（1 − SSIM）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="677"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="882"/>
         <source>Black: 0 · White: %1 ΔE00</source>
         <translation>黒: 0 / 白: %1 ΔE00</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="680"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="885"/>
         <source>Black: 0 · White: %1 (0–255 scale)</source>
         <translation>黒: 0 / 白: %1（0～255）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="733"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="941"/>
         <source>Current settings: %1 pixels detected</source>
         <translation>現在の条件: %1 画素に差分を検出</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="735"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="943"/>
         <source>Current settings: no differences detected.</source>
         <translation>現在の条件: 差分は検出されませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="163"/>
-        <source>Side by side with highlights</source>
-        <translation>横並び（差分を強調）</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="211"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="367"/>
         <source>Steady</source>
         <translation>固定</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="213"/>
-        <source>Highlight method</source>
-        <translation>強調表示の方法</translation>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="376"/>
+        <source>Highlight opacity</source>
+        <translation>強調の不透明度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="222"/>
-        <source>Highlight transparency</source>
-        <translation>強調の透明度</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="185"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="318"/>
         <source>Transparency comparison method</source>
         <translation>透明度の比較方法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="140"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="363"/>
         <source>Block size</source>
         <translation>ブロックサイズ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="188"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="306"/>
         <source>Zoom</source>
         <translation>拡大率</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="122"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="280"/>
         <source>Show difference map</source>
         <translation>差分マップを表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="49"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="167"/>
         <source>Image Difference - Heiran</source>
         <translation>画像差分 - Heiran</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="67"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="186"/>
+        <source>Folder contents</source>
+        <translation>フォルダ内のファイル</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="191"/>
         <source>All files</source>
         <translation>すべてのファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="67"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="191"/>
         <source>Changes only</source>
         <translation>変更のみ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="67"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="191"/>
         <source>Modified files</source>
         <translation>変更あり</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="67"/>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="269"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="191"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="688"/>
         <source>Left only</source>
         <translation>左のみ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="68"/>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="271"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="192"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="690"/>
         <source>Right only</source>
         <translation>右のみ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="70"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="194"/>
         <source>Refresh</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="77"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="201"/>
         <source>Relative path</source>
         <translation>相対パス</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="77"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="201"/>
         <source>File status</source>
         <translation>ファイルの状態</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="86"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="211"/>
         <source>Previous changed file</source>
         <translation>前の変更ファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="87"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="213"/>
         <source>Next changed file</source>
         <translation>次の変更ファイル</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="90"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="218"/>
         <source>Open in External Diff Viewer...</source>
         <translation>外部差分ビューアーで開く…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="99"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="232"/>
+        <source>View</source>
+        <translation>表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="235"/>
+        <source>Display mode</source>
+        <translation>表示方式</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="236"/>
         <source>Side by side</source>
         <translation>横並び</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="99"/>
-        <source>Highlight differences</source>
-        <translation>差分を強調</translation>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="248"/>
+        <source>Image switching</source>
+        <translation>画像の切り替え</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="99"/>
-        <source>Blink</source>
-        <translation>点滅</translation>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="250"/>
+        <source>Automatic blink</source>
+        <translation>自動点滅</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="100"/>
-        <source>Display</source>
-        <translation>表示</translation>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="250"/>
+        <source>Switches images at a regular interval.</source>
+        <translation>一定の間隔で左右の画像を切り替えます。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="102"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="251"/>
+        <source>Manual switching</source>
+        <translation>手動切り替え</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="251"/>
+        <source>Keeps the selected image visible until you switch.</source>
+        <translation>次に切り替えるまで選んだ画像を表示します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="262"/>
+        <source>Switch interval</source>
+        <translation>切り替え間隔</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="271"/>
+        <source>Left image</source>
+        <translation>左の画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="271"/>
+        <source>Show the left image (Alt+Left).</source>
+        <translation>左の画像を表示します（Alt+←）。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="272"/>
+        <source>Right image</source>
+        <translation>右の画像</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="272"/>
+        <source>Show the right image (Alt+Right).</source>
+        <translation>右の画像を表示します（Alt+→）。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="308"/>
+        <source>Difference detection</source>
+        <translation>差分の判定</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="313"/>
         <source>Brightness</source>
         <translation>輝度</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="103"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="314"/>
         <source>Color difference (ΔE00)</source>
         <translation>色差 (ΔE00)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="104"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="315"/>
         <source>Structural similarity (SSIM)</source>
         <translation>構造的類似度 (SSIM)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="105"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="316"/>
         <source>Compare by</source>
         <translation>比較方法</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="111"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="321"/>
+        <source>Compares pixel values and opacity directly.</source>
+        <translation>画素値と透明度を直接比較します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="322"/>
+        <source>White</source>
+        <translation>白背景</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="323"/>
+        <source>Compares how the images look on a white background.</source>
+        <translation>白い背景に合成したときの見た目を比較します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="324"/>
+        <source>Black</source>
+        <translation>黒背景</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="325"/>
+        <source>Compares how the images look on a black background.</source>
+        <translation>黒い背景に合成したときの見た目を比較します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="344"/>
         <source>Threshold</source>
         <translation>閾値</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="114"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="349"/>
+        <source>Difference highlighting</source>
+        <translation>差分の強調</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="351"/>
+        <source>Highlight differences</source>
+        <translation>差分を強調</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="355"/>
+        <source>Highlights differences on both images in side-by-side view.</source>
+        <translation>横並びで左右の画像に差分を重ねます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="367"/>
+        <source>Keeps the highlight color visible.</source>
+        <translation>強調色を表示し続けます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="368"/>
+        <source>Blink highlight</source>
+        <translation>強調色を点滅</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="368"/>
+        <source>Flashes only the highlight color.</source>
+        <translation>強調色だけを点滅させます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="335"/>
         <source>Resize to left</source>
         <translation>左のサイズに合わせる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="114"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="335"/>
         <source>Resize to right</source>
         <translation>右のサイズに合わせる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="114"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="335"/>
         <source>Resize to larger</source>
         <translation>大きい方に合わせる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="115"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="336"/>
         <source>Image size</source>
         <translation>画像サイズ</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="119"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="379"/>
+        <source>Comparison results</source>
+        <translation>比較結果</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="383"/>
         <source>Previous difference</source>
         <translation>前の差分</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="120"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="384"/>
         <source>Next difference</source>
         <translation>次の差分</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="129"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="406"/>
         <source>Fit</source>
         <translation>全体を表示</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="130"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="407"/>
         <source>End Comparison</source>
         <translation>比較終了</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="232"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="436"/>
+        <source>Hover over an image to inspect pixel values.</source>
+        <translation>画像の上にマウスを置くと、画素の値を確認できます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="650"/>
         <source>Folder Comparison - Heiran</source>
         <translation>フォルダ比較 - Heiran</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="233"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="651"/>
         <source>Left: %1
 Right: %2</source>
         <translation>左: %1
 右: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="246"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="664"/>
         <source>Comparing files…</source>
         <translation>ファイルを比較中…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="250"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="669"/>
         <source>Comparing folders…</source>
         <translation>フォルダを比較中…</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="265"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="684"/>
         <source>Identical</source>
         <translation>一致</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="267"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="686"/>
         <source>Modified</source>
         <translation>変更あり</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="273"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="692"/>
         <source>Unreadable</source>
         <translation>読み込み不可</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="313"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="733"/>
         <source>%1 of %2 files</source>
         <translation>%2 件中 %1 件</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="315"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="735"/>
         <source>Some folders could not be read.</source>
         <translation>読み込めなかったフォルダがあります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="356"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="779"/>
         <source>No files match the filter.</source>
         <translation>条件に該当するファイルがありません。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="358"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="781"/>
         <source>%1
 %2</source>
         <translation>%1
 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="362"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="785"/>
         <source>Left: %1</source>
         <translation>左: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="363"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="786"/>
         <source>Right: %1</source>
         <translation>右: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="389"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="223"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="827"/>
         <source>Choose an External Diff Viewer</source>
         <translation>外部差分ビューアーを選択</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="390"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="829"/>
         <source>Programs (*.exe);;All Files (*)</source>
         <translation>プログラム (*.exe);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="399"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="820"/>
         <source>Could not start the external diff viewer.</source>
         <translation>外部差分ビューアーを起動できませんでした。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="442"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="236"/>
+        <source>Shows both images side by side.</source>
+        <translation>2 枚の画像を左右に並べます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="237"/>
+        <source>Alternate images</source>
+        <translation>画像を交互表示</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="237"/>
+        <source>Switches between the two images in the same position.</source>
+        <translation>同じ位置で 2 枚の画像を交互に表示します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="938"/>
         <source>Difference %1 of %2</source>
         <translation>差分 %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="461"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="979"/>
         <source>First images: pixels match.</source>
         <translation>先頭の画像は画素が一致します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="461"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="979"/>
         <source>Pixels match.</source>
         <translation>画素が一致します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="462"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="980"/>
         <source>First images: pixels differ.</source>
         <translation>先頭の画像は画素が異なります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="462"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="980"/>
         <source>Pixels differ.</source>
         <translation>画素が異なります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="463"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="981"/>
         <source>Color profiles differ.</source>
         <translation>色空間が異なります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="125"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="335"/>
         <source>Align top left</source>
         <translation>左上をそろえる</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="494"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="983"/>
         <source>Image sizes differ: %1 × %2 / %3 × %4</source>
         <translation>画像の寸法が異なります (左 %1 × %2 / 右 %3 × %4)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="478"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="947"/>
         <source>Opacity differs.</source>
         <translation>透明度が異なります。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="124"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="326"/>
         <source>Ignore fully transparent color</source>
         <translation>完全透明な画素の色差を無視</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="127"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="329"/>
         <source>Ignore RGB differences where both images are fully transparent.</source>
         <translation>両方の画像でアルファ値が 0 の画素の RGB 差を無視します。</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="121"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="320"/>
         <source>Pixel values</source>
         <translation>画素値で比較</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="122"/>
-        <source>Composite on white</source>
-        <translation>白背景に合成</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="124"/>
-        <source>Composite on black</source>
-        <translation>黒背景に合成</translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="529"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="965"/>
         <source>Source images:
 %1</source>
         <translation>原画像の確認
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="118"/>
+        <location filename="../../src/ui/ImageComparisonWidget.cpp" line="312"/>
         <source>RGB difference (maximum channel)</source>
         <translation>RGB差 (最大成分)</translation>
     </message>

@@ -208,6 +208,7 @@ int main(int argc, char *argv[]) {
   if (diffTitles) {
     heiran::ui::applyColorTheme(startupSettings.colorTheme, startupSettings.customColorTheme);
     heiran::ui::ImageComparisonWidget comparison;
+    comparison.setPixelValueFormat(startupSettings.pixelValueFormat);
     comparison.resize(1160, 700);
     QObject::connect(&comparison, &heiran::ui::ImageComparisonWidget::endRequested, &comparison,
                      &QWidget::close);

@@ -370,12 +370,8 @@ public:
     // 触った後でも、画像を触れば矢印キーがページ送りへ戻る。
     setFocusPolicy(Qt::ClickFocus);
     diffBlinkTimer_.setObjectName("diffBlinkTimer");
-    diffBlinkTimer_.setInterval(500);
-    connect(&diffBlinkTimer_, &QTimer::timeout, this, [this]() {
-      blinkFrame_ = 1 - blinkFrame_;
-      ++owner_->imageGeneration_;
-      requestCoalescedUpdate();
-    });
+    connect(&diffBlinkTimer_, &QTimer::timeout, this,
+            [this]() { showDiffBlinkFrame(1 - blinkFrame_); });
 
     // 画面へ出た間隔を測る。連続して出ていない限り記録しない。止まっている間の
     // 長い間隔が混ざると、なめらかさの目安にならない。
@@ -535,15 +531,15 @@ public:
   // エクスプローラでファイルを選択した状態で開く。選択まで行う方法は
   void showCurrentFileInFolder() const { FileOperations::showInFolder(owner_->sourcePath_); }
 
-  QString pixelInfoAtImagePosition(const QPointF &imagePosition) const {
+  QString pixelInfoAtImagePosition(const QPointF &imagePosition, int displayIndex) const {
     if (!owner_->hasImage()) {
-      return buildPixelInfoStatusLine(owner_->imageSetIndex_, owner_->statusInfo_);
+      return buildPixelInfoStatusLine(displayIndex, owner_->statusInfo_);
     }
 
     const auto displayPixel =
         heiran::domain::pixelAtImagePosition(imagePosition, owner_->displayImageSize());
     if (!displayPixel) {
-      return buildPixelInfoOutOfBoundsLine(owner_->imageSetIndex_,
+      return buildPixelInfoOutOfBoundsLine(displayIndex,
                                            QPoint(static_cast<int>(std::floor(imagePosition.x())),
                                                   static_cast<int>(std::floor(imagePosition.y()))));
     }
@@ -564,9 +560,10 @@ public:
                              owner_->lumaWeights_);
         });
 
-    return buildPixelInfoValueLine(owner_->imageSetIndex_,
-                                   owner_->originalFilePixelForDisplayPixel(*displayPixel), values,
-                                   owner_->pixelValueFormat_);
+    return buildPixelInfoValueLine(
+        displayIndex, owner_->originalFilePixelForDisplayPixel(*displayPixel), values,
+        owner_->pixelValueFormat_,
+        decodedImage.sourceSampleType == heiran::infra::PixelSampleType::UInt8);
   }
 
 protected:
@@ -631,7 +628,8 @@ protected:
       }
 
       if (uploadedImageGeneration_ != owner_->imageGeneration_) {
-        renderer_.setImage(isDiffBlinking() ? blinkImages_[blinkFrame_] : owner_->decodedImage_);
+        renderer_.setImage(hasDiffBlinkFrames() ? blinkImages_[blinkFrame_]
+                                                : owner_->decodedImage_);
         uploadedImageGeneration_ = owner_->imageGeneration_;
       }
 
@@ -647,7 +645,7 @@ protected:
                                       : owner_->magnifyFilter_ == MagnifyFilter::Smooth;
         // 透過画素の下地は画像と同じ四角形の中でシェーダが合成する。
         const QColorSpace blinkSpace =
-            isDiffBlinking() ? QColorSpace(QColorSpace::SRgb) : QColorSpace();
+            hasDiffBlinkFrames() ? QColorSpace(QColorSpace::SRgb) : QColorSpace();
         renderer_.draw(owner_->displayTransformParams(blinkSpace), projectedImageRect, size(),
                        devicePixelRatioF(), smooth, owner_->transparencyBackground_);
       }
@@ -994,11 +992,12 @@ protected:
 
 public:
   void setFileDragSource(const QString &path) { fileDragController_.setSourceFile(path); }
-  bool isDiffBlinking() const { return diffBlinkTimer_.isActive(); }
+  bool hasDiffBlinkFrames() const { return !blinkImages_[0].displayImage.isNull(); }
+  int diffBlinkFrame() const { return hasDiffBlinkFrames() ? blinkFrame_ : -1; }
 
   void setDiffBlinkFrames(std::array<QImage, 2> frames) {
     const bool enable = !frames[0].isNull() && !frames[1].isNull();
-    if (!enable && !isDiffBlinking()) {
+    if (!enable && !hasDiffBlinkFrames()) {
       return;
     }
     if (enable) {
@@ -1006,7 +1005,7 @@ public:
         blinkImages_[i].displayImage = std::move(frames[i]);
       }
       blinkFrame_ = 0;
-      diffBlinkTimer_.start();
+      diffBlinkTimer_.start(500);
     } else {
       diffBlinkTimer_.stop();
       blinkImages_ = {};
@@ -1015,14 +1014,37 @@ public:
     requestCoalescedUpdate();
   }
 
+  void configureDiffBlinkPlayback(int intervalMs, std::optional<int> frameIndex) {
+    if (!hasDiffBlinkFrames()) {
+      return;
+    }
+    if (intervalMs <= 0) {
+      diffBlinkTimer_.stop();
+    } else if (!diffBlinkTimer_.isActive() || diffBlinkTimer_.interval() != intervalMs) {
+      diffBlinkTimer_.start(intervalMs);
+    }
+    if (frameIndex) {
+      showDiffBlinkFrame(*frameIndex);
+    }
+  }
+
 private:
+  void showDiffBlinkFrame(int frameIndex) {
+    if (frameIndex < 0 || frameIndex >= 2 || blinkFrame_ == frameIndex) {
+      return;
+    }
+    blinkFrame_ = frameIndex;
+    ++owner_->imageGeneration_;
+    requestCoalescedUpdate();
+  }
+
   ImageViewWidget *owner_;
   FileDragController fileDragController_;
   GpuImageRenderer renderer_;
   PageWheelController pageWheelController_;
   QTimer diffBlinkTimer_;
   std::array<heiran::infra::DecodedImage, 2> blinkImages_;
-  size_t blinkFrame_ = 0;
+  int blinkFrame_ = 0;
   // renderer_ へ載せた画像の世代。owner_ 側の世代と違えばテクスチャを作り直す。
   quint64 uploadedImageGeneration_ = 0;
   QElapsedTimer presentTimer_;
@@ -1220,8 +1242,16 @@ QRectF ImageViewWidget::diffRegionInDisplay() const {
 
 void ImageViewWidget::setDiffBlinkFrames(std::array<QImage, 2> frames) {
   canvasWidget_->setDiffBlinkFrames(std::move(frames));
-  diffBar_->setBlinking(canvasWidget_->isDiffBlinking());
+  diffBar_->setBlinking(canvasWidget_->hasDiffBlinkFrames());
   updateWipeHandle();
+}
+
+void ImageViewWidget::configureDiffBlinkPlayback(int intervalMs, std::optional<int> frameIndex) {
+  canvasWidget_->configureDiffBlinkPlayback(intervalMs, frameIndex);
+}
+
+int ImageViewWidget::diffBlinkFrame() const {
+  return canvasWidget_->diffBlinkFrame();
 }
 
 void ImageViewWidget::setDiffMenuInfo(const QStringList &cellLabels, bool hasDiff,
@@ -1347,7 +1377,7 @@ void ImageViewWidget::updateWipeHandle() {
       cellState_.rotationQuarterTurns % 4 == 0 && !cellState_.flipX && !cellState_.flipY;
   const QSize imageSize = displayImageSize();
   if (!wipeDiff_ || !unrotated || imageSize.isEmpty() || !hasImage() || canvasWidget_ == nullptr ||
-      canvasWidget_->isDiffBlinking()) {
+      canvasWidget_->hasDiffBlinkFrames()) {
     wipeHandleWidget_->hide();
     return;
   }
@@ -1555,8 +1585,10 @@ void ImageViewWidget::setSharedCursorPosition(const std::optional<QPointF> &imag
   canvasWidget_->requestCoalescedUpdate();
 }
 
-QString ImageViewWidget::pixelInfoAtImagePosition(const QPointF &imagePosition) const {
-  return canvasWidget_->pixelInfoAtImagePosition(imagePosition);
+QString ImageViewWidget::pixelInfoAtImagePosition(const QPointF &imagePosition,
+                                                  std::optional<int> displayIndex) const {
+  return canvasWidget_->pixelInfoAtImagePosition(imagePosition,
+                                                 displayIndex.value_or(imageSetIndex_));
 }
 
 qint64 ImageViewWidget::gpuTextureBytes() const {

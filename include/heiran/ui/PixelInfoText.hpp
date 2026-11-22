@@ -52,7 +52,7 @@ QString formatImageIndexLabel(int imageSetIndex);
 // 画素値表示 1 行分のチャネル部分を組み立てる。1 チャネルだけの場合は
 // `Gray=0.5`、複数ある場合は `R= 0.5 G= 0.5 B= 0.5` の形にする。
 QString formatPixelChannelValues(const QVector<PixelChannelValue> &values,
-                                 PixelValueFormat valueFormat);
+                                 PixelValueFormat valueFormat, bool eightBit = false);
 
 // 画像を持たないセルの行。状態を出す。
 QString buildPixelInfoStatusLine(int imageSetIndex, const CellStatusInfo &statusInfo);
@@ -68,6 +68,6 @@ QString buildPixelStatusSummary(int x, int y, const QStringList &infoLines, int 
 
 QString buildPixelInfoValueLine(int imageSetIndex, const QPoint &reportedPixel,
                                 const QVector<PixelChannelValue> &values,
-                                PixelValueFormat valueFormat);
+                                PixelValueFormat valueFormat, bool eightBit = false);
 
 }  // namespace heiran::ui

@@ -16,10 +16,11 @@ QT_END_NAMESPACE
 namespace heiran::ui {
 
 class ImageComparisonWidget;
+class ViewerGridWidget;
 
 class ComparisonWorkspaceController final : public QObject {
 public:
-  ComparisonWorkspaceController(QMainWindow *window, QWidget *viewer);
+  ComparisonWorkspaceController(QMainWindow *window, ViewerGridWidget *viewer);
 
   void openSetup();
   void openImages(const QStringList &paths);
@@ -30,7 +31,7 @@ private:
   ImageComparisonWidget *start();
 
   QMainWindow *window_;
-  QWidget *viewer_;
+  ViewerGridWidget *viewer_;
   QStackedWidget *pages_;
   ImageComparisonWidget *comparison_ = nullptr;
   QByteArray viewerWindowState_;

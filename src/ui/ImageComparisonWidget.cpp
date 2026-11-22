@@ -4,13 +4,18 @@
 #include "heiran/ui/DiffRenderer.hpp"
 #include "heiran/ui/ViewerGridWidget.hpp"
 
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QDir>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFontDatabase>
 #include <QFormLayout>
+#include <QGridLayout>
+#include <QGroupBox>
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -21,6 +26,7 @@
 #include <QPromise>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSignalBlocker>
 #include <QSlider>
@@ -32,6 +38,7 @@
 #include <QVBoxLayout>
 #include <QtConcurrentRun>
 
+#include <initializer_list>
 #include <utility>
 
 namespace heiran::ui {
@@ -43,14 +50,11 @@ using heiran::domain::DiffMode;
 using heiran::domain::DiffSizeMatch;
 
 constexpr int kDiffCell = 2;
-enum Display { SideBySide, SideBySideHighlighted, Highlight, Blink };
+enum Display { SideBySide, Blink };
+enum AlternationMode { Automatic, Manual };
 enum HighlightMethod { Steady, Blinking };
 enum Filter { AllFiles, Changes, Modified, LeftOnly, RightOnly };
 constexpr int kThresholdPrecision = 1000;
-
-bool isSideBySide(int display) {
-  return display == SideBySide || display == SideBySideHighlighted;
-}
 
 template <typename SpinBox> void syncSlider(QSlider *slider, const SpinBox *spin, int precision) {
   const QSignalBlocker blocker(slider);
@@ -96,6 +100,64 @@ QLabel *messageLabel(QWidget *parent) {
   return label;
 }
 
+struct Choice {
+  int id;
+  QString text;
+  QString description;
+  const char *icon = nullptr;
+};
+
+QButtonGroup *addChoices(QFormLayout *form, QWidget *parent, const QString &label, const char *name,
+                         int columns, std::initializer_list<Choice> choices) {
+  auto *group = new QButtonGroup(parent);
+  group->setObjectName(name);
+  auto *field = new QWidget(parent);
+  field->setAccessibleName(label);
+  auto *buttons = new QGridLayout(field);
+  buttons->setContentsMargins(0, 0, 0, 0);
+  for (int column = 0; column < columns; ++column) {
+    buttons->setColumnStretch(column, 1);
+  }
+  int index = 0;
+  for (const auto &choice : choices) {
+    auto *button = new QToolButton(field);
+    button->setProperty("comparisonChoice", true);
+    button->setText(choice.text);
+    button->setToolTip(choice.description);
+    button->setAccessibleDescription(choice.description);
+    button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    if (choice.icon) {
+      button->setIcon(themedIcon(choice.icon));
+    }
+    button->setCheckable(true);
+    button->setFocusPolicy(Qt::StrongFocus);
+    button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    group->addButton(button, choice.id);
+    buttons->addWidget(button, index / columns, index % columns);
+    ++index;
+  }
+  group->button(choices.begin()->id)->setChecked(true);
+  if (!label.isEmpty()) {
+    form->addRow(new QLabel(label, parent));
+  }
+  form->addRow(field);
+  return group;
+}
+
+void setChoicesEnabled(QButtonGroup *group, bool enabled) {
+  for (auto *button : group->buttons()) {
+    button->setEnabled(enabled);
+  }
+}
+
+QFormLayout *addSettingsGroup(QVBoxLayout *sidebar, const QString &title) {
+  auto *group = new QGroupBox(title, sidebar->parentWidget());
+  auto *form = new QFormLayout(group);
+  form->setContentsMargins(0, 0, 0, 0);
+  sidebar->addWidget(group);
+  return form;
+}
+
 }  // namespace
 
 ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
@@ -107,17 +169,21 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   auto *splitter = new QSplitter(this);
   splitter->setChildrenCollapsible(false);
   root->addWidget(splitter);
-  auto *sidebarScroll = new QScrollArea(splitter);
+  auto *sidebarPane = new QWidget(splitter);
+  auto *sidebarLayout = new QVBoxLayout(sidebarPane);
+  sidebarLayout->setContentsMargins(0, 0, 8, 0);
+  auto *sidebarScroll = new QScrollArea(sidebarPane);
   sidebarScroll->setFrameShape(QFrame::NoFrame);
   sidebarScroll->setWidgetResizable(true);
+  sidebarLayout->addWidget(sidebarScroll, 1);
   auto *sidebar = new QWidget;
   sidebarScroll->setWidget(sidebar);
   auto *left = new QVBoxLayout(sidebar);
-  left->setContentsMargins(0, 0, 8, 0);
+  left->setContentsMargins(0, 0, 0, 0);
   paths_ = messageLabel(sidebar);
   left->addWidget(paths_);
 
-  folderControls_ = new QWidget(sidebar);
+  folderControls_ = new QGroupBox(tr("Folder contents"), sidebar);
   auto *files = new QVBoxLayout(folderControls_);
   files->setContentsMargins(0, 0, 0, 0);
   filter_ = new QComboBox(folderControls_);
@@ -141,14 +207,15 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   files->addWidget(entries_, 1);
   folderStatus_ = messageLabel(folderControls_);
   files->addWidget(folderStatus_);
-  previousFile_ = new QPushButton(themedIcon("arrow-left"), tr("Previous changed file"), sidebar);
+  previousFile_ =
+      new QPushButton(themedIcon("arrow-left"), tr("Previous changed file"), folderControls_);
   previousFile_->setObjectName("previousChangedFile");
-  nextFile_ = new QPushButton(themedIcon("arrow-right"), tr("Next changed file"), sidebar);
+  nextFile_ = new QPushButton(themedIcon("arrow-right"), tr("Next changed file"), folderControls_);
   nextFile_->setObjectName("nextChangedFile");
   files->addWidget(previousFile_);
   files->addWidget(nextFile_);
-  externalViewer_ =
-      new QPushButton(themedIcon("external-link"), tr("Open in External Diff Viewer..."), sidebar);
+  externalViewer_ = new QPushButton(themedIcon("external-link"),
+                                    tr("Open in External Diff Viewer..."), folderControls_);
   externalViewer_->setObjectName("openExternalDiffViewer");
   externalViewer_->setEnabled(false);
   auto *chooseViewer = new QToolButton(folderControls_);
@@ -162,19 +229,59 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   left->addWidget(folderControls_, 1);
   folderControls_->hide();
 
-  auto *form = new QFormLayout;
-  display_ = new QComboBox(sidebar);
-  display_->setObjectName("imageComparisonDisplay");
-  display_->addItem(themedIcon("panel-left"), tr("Side by side"));
-  display_->addItem(themedIcon("scan-line"), tr("Side by side with highlights"));
-  display_->addItem(themedIcon("contrast"), tr("Highlight differences"));
-  display_->addItem(themedIcon("layers"), tr("Blink"));
-  form->addRow(tr("Display"), display_);
-  showDifferenceMap_ = new QCheckBox(tr("Show difference map"), sidebar);
+  auto *viewForm = addSettingsGroup(left, tr("View"));
+  auto *viewGroup = viewForm->parentWidget();
+  display_ = addChoices(
+      viewForm, viewGroup, tr("Display mode"), "imageComparisonDisplay", 2,
+      {{SideBySide, tr("Side by side"), tr("Shows both images side by side."), "panel-left"},
+       {Blink, tr("Alternate images"), tr("Switches between the two images in the same position."),
+        "layers"}});
+  auto *displayHint = messageLabel(viewGroup);
+  displayHint->setObjectName("imageComparisonDisplayHint");
+  displayHint->setText(display_->checkedButton()->toolTip());
+  viewForm->addRow(displayHint);
+
+  alternationControls_ = new QWidget(viewGroup);
+  auto *alternationForm = new QFormLayout(alternationControls_);
+  alternationForm->setContentsMargins(0, 0, 0, 0);
+  alternationMode_ = addChoices(
+      alternationForm, alternationControls_, tr("Image switching"),
+      "imageComparisonAlternationMode", 2,
+      {{Automatic, tr("Automatic blink"), tr("Switches images at a regular interval.")},
+       {Manual, tr("Manual switching"), tr("Keeps the selected image visible until you switch.")}});
+  alternationIntervalControls_ = new QWidget(alternationControls_);
+  auto *intervalForm = new QFormLayout(alternationIntervalControls_);
+  intervalForm->setContentsMargins(0, 0, 0, 0);
+  alternationInterval_ = new QSpinBox(alternationIntervalControls_);
+  alternationInterval_->setObjectName("imageComparisonAlternationInterval");
+  alternationInterval_->setRange(100, 3000);
+  alternationInterval_->setSingleStep(50);
+  alternationInterval_->setSuffix(QStringLiteral(" ms"));
+  alternationInterval_->setKeyboardTracking(false);
+  alternationInterval_->setValue(500);
+  addSliderField(intervalForm, tr("Switch interval"), alternationInterval_,
+                 "imageComparisonAlternationIntervalSlider");
+  alternationForm->addRow(alternationIntervalControls_);
+
+  alternateFrameControls_ = new QWidget(alternationControls_);
+  auto *frameForm = new QFormLayout(alternateFrameControls_);
+  frameForm->setContentsMargins(0, 0, 0, 0);
+  alternateFrame_ =
+      addChoices(frameForm, alternateFrameControls_, {}, "imageComparisonAlternateFrame", 2,
+                 {{0, tr("Left image"), tr("Show the left image (Alt+Left)."), "arrow-left"},
+                  {1, tr("Right image"), tr("Show the right image (Alt+Right)."), "arrow-right"}});
+  alternateFrame_->button(0)->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Left));
+  alternateFrame_->button(1)->setShortcut(QKeySequence(Qt::ALT | Qt::Key_Right));
+  alternationForm->addRow(alternateFrameControls_);
+  alternateFrameControls_->hide();
+  viewForm->addRow(alternationControls_);
+  alternationControls_->hide();
+
+  showDifferenceMap_ = new QCheckBox(tr("Show difference map"), viewGroup);
   showDifferenceMap_->setIcon(themedIcon("layout-grid"));
   showDifferenceMap_->setObjectName("imageComparisonShowDifferenceMap");
-  form->addRow(showDifferenceMap_);
-  mapAppearance_ = new QWidget(sidebar);
+  viewForm->addRow(showDifferenceMap_);
+  mapAppearance_ = new QWidget(viewGroup);
   auto *mapForm = new QFormLayout(mapAppearance_);
   mapForm->setContentsMargins(0, 0, 0, 0);
   mapGain_ = new QComboBox(mapAppearance_);
@@ -187,66 +294,8 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   mapLegend_ = messageLabel(mapAppearance_);
   mapLegend_->setObjectName("imageComparisonMapLegend");
   mapForm->addRow(mapLegend_);
-  form->addRow(mapAppearance_);
-  calculation_ = new QComboBox(sidebar);
-  calculation_->setObjectName("imageComparisonCalculation");
-  calculation_->addItem(tr("RGB difference (maximum channel)"), static_cast<int>(DiffMode::RgbMax));
-  calculation_->addItem(tr("Brightness"), static_cast<int>(DiffMode::Absolute));
-  calculation_->addItem(tr("Color difference (ΔE00)"), static_cast<int>(DiffMode::DeltaE));
-  calculation_->addItem(tr("Structural similarity (SSIM)"), static_cast<int>(DiffMode::Ssim));
-  form->addRow(tr("Compare by"), calculation_);
-  comparisonBasis_ = new QComboBox(sidebar);
-  comparisonBasis_->setObjectName("imageComparisonBasis");
-  comparisonBasis_->addItem(tr("Pixel values"), static_cast<int>(DiffComparisonBasis::PixelValues));
-  comparisonBasis_->addItem(tr("Composite on white"),
-                            static_cast<int>(DiffComparisonBasis::WhiteBackground));
-  comparisonBasis_->addItem(tr("Composite on black"),
-                            static_cast<int>(DiffComparisonBasis::BlackBackground));
-  form->addRow(tr("Transparency comparison method"), comparisonBasis_);
-  ignoreTransparentRgb_ = new QCheckBox(tr("Ignore fully transparent color"), sidebar);
-  ignoreTransparentRgb_->setObjectName("imageComparisonIgnoreTransparentRgb");
-  ignoreTransparentRgb_->setToolTip(
-      tr("Ignore RGB differences where both images are fully transparent."));
-  ignoreTransparentRgb_->setChecked(true);
-  form->addRow(ignoreTransparentRgb_);
-  const heiran::domain::DiffSettings defaultDiff;
-  threshold_ = new QDoubleSpinBox(sidebar);
-  threshold_->setObjectName("imageComparisonThreshold");
-  threshold_->setDecimals(3);
-  threshold_->setRange(0.0, 255.0);
-  threshold_->setKeyboardTracking(false);
-  threshold_->setValue(defaultDiff.threshold);
-  auto *thresholdSlider = addSliderField(form, tr("Threshold"), threshold_,
-                                         "imageComparisonThresholdSlider", kThresholdPrecision);
-  auto *thresholdHint = messageLabel(sidebar);
-  thresholdHint->setObjectName("imageComparisonThresholdHint");
-  form->addRow(thresholdHint);
-  blockSize_ = new QSpinBox(sidebar);
-  blockSize_->setObjectName("imageComparisonBlockSize");
-  blockSize_->setRange(1, 128);
-  blockSize_->setSuffix(QStringLiteral(" px"));
-  blockSize_->setKeyboardTracking(false);
-  blockSize_->setValue(defaultDiff.highlightBlockSize);
-  addSliderField(form, tr("Block size"), blockSize_, "imageComparisonBlockSizeSlider");
-  highlightMethod_ = new QComboBox(sidebar);
-  highlightMethod_->setObjectName("imageComparisonHighlightMethod");
-  highlightMethod_->addItem(themedIcon("scan-line"), tr("Steady"));
-  highlightMethod_->addItem(themedIcon("sun"), tr("Blink"));
-  form->addRow(tr("Highlight method"), highlightMethod_);
-  highlightTransparency_ = new QSpinBox(sidebar);
-  highlightTransparency_->setObjectName("imageComparisonHighlightTransparency");
-  highlightTransparency_->setRange(0, 100);
-  highlightTransparency_->setSuffix(QStringLiteral("%"));
-  highlightTransparency_->setSingleStep(5);
-  highlightTransparency_->setKeyboardTracking(false);
-  highlightTransparency_->setValue(100 - defaultDiff.highlightOpacity);
-  addSliderField(form, tr("Highlight transparency"), highlightTransparency_,
-                 "imageComparisonHighlightTransparencySlider");
-  sizeMatch_ = new QComboBox(sidebar);
-  sizeMatch_->addItems(
-      {tr("Align top left"), tr("Resize to left"), tr("Resize to right"), tr("Resize to larger")});
-  form->addRow(tr("Image size"), sizeMatch_);
-  zoom_ = new QDoubleSpinBox(sidebar);
+  viewForm->addRow(mapAppearance_);
+  zoom_ = new QDoubleSpinBox(viewGroup);
   zoom_->setObjectName("imageComparisonZoom");
   zoom_->setRange(0.01, 1000000.0);
   zoom_->setDecimals(2);
@@ -254,12 +303,85 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   zoom_->setSingleStep(10.0);
   zoom_->setKeyboardTracking(false);
   zoom_->setValue(100.0);
-  form->addRow(tr("Zoom"), zoom_);
-  left->addLayout(form);
+  viewForm->addRow(tr("Zoom"), zoom_);
+
+  auto *detectionForm = addSettingsGroup(left, tr("Difference detection"));
+  auto *detectionGroup = detectionForm->parentWidget();
+  calculation_ = new QComboBox(detectionGroup);
+  calculation_->setObjectName("imageComparisonCalculation");
+  calculation_->addItem(tr("RGB difference (maximum channel)"), static_cast<int>(DiffMode::RgbMax));
+  calculation_->addItem(tr("Brightness"), static_cast<int>(DiffMode::Absolute));
+  calculation_->addItem(tr("Color difference (ΔE00)"), static_cast<int>(DiffMode::DeltaE));
+  calculation_->addItem(tr("Structural similarity (SSIM)"), static_cast<int>(DiffMode::Ssim));
+  detectionForm->addRow(tr("Compare by"), calculation_);
+  comparisonBasis_ =
+      addChoices(detectionForm, detectionGroup, tr("Transparency comparison method"),
+                 "imageComparisonBasis", 3,
+                 {{static_cast<int>(DiffComparisonBasis::PixelValues), tr("Pixel values"),
+                   tr("Compares pixel values and opacity directly.")},
+                  {static_cast<int>(DiffComparisonBasis::WhiteBackground), tr("White"),
+                   tr("Compares how the images look on a white background.")},
+                  {static_cast<int>(DiffComparisonBasis::BlackBackground), tr("Black"),
+                   tr("Compares how the images look on a black background.")}});
+  ignoreTransparentRgb_ = new QCheckBox(tr("Ignore fully transparent color"), detectionGroup);
+  ignoreTransparentRgb_->setObjectName("imageComparisonIgnoreTransparentRgb");
+  ignoreTransparentRgb_->setToolTip(
+      tr("Ignore RGB differences where both images are fully transparent."));
+  ignoreTransparentRgb_->setChecked(true);
+  detectionForm->addRow(ignoreTransparentRgb_);
+  sizeMatch_ = new QComboBox(detectionGroup);
+  sizeMatch_->setObjectName("imageComparisonSizeMatch");
+  sizeMatch_->addItems(
+      {tr("Align top left"), tr("Resize to left"), tr("Resize to right"), tr("Resize to larger")});
+  detectionForm->addRow(tr("Image size"), sizeMatch_);
+  const heiran::domain::DiffSettings defaultDiff;
+  threshold_ = new QDoubleSpinBox(detectionGroup);
+  threshold_->setObjectName("imageComparisonThreshold");
+  threshold_->setDecimals(3);
+  threshold_->setRange(0.0, 255.0);
+  threshold_->setKeyboardTracking(false);
+  threshold_->setValue(defaultDiff.threshold);
+  auto *thresholdSlider = addSliderField(detectionForm, tr("Threshold"), threshold_,
+                                         "imageComparisonThresholdSlider", kThresholdPrecision);
+  auto *thresholdHint = messageLabel(detectionGroup);
+  thresholdHint->setObjectName("imageComparisonThresholdHint");
+  detectionForm->addRow(thresholdHint);
+  auto *highlightForm = addSettingsGroup(left, tr("Difference highlighting"));
+  auto *highlightGroup = highlightForm->parentWidget();
+  highlightDifferences_ = new QCheckBox(tr("Highlight differences"), highlightGroup);
+  highlightDifferences_->setObjectName("imageComparisonHighlightDifferences");
+  highlightDifferences_->setIcon(themedIcon("scan-line"));
+  highlightDifferences_->setToolTip(
+      tr("Highlights differences on both images in side-by-side view."));
+  highlightForm->addRow(highlightDifferences_);
+  blockSize_ = new QSpinBox(highlightGroup);
+  blockSize_->setObjectName("imageComparisonBlockSize");
+  blockSize_->setRange(1, 128);
+  blockSize_->setSuffix(QStringLiteral(" px"));
+  blockSize_->setKeyboardTracking(false);
+  blockSize_->setValue(defaultDiff.highlightBlockSize);
+  addSliderField(highlightForm, tr("Block size"), blockSize_, "imageComparisonBlockSizeSlider");
+
+  highlightMethod_ = addChoices(
+      highlightForm, highlightGroup, {}, "imageComparisonHighlightMethod", 2,
+      {{Steady, tr("Steady"), tr("Keeps the highlight color visible."), "scan-line"},
+       {Blinking, tr("Blink highlight"), tr("Flashes only the highlight color."), "sun"}});
+  highlightOpacity_ = new QSpinBox(highlightGroup);
+  highlightOpacity_->setObjectName("imageComparisonHighlightOpacity");
+  highlightOpacity_->setRange(0, 100);
+  highlightOpacity_->setSuffix(QStringLiteral("%"));
+  highlightOpacity_->setSingleStep(5);
+  highlightOpacity_->setKeyboardTracking(false);
+  highlightOpacity_->setValue(defaultDiff.highlightOpacity);
+  addSliderField(highlightForm, tr("Highlight opacity"), highlightOpacity_,
+                 "imageComparisonHighlightOpacitySlider");
+
+  auto *resultsForm = addSettingsGroup(left, tr("Comparison results"));
+  auto *resultsGroup = resultsForm->parentWidget();
   auto *navigation = new QHBoxLayout;
   previousDifference_ =
-      new QPushButton(themedIcon("arrow-left"), tr("Previous difference"), sidebar);
-  nextDifference_ = new QPushButton(themedIcon("arrow-right"), tr("Next difference"), sidebar);
+      new QPushButton(themedIcon("arrow-left"), tr("Previous difference"), resultsGroup);
+  nextDifference_ = new QPushButton(themedIcon("arrow-right"), tr("Next difference"), resultsGroup);
   nextDifference_->setObjectName("nextComparisonDifference");
   const auto setShortcut = [](QPushButton *button, const QKeySequence &shortcut) {
     button->setShortcut(shortcut);
@@ -272,23 +394,28 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   setShortcut(nextFile_, QKeySequence(Qt::CTRL | Qt::Key_F8));
   navigation->addWidget(previousDifference_);
   navigation->addWidget(nextDifference_);
-  left->addLayout(navigation);
-  differences_ = messageLabel(sidebar);
+  resultsForm->addRow(navigation);
+  differences_ = messageLabel(resultsGroup);
   differences_->setObjectName("imageComparisonDetectionStatus");
-  pixelStatus_ = messageLabel(sidebar);
+  pixelStatus_ = messageLabel(resultsGroup);
   pixelStatus_->setObjectName("imageComparisonPixelStatus");
-  left->addWidget(differences_);
-  left->addWidget(pixelStatus_);
+  resultsForm->addRow(differences_);
+  resultsForm->addRow(pixelStatus_);
+  left->addStretch();
   auto *footer = new QHBoxLayout;
-  fit_ = new QPushButton(themedIcon("scan"), tr("Fit"), sidebar);
-  auto *close = new QPushButton(themedIcon("x"), tr("End Comparison"), sidebar);
+  fit_ = new QPushButton(themedIcon("scan"), tr("Fit"), sidebarPane);
+  auto *close = new QPushButton(themedIcon("x"), tr("End Comparison"), sidebarPane);
   close->setObjectName("endImageComparison");
   footer->addWidget(fit_);
   footer->addStretch();
   footer->addWidget(close);
-  left->addLayout(footer);
+  sidebarLayout->addLayout(footer);
 
-  preview_ = new QStackedWidget(splitter);
+  auto *comparisonPane = new QWidget(splitter);
+  auto *comparisonLayout = new QVBoxLayout(comparisonPane);
+  comparisonLayout->setContentsMargins(0, 0, 0, 0);
+  preview_ = new QStackedWidget(comparisonPane);
+  comparisonLayout->addWidget(preview_, 1);
   previewMessage_ = messageLabel(preview_);
   previewMessage_->setAlignment(Qt::AlignCenter);
   preview_->addWidget(previewMessage_);
@@ -297,6 +424,29 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   grid_->setAnimationPlaying(false);
   grid_->setFitOnPageChange(true);
   preview_->addWidget(grid_);
+  auto *pixelReadout = new QLabel(comparisonPane);
+  pixelReadout->setObjectName("imageComparisonHoverPixels");
+  pixelReadout->setAccessibleName(QCoreApplication::translate("MainWindow", "Pixel Info"));
+  pixelReadout->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  pixelReadout->setTextFormat(Qt::PlainText);
+  pixelReadout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+  pixelReadout->setMargin(6);
+  pixelReadout->setFrameShape(QFrame::StyledPanel);
+  pixelReadout->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+  const QString hoverPrompt = tr("Hover over an image to inspect pixel values.");
+  const QStringList heightSample(3, hoverPrompt);
+  pixelReadout->setText(heightSample.join('\n'));
+  pixelReadout->setFixedHeight(pixelReadout->sizeHint().height());
+  comparisonLayout->addWidget(pixelReadout);
+  const auto updatePixelReadout = [pixelReadout, hoverPrompt](const QStringList &lines) {
+    pixelReadout->setText(lines.isEmpty() ? hoverPrompt : lines.join('\n'));
+  };
+  updatePixelReadout({});
+  connect(grid_, &ViewerGridWidget::pixelInfoChanged, pixelReadout, updatePixelReadout);
+  connect(grid_, &ViewerGridWidget::sessionAboutToChange, pixelReadout,
+          [updatePixelReadout]() { updatePixelReadout({}); });
+  sidebarScroll->setMinimumWidth(sidebar->minimumSizeHint().width() +
+                                 sidebarScroll->verticalScrollBar()->sizeHint().width());
   splitter->setStretchFactor(1, 1);
   splitter->setSizes({330, 830});
 
@@ -315,10 +465,33 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   connect(nextFile_, &QPushButton::clicked, this, [this]() { stepFiles(1); });
   connect(externalViewer_, &QPushButton::clicked, this, &ImageComparisonWidget::openExternalViewer);
   connect(chooseViewer, &QToolButton::clicked, this, [this]() { chooseExternalViewer(); });
-  connect(display_, &QComboBox::currentIndexChanged, this,
-          &ImageComparisonWidget::applyDisplayMode);
-  connect(highlightMethod_, &QComboBox::currentIndexChanged, this,
+  connect(display_, &QButtonGroup::idToggled, this, [this, displayHint](int id, bool checked) {
+    if (checked) {
+      displayHint->setText(display_->button(id)->toolTip());
+      applyDisplayMode();
+    }
+  });
+  connect(alternationMode_, &QButtonGroup::idToggled, this, [this](int mode, bool checked) {
+    if (!checked) {
+      return;
+    }
+    const int frame = grid_->diffBlinkFrame(kDiffCell);
+    if (mode == Manual && frame >= 0) {
+      alternateFrame_->button(frame)->setChecked(true);
+    }
+    applyAlternationPlayback();
+  });
+  connect(alternateFrame_, &QButtonGroup::idClicked, this,
+          &ImageComparisonWidget::applyAlternationPlayback);
+  connect(alternationInterval_, &QSpinBox::valueChanged, this,
+          &ImageComparisonWidget::applyAlternationPlayback);
+  connect(highlightDifferences_, &QCheckBox::toggled, this,
           &ImageComparisonWidget::updateHighlights);
+  connect(highlightMethod_, &QButtonGroup::idToggled, this, [this](int, bool checked) {
+    if (checked) {
+      updateHighlights();
+    }
+  });
   connect(showDifferenceMap_, &QCheckBox::toggled, this, &ImageComparisonWidget::applyDisplayMode);
   connect(mapGain_, &QComboBox::currentIndexChanged, this, [this]() {
     grid_->setComparisonMapGain(mapGain_->currentData().toInt());
@@ -362,14 +535,14 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   updateThreshold();
   connect(sizeMatch_, &QComboBox::currentIndexChanged, this, [this]() {
     applyDiffSettings();
-    if (display_->currentIndex() == Blink) {
+    if (display_->checkedId() == Blink) {
       applyDisplayMode();
     }
   });
   connect(threshold_, &QDoubleSpinBox::valueChanged, this,
           &ImageComparisonWidget::applyDiffSettings);
   connect(blockSize_, &QSpinBox::valueChanged, this, &ImageComparisonWidget::applyDiffSettings);
-  connect(highlightTransparency_, &QSpinBox::valueChanged, this,
+  connect(highlightOpacity_, &QSpinBox::valueChanged, this,
           &ImageComparisonWidget::applyDiffSettings);
   connect(zoom_, &QDoubleSpinBox::valueChanged, this,
           [this](double percent) { grid_->setGlobalScale(percent / 100.0); });
@@ -388,7 +561,10 @@ ImageComparisonWidget::ImageComparisonWidget(QWidget *parent)
   });
   connect(grid_, &ViewerGridWidget::viewChanged, this, refreshZoom);
   connect(grid_, &ViewerGridWidget::statusChanged, this, refreshZoom);
-  connect(comparisonBasis_, &QComboBox::currentIndexChanged, this, [this]() {
+  connect(comparisonBasis_, &QButtonGroup::idToggled, this, [this](int, bool checked) {
+    if (!checked) {
+      return;
+    }
     TransparencyBackground background;
     const auto basis = comparisonBasis();
     if (basis != DiffComparisonBasis::PixelValues) {
@@ -436,6 +612,10 @@ void ImageComparisonWidget::keyPressEvent(QKeyEvent *event) {
 
 void ImageComparisonWidget::openImages(const QStringList &paths) {
   openPreparedImages(StartupPreparationController::prepareDiffImages(paths, QDir::currentPath()));
+}
+
+void ImageComparisonWidget::setPixelValueFormat(PixelValueFormat format) {
+  grid_->setPixelValueFormat(format);
 }
 
 void ImageComparisonWidget::openPreparedImages(PreparedImageSession prepared,
@@ -664,7 +844,7 @@ void ImageComparisonWidget::applyDiffSettings() {
   diff->settings.ignoreFullyTransparentRgb = ignoreTransparentRgb_->isChecked();
   diff->settings.sizeMatch = static_cast<DiffSizeMatch>(sizeMatch_->currentIndex());
   diff->settings.highlightBlockSize = blockSize_->value();
-  diff->settings.highlightOpacity = 100 - highlightTransparency_->value();
+  diff->settings.highlightOpacity = highlightOpacity_->value();
   grid_->setCellDiff(kDiffCell, diff);
 }
 
@@ -672,13 +852,22 @@ void ImageComparisonWidget::applyDisplayMode() {
   if (!comparingImages_) {
     return;
   }
-  const int mode = display_->currentIndex();
+  const bool sideBySide = display_->checkedId() == SideBySide;
   blinkPending_ = false;
   grid_->setDiffBlinking(kDiffCell, false);
-  grid_->setComparisonMapVisible(isSideBySide(mode) && showDifferenceMap_->isChecked());
-  grid_->setSoloCell(isSideBySide(mode) ? -1 : kDiffCell);
-  blinkPending_ = mode == Blink;
+  grid_->setComparisonMapVisible(sideBySide && showDifferenceMap_->isChecked());
+  grid_->setSoloCell(sideBySide ? -1 : kDiffCell);
+  blinkPending_ = !sideBySide;
   updateComparisonControls();
+}
+
+void ImageComparisonWidget::applyAlternationPlayback() {
+  const bool automatic = alternationMode_->checkedId() == Automatic;
+  alternationIntervalControls_->setVisible(automatic);
+  alternateFrameControls_->setVisible(!automatic);
+  grid_->configureDiffBlinkPlayback(kDiffCell, automatic ? alternationInterval_->value() : 0,
+                                    automatic ? std::nullopt
+                                              : std::optional(alternateFrame_->checkedId()));
 }
 
 void ImageComparisonWidget::updateMapLegend() {
@@ -699,17 +888,18 @@ void ImageComparisonWidget::updateMapLegend() {
 }
 
 void ImageComparisonWidget::updateHighlights() {
-  const int mode = display_->currentIndex();
-  const bool highlighting =
-      comparingImages_ && (mode == Highlight || mode == SideBySideHighlighted);
-  showDifferenceMap_->setEnabled(comparingImages_ && isSideBySide(mode));
-  mapAppearance_->setVisible(showDifferenceMap_->isEnabled() && showDifferenceMap_->isChecked());
-  highlightMethod_->setEnabled(highlighting);
-  highlightTransparency_->parentWidget()->setEnabled(highlighting);
+  const bool sideBySide = comparingImages_ && display_->checkedId() == SideBySide;
+  const bool highlighting = sideBySide && highlightDifferences_->isChecked();
+  const bool visible = highlighting && highlightOpacity_->value() > 0;
+  showDifferenceMap_->setEnabled(sideBySide);
+  mapAppearance_->setVisible(sideBySide && showDifferenceMap_->isChecked());
+  highlightDifferences_->setEnabled(sideBySide);
+  setChoicesEnabled(highlightMethod_, highlighting);
+  highlightOpacity_->parentWidget()->setEnabled(highlighting);
 
   const auto metrics = grid_->cellDiffMetrics(kDiffCell);
-  if (highlighting && highlightTransparency_->value() < 100 &&
-      highlightMethod_->currentIndex() == Blinking && metrics && metrics->exceededPixelCount > 0) {
+  if (visible && highlightMethod_->checkedId() == Blinking && metrics &&
+      metrics->exceededPixelCount > 0) {
     if (!highlightTimer_.isActive()) {
       highlightPhaseVisible_ = true;
       highlightTimer_.start();
@@ -718,19 +908,21 @@ void ImageComparisonWidget::updateHighlights() {
     highlightTimer_.stop();
     highlightPhaseVisible_ = true;
   }
-  grid_->setComparisonHighlightsVisible(highlighting && highlightPhaseVisible_);
+  grid_->setComparisonHighlightsVisible(visible && highlightPhaseVisible_);
 }
 
 void ImageComparisonWidget::updateComparisonControls() {
   const auto metrics = grid_->cellDiffMetrics(kDiffCell);
   const bool ready = comparingImages_ && metrics.has_value();
   const bool changes = ready && metrics->exceededPixelCount > 0;
-  display_->setEnabled(ready);
+  setChoicesEnabled(display_, ready);
+  alternationControls_->setVisible(comparingImages_ && display_->checkedId() == Blink);
+  alternationControls_->setEnabled(ready);
   calculation_->setEnabled(comparingImages_);
   sizeMatch_->setEnabled(comparingImages_);
   blockSize_->parentWidget()->setEnabled(comparingImages_);
   threshold_->parentWidget()->setEnabled(comparingImages_);
-  comparisonBasis_->setEnabled(comparingImages_);
+  setChoicesEnabled(comparisonBasis_, comparingImages_);
   ignoreTransparentRgb_->setEnabled(comparingImages_ &&
                                     comparisonBasis() == DiffComparisonBasis::PixelValues);
   fit_->setEnabled(preview_->currentWidget() == grid_);
@@ -756,12 +948,13 @@ void ImageComparisonWidget::updateComparisonControls() {
   }
   if (ready && std::exchange(blinkPending_, false)) {
     grid_->setDiffBlinking(kDiffCell, true);
+    applyAlternationPlayback();
   }
   updateHighlights();
 }
 
 DiffComparisonBasis ImageComparisonWidget::comparisonBasis() const {
-  return static_cast<DiffComparisonBasis>(comparisonBasis_->currentData().toInt());
+  return static_cast<DiffComparisonBasis>(comparisonBasis_->checkedId());
 }
 
 void ImageComparisonWidget::updatePixelStatus() {

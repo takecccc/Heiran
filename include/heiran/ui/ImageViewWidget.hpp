@@ -50,6 +50,8 @@ public:
   void setDiffRegion(const QRect &region = {}, qsizetype index = -1, qsizetype count = 0);
   QRectF diffRegionInDisplay() const;
   void setDiffBlinkFrames(std::array<QImage, 2> frames = {});
+  void configureDiffBlinkPlayback(int intervalMs, std::optional<int> frameIndex);
+  int diffBlinkFrame() const;
   // 右クリックの項目へ出す、セルの名前の一覧と、このセルの差分の有無。
   void setDiffMenuInfo(const QStringList &cellLabels, bool hasDiff, bool diffIsWipe = false);
   void setDecodedImage(const heiran::infra::DecodedImage &decodedImage, const QString &sourcePath,
@@ -83,7 +85,8 @@ public:
   void setSelectionRect(const std::optional<QRectF> &selectionRect,
                         const std::optional<QRectF> &previewSelectionRect);
   void setSharedCursorPosition(const std::optional<QPointF> &imagePosition);
-  QString pixelInfoAtImagePosition(const QPointF &imagePosition) const;
+  QString pixelInfoAtImagePosition(const QPointF &imagePosition,
+                                   std::optional<int> displayIndex = std::nullopt) const;
 
   int cellIndex() const { return cellIndex_; }
 

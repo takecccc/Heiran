@@ -104,6 +104,8 @@ public:
   bool diffHasAlphaChanges(int cellIndex) const;
   void moveToDiffRegion(int cellIndex, int direction);
   void setDiffBlinking(int cellIndex, bool enabled);
+  void configureDiffBlinkPlayback(int cellIndex, int intervalMs, std::optional<int> frameIndex);
+  int diffBlinkFrame(int cellIndex) const;
   // 差分のセルとして使える空きセル。無ければ -1。
   int firstEmptyCellIndex() const;
   // `cellIndex` に、`baseCell` を基準にした差分を出す。画像のあるセルは自身の画像との差分、
@@ -347,6 +349,10 @@ private:
   void clearHoverInfo();
   void updateSharedCursorPositions(int referenceCellIndex, const QPointF &imagePosition);
   QStringList buildHoverDetails(int referenceCellIndex, const QPointF &imagePosition) const;
+  QStringList buildComparisonHoverDetails(int referenceCellIndex,
+                                          const QPointF &imagePosition) const;
+  QPointF mapHoverPointToCell(const QPointF &point, int referenceCellIndex,
+                              int targetCellIndex) const;
   LoupePreview buildLoupePreview(int cellIndex, const QPointF &imagePosition) const;
   void handleSelectionRequest(int cellIndex, const QPointF &startImagePosition,
                               const QPointF &endImagePosition, bool final);

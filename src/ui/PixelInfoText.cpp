@@ -1,13 +1,15 @@
 #include "heiran/ui/PixelInfoText.hpp"
 
+#include <QCoreApplication>
 #include <QRegularExpression>
 
 namespace heiran::ui {
 
 namespace {
 
-QString formatChannelSample(const QString &label, float value, PixelValueFormat format) {
-  return QString("%1 %2").arg(label, -2).arg(formatPixelSample(value, format));
+QString formatChannelSample(const QString &label, float value, PixelValueFormat format,
+                            bool eightBit) {
+  return QString("%1 %2").arg(label, -2).arg(formatPixelSample(value, format, eightBit));
 }
 
 }  // namespace
@@ -84,7 +86,7 @@ QString formatImageIndexLabel(int imageSetIndex) {
 }
 
 QString formatPixelChannelValues(const QVector<PixelChannelValue> &values,
-                                 PixelValueFormat valueFormat) {
+                                 PixelValueFormat valueFormat, bool eightBit) {
   if (values.isEmpty()) {
     return {};
   }
@@ -92,12 +94,12 @@ QString formatPixelChannelValues(const QVector<PixelChannelValue> &values,
   // 1 つだけのときは桁揃えが要らない。揃えると値の前に余分な空白が入る。
   if (values.size() == 1) {
     return QString("%1=%2").arg(values.first().label,
-                                formatPixelSample(values.first().value, valueFormat));
+                                formatPixelSample(values.first().value, valueFormat, eightBit));
   }
 
   QStringList parts;
   for (const auto &value : values) {
-    parts.push_back(formatChannelSample(value.label + "=", value.value, valueFormat));
+    parts.push_back(formatChannelSample(value.label + "=", value.value, valueFormat, eightBit));
   }
   return parts.join(' ');
 }
@@ -146,18 +148,19 @@ QString buildPixelInfoStatusLine(int imageSetIndex, const CellStatusInfo &status
 }
 
 QString buildPixelInfoOutOfBoundsLine(int imageSetIndex, const QPoint &position) {
-  return QString("%1 %2: out-of-bounds")
+  return QString("%1 %2: %3")
       .arg(formatImageIndexLabel(imageSetIndex))
-      .arg(formatPixelPosition(position.x(), position.y()));
+      .arg(formatPixelPosition(position.x(), position.y()))
+      .arg(QCoreApplication::translate("PixelInfoText", "out-of-bounds"));
 }
 
 QString buildPixelInfoValueLine(int imageSetIndex, const QPoint &reportedPixel,
                                 const QVector<PixelChannelValue> &values,
-                                PixelValueFormat valueFormat) {
+                                PixelValueFormat valueFormat, bool eightBit) {
   return QString("%1 %2: %3")
       .arg(formatImageIndexLabel(imageSetIndex))
       .arg(formatPixelPosition(reportedPixel.x(), reportedPixel.y()))
-      .arg(formatPixelChannelValues(values, valueFormat));
+      .arg(formatPixelChannelValues(values, valueFormat, eightBit));
 }
 
 }  // namespace heiran::ui

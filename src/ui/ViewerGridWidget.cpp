@@ -2181,13 +2181,16 @@ void ViewerGridWidget::updateSharedCursorPositions(int referenceCellIndex,
   for (int targetCellIndex = 0; targetCellIndex < cells_.size(); ++targetCellIndex) {
     cells_.at(targetCellIndex)
         ->setSharedCursorPosition(
-            mapImagePointToCell(imagePosition, referenceCellIndex, targetCellIndex));
+            mapHoverPointToCell(imagePosition, referenceCellIndex, targetCellIndex));
   }
 }
 
 // 画素値表示の行を組み立てる。先頭にページと座標、続けてセルごとの値を並べる。
 QStringList ViewerGridWidget::buildHoverDetails(int referenceCellIndex,
                                                 const QPointF &imagePosition) const {
+  if (comparisonPresentation_) {
+    return buildComparisonHoverDetails(referenceCellIndex, imagePosition);
+  }
   const int imageX = static_cast<int>(std::floor(imagePosition.x()));
   const int imageY = static_cast<int>(std::floor(imagePosition.y()));
 
@@ -2198,6 +2201,24 @@ QStringList ViewerGridWidget::buildHoverDetails(int referenceCellIndex,
     const QPointF mappedImagePosition =
         mapImagePointToCell(imagePosition, referenceCellIndex, targetCellIndex);
     details << cells_.at(targetCellIndex)->pixelInfoAtImagePosition(mappedImagePosition);
+  }
+  return details;
+}
+
+QStringList ViewerGridWidget::buildComparisonHoverDetails(int referenceCellIndex,
+                                                          const QPointF &imagePosition) const {
+  constexpr int sourceCount = 2;
+  if (cells_.size() < sourceCount) {
+    return {};
+  }
+  const QPointF comparisonPosition =
+      mapHoverPointToCell(imagePosition, referenceCellIndex, sourceCount);
+  QStringList details{tr("Comparison position: x=%1 y=%2")
+                          .arg(static_cast<int>(std::floor(comparisonPosition.x())))
+                          .arg(static_cast<int>(std::floor(comparisonPosition.y())))};
+  for (int source = 0; source < sourceCount; ++source) {
+    const QPointF position = mapHoverPointToCell(imagePosition, referenceCellIndex, source);
+    details << cells_.at(source)->pixelInfoAtImagePosition(position, source);
   }
   return details;
 }
@@ -2331,7 +2352,7 @@ void ViewerGridWidget::refreshSelectionOverlays() {
     view->setSelectionRect(cellSelectionRect, cellPreviewSelectionRect);
     if (hoverCursorPosition_ && hoverReferenceCellIndex_ >= 0) {
       view->setSharedCursorPosition(
-          mapImagePointToCell(*hoverCursorPosition_, hoverReferenceCellIndex_, cellIndex));
+          mapHoverPointToCell(*hoverCursorPosition_, hoverReferenceCellIndex_, cellIndex));
     } else {
       view->setSharedCursorPosition(std::nullopt);
     }
@@ -2360,6 +2381,29 @@ QPointF ViewerGridWidget::mapImagePointToCell(const QPointF &point, int referenc
       heiran::domain::computeFinalViewState(globalState_, cellStates_.at(targetCellIndex));
   return QPointF(heiran::domain::mapImageXBetweenCells(referenceState, targetState, point.x()),
                  heiran::domain::mapImageYBetweenCells(referenceState, targetState, point.y()));
+}
+
+QPointF ViewerGridWidget::mapHoverPointToCell(const QPointF &point, int referenceCellIndex,
+                                              int targetCellIndex) const {
+  if (!comparisonPresentation_) {
+    return mapImagePointToCell(point, referenceCellIndex, targetCellIndex);
+  }
+  constexpr int diffCell = 2;
+  const auto *field =
+      diffStates_.size() > diffCell ? diffStates_.at(diffCell).field.get() : nullptr;
+  if (!field || referenceCellIndex == targetCellIndex ||
+      field->sizeMatch == heiran::domain::DiffSizeMatch::Overlap) {
+    return point;
+  }
+  const auto sizeForCell = [this, field](int cellIndex) {
+    return cellIndex == diffCell ? field->size : cells_.at(cellIndex)->displayImageSize();
+  };
+  const QSize from = sizeForCell(referenceCellIndex);
+  const QSize to = sizeForCell(targetCellIndex);
+  if (from.isEmpty() || to.isEmpty()) {
+    return point;
+  }
+  return QPointF(point.x() * to.width() / from.width(), point.y() * to.height() / from.height());
 }
 
 // ---- 差分のセル ----
@@ -2796,6 +2840,17 @@ void ViewerGridWidget::setDiffBlinking(int cellIndex, bool enabled) {
   view->setDiffBlinkFrames(prepareDiffBlinkFrames(displayInSrgb(diff->baseCell),
                                                   displayInSrgb(target), diff->settings.sizeMatch,
                                                   comparisonPresentation_));
+}
+
+void ViewerGridWidget::configureDiffBlinkPlayback(int cellIndex, int intervalMs,
+                                                  std::optional<int> frameIndex) {
+  if (cellIndex >= 0 && cellIndex < cells_.size()) {
+    cells_.at(cellIndex)->configureDiffBlinkPlayback(intervalMs, frameIndex);
+  }
+}
+
+int ViewerGridWidget::diffBlinkFrame(int cellIndex) const {
+  return cellIndex >= 0 && cellIndex < cells_.size() ? cells_.at(cellIndex)->diffBlinkFrame() : -1;
 }
 
 AnalysisSampler ViewerGridWidget::samplerForSource(

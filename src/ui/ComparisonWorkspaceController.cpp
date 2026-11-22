@@ -2,6 +2,7 @@
 
 #include "heiran/ui/ComparisonSetupDialog.hpp"
 #include "heiran/ui/ImageComparisonWidget.hpp"
+#include "heiran/ui/ViewerGridWidget.hpp"
 
 #include <QAction>
 #include <QDockWidget>
@@ -14,7 +15,8 @@
 
 namespace heiran::ui {
 
-ComparisonWorkspaceController::ComparisonWorkspaceController(QMainWindow *window, QWidget *viewer)
+ComparisonWorkspaceController::ComparisonWorkspaceController(QMainWindow *window,
+                                                             ViewerGridWidget *viewer)
     : QObject(window), window_(window), viewer_(viewer), pages_(new QStackedWidget(window)) {
   pages_->addWidget(viewer_);
   window_->setCentralWidget(pages_);
@@ -60,6 +62,7 @@ ImageComparisonWidget *ComparisonWorkspaceController::start() {
     window_->removeAction(action);
   }
   comparison_ = new ImageComparisonWidget(pages_);
+  comparison_->setPixelValueFormat(viewer_->pixelValueFormat());
   connect(comparison_, &ImageComparisonWidget::endRequested, this,
           &ComparisonWorkspaceController::finish);
   pages_->addWidget(comparison_);

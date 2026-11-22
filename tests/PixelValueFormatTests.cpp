@@ -39,6 +39,17 @@ private Q_SLOTS:
              QString("1.00000"));
   }
 
+  void formatsEightBitSamplesAsIntegersInByteRange() {
+    QCOMPARE(heiran::ui::formatPixelSample(0.0F, PixelValueFormat::Normalized255, true),
+             QString("  0"));
+    QCOMPARE(heiran::ui::formatPixelSample(128.0F / 255.0F, PixelValueFormat::Normalized255, true),
+             QString("128"));
+    QCOMPARE(heiran::ui::formatPixelSample(1.0F, PixelValueFormat::Normalized255, true),
+             QString("255"));
+    QCOMPARE(heiran::ui::formatPixelSample(1.0F, PixelValueFormat::Normalized01, true).trimmed(),
+             QString("1.00000"));
+  }
+
   void keeps16BitStepsDistinguishable() {
     // 16bit の隣り合う階調が同じ文字列にならないことを確認する。
     const float lower = 32896.0F / 65535.0F;

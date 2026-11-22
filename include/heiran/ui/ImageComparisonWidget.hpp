@@ -1,6 +1,7 @@
 #pragma once
 
 #include "heiran/app/FolderComparison.hpp"
+#include "heiran/ui/PixelValueFormat.hpp"
 #include "heiran/ui/StartupPreparationController.hpp"
 
 #include <QFutureWatcher>
@@ -8,6 +9,7 @@
 #include <QWidget>
 
 class QCheckBox;
+class QButtonGroup;
 class QComboBox;
 class QDoubleSpinBox;
 class QKeyEvent;
@@ -31,6 +33,7 @@ public:
   void openPreparedImages(PreparedImageSession prepared,
                           std::shared_ptr<DecodeScheduler> scheduler = {});
   void openFolders(const QString &left, const QString &right);
+  void setPixelValueFormat(PixelValueFormat format);
 
 Q_SIGNALS:
   void endRequested();
@@ -48,6 +51,7 @@ private:
   void openExternalViewer();
   QString chooseExternalViewer();
   void applyDisplayMode();
+  void applyAlternationPlayback();
   void updateMapLegend();
   void updateHighlights();
   void applyDiffSettings();
@@ -69,18 +73,25 @@ private:
   QPushButton *previousFile_;
   QPushButton *nextFile_;
   QPushButton *externalViewer_;
-  QComboBox *display_;
-  QComboBox *highlightMethod_;
+  QButtonGroup *display_;
+  QWidget *alternationControls_;
+  QButtonGroup *alternationMode_;
+  QWidget *alternationIntervalControls_;
+  QSpinBox *alternationInterval_;
+  QWidget *alternateFrameControls_;
+  QButtonGroup *alternateFrame_;
+  QCheckBox *highlightDifferences_;
+  QButtonGroup *highlightMethod_;
   QCheckBox *showDifferenceMap_;
   QWidget *mapAppearance_;
   QComboBox *mapGain_;
   QLabel *mapLegend_;
   QComboBox *calculation_;
-  QComboBox *comparisonBasis_;
+  QButtonGroup *comparisonBasis_;
   QComboBox *sizeMatch_;
   QDoubleSpinBox *threshold_;
   QSpinBox *blockSize_;
-  QSpinBox *highlightTransparency_;
+  QSpinBox *highlightOpacity_;
   QDoubleSpinBox *zoom_;
   QCheckBox *ignoreTransparentRgb_;
   QPushButton *previousDifference_;

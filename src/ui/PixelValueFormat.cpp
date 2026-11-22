@@ -25,14 +25,15 @@ PixelValueFormat pixelValueFormatFromString(const QString &text) {
              : PixelValueFormat::Normalized255;
 }
 
-QString formatPixelSample(float normalizedValue, PixelValueFormat format) {
+QString formatPixelSample(float normalizedValue, PixelValueFormat format, bool eightBit) {
   if (format == PixelValueFormat::Normalized01) {
     return QString("%1").arg(static_cast<double>(normalizedValue), kNormalized01Width, 'f',
                              kNormalized01Decimals);
   }
 
-  return QString("%1").arg(static_cast<double>(normalizedValue) * 255.0, kNormalized255Width, 'f',
-                           kNormalized255Decimals);
+  return QString("%1").arg(static_cast<double>(normalizedValue) * 255.0,
+                           eightBit ? 3 : kNormalized255Width, 'f',
+                           eightBit ? 0 : kNormalized255Decimals);
 }
 
 }  // namespace heiran::ui
