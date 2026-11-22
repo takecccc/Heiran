@@ -1928,7 +1928,7 @@ void ViewerGridWidget::notifyPersistentStateChanged() {
 }
 
 void ViewerGridWidget::handleSyncToggleRequest(int cellIndex) {
-  if (cellIndex < 0 || cellIndex >= cellStates_.size()) {
+  if (comparisonPresentation_ || cellIndex < 0 || cellIndex >= cellStates_.size()) {
     return;
   }
 
@@ -2099,7 +2099,7 @@ void ViewerGridWidget::handlePanRequest(int cellIndex, double deltaImageX, doubl
     totalTimer.start();
   }
 
-  if (cellStates_[cellIndex].syncEnabled) {
+  if (comparisonPresentation_ || cellStates_[cellIndex].syncEnabled) {
     heiran::domain::applyPanToGlobal(&globalState_, deltaImageX, deltaImageY);
   } else {
     heiran::domain::applyPanToCell(&cellStates_[cellIndex], deltaImageX, deltaImageY);

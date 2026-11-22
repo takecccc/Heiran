@@ -1484,6 +1484,35 @@ private Q_SLOTS:
     QCOMPARE(grid->diffFieldComputeCount(), computes);
   }
 
+  void keepsComparisonPanningSynchronizedWithoutHeaderButtons() {
+    SessionFixture fixture;
+    QVERIFY(fixture.isValid());
+    const auto left = fixture.makeImageSet("left", Qt::red, 1);
+    const auto right = fixture.makeImageSet("right", Qt::blue, 1);
+    QVERIFY(!left.resolvedPaths.isEmpty() && !right.resolvedPaths.isEmpty());
+
+    heiran::ui::ImageComparisonWidget dialog;
+    dialog.openImages({left.resolvedPaths.first(), right.resolvedPaths.first()});
+    auto *grid = dialog.findChild<heiran::ui::ViewerGridWidget *>();
+    QVERIFY(grid);
+    const auto views = grid->findChildren<heiran::ui::ImageViewWidget *>();
+    QCOMPARE(views.size(), 3);
+    QTRY_VERIFY(grid->cellDiffMetrics(2).has_value());
+    const auto before = grid->globalViewState();
+    for (int side = 0; side < 2; ++side) {
+      auto *view = views.at(side);
+      auto *header = view->findChild<QWidget *>("cellHeader");
+      QVERIFY(header);
+      QSignalSpy syncToggle(view, &heiran::ui::ImageViewWidget::syncToggleRequested);
+      QTest::mouseClick(header, Qt::LeftButton, Qt::NoModifier, QPoint(14, 10));
+      QCOMPARE(syncToggle.count(), 0);
+      Q_EMIT view->syncToggleRequested(side);
+      Q_EMIT view->panRequested(side, 3.0, -2.0);
+    }
+    QCOMPARE(grid->globalViewState().baseOffsetX, before.baseOffsetX + 6.0);
+    QCOMPARE(grid->globalViewState().baseOffsetY, before.baseOffsetY - 4.0);
+  }
+
   void reportsBothOriginalPixelsBelowTheComparison() {
     SessionFixture fixture;
     QVERIFY(fixture.isValid());

@@ -175,7 +175,15 @@ public:
     setMouseTracking(true);
   }
 
-  QRect syncButtonRect() const { return QRect(kInnerPadding, 4, kSyncButtonWidth, height() - 8); }
+  void hideSyncButton() {
+    syncButtonVisible_ = false;
+    unsetCursor();
+    update();
+  }
+
+  QRect syncButtonRect() const {
+    return syncButtonVisible_ ? QRect(kInnerPadding, 4, kSyncButtonWidth, height() - 8) : QRect();
+  }
 
 protected:
   void paintEvent(QPaintEvent *) override {
@@ -190,13 +198,17 @@ protected:
 
     // 同期の印。連動しているセルは落ち着いた青緑、外したセルは灰色にして、警告色にはしない。
     const QRect syncRect = syncButtonRect();
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(owner_->cellState_.syncEnabled ? QColor(52, 104, 120) : QColor(58, 61, 67));
-    painter.drawRoundedRect(syncRect, 4, 4);
-    painter.setPen(owner_->cellState_.syncEnabled ? QColor(226, 240, 246) : QColor(150, 155, 164));
-    painter.drawText(syncRect, Qt::AlignCenter, syncButtonText(owner_->imageSetIndex_));
+    if (!syncRect.isEmpty()) {
+      painter.setPen(Qt::NoPen);
+      painter.setBrush(owner_->cellState_.syncEnabled ? QColor(52, 104, 120) : QColor(58, 61, 67));
+      painter.drawRoundedRect(syncRect, 4, 4);
+      painter.setPen(owner_->cellState_.syncEnabled ? QColor(226, 240, 246)
+                                                    : QColor(150, 155, 164));
+      painter.drawText(syncRect, Qt::AlignCenter, syncButtonText(owner_->imageSetIndex_));
+    }
 
-    const QRect scaleRect(syncRect.right() + 10, 0, 92, height());
+    const QRect scaleRect(syncRect.isEmpty() ? kInnerPadding : syncRect.right() + 10, 0, 92,
+                          height());
     painter.setPen(QColor(150, 155, 164));
     painter.drawText(scaleRect, Qt::AlignVCenter | Qt::AlignLeft, owner_->cachedScaleText_);
 
@@ -274,6 +286,7 @@ protected:
 
 private:
   ImageViewWidget *owner_;
+  bool syncButtonVisible_ = true;
 };
 
 // ワイプの境目を示す線と、つかむ部分。つかんで動かすと、境目の位置が変わる。
@@ -1121,6 +1134,7 @@ ImageViewWidget::ImageViewWidget(QWidget *parent) : QWidget(parent) {
 }
 
 void ImageViewWidget::restrictToComparison() {
+  headerWidget_->hideSyncButton();
   canvasWidget_->setContextMenuPolicy(Qt::PreventContextMenu);
   canvasWidget_->setAcceptDrops(false);
 }
